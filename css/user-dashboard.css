@@ -1141,7 +1141,7 @@ table.data-table tr:hover td { background: var(--bg-hover); }
 
 .ud-topnav-brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
 
-.ud-topnav-logo-box {
+/* .ud-topnav-logo-box {
   width: 38px;
   height: 38px;
   overflow: hidden;
@@ -1154,14 +1154,15 @@ table.data-table tr:hover td { background: var(--bg-hover); }
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-}
+} */
 
 .ud-topnav-logo-img {
-  display: block;
-  width: 100%;
-  height: 100%;
-  padding: 5px;
+  height: 50px;
+  width: auto;
+  transform: scale(1.3);
   object-fit: contain;
+  position: relative;
+  top: 5px;
 }
 
 .ud-topnav-titles { display: flex; flex-direction: column; line-height: 1.3; min-width: 0; }
