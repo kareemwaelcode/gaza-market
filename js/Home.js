@@ -3,6 +3,22 @@
 let activeFilter = 'all';
 let userRegion = window.GM_SELECTED_REGION || null;
 
+/*
+ * Backend endpoints
+ * ---------------------------------------------------------------------
+ * Hero section: one request returns everything the hero needs.
+ * Expected response (GET /api/hero):
+ * {
+ *   "section": { ...one row of the hero_section table (same column names)... },
+ *   "stats":   { "products": 375, "prices": 2356, "listings": 100, "places": 35 },
+ *   "ticker":  [ { "name_ar": "قهوة", "name_en": "Coffee", "price": 24 }, ... ]
+ * }
+ * Any part may be missing: whatever is missing keeps the static HTML value.
+ */
+const GM_API = {
+  hero: '/api/hero',
+};
+
 function cardMatchesFilter(card) {
   if (activeFilter === 'nearby' && userRegion) {
     return card.dataset.region === userRegion;
@@ -270,21 +286,99 @@ function updateHeroDatetime() {
 }
 
 /*
- * Hero ticker ("today's report")
+ * Hero section (data from the backend)
  * ---------------------------------------------------------------------
- * The ticker items (product name + count) are no longer stored in this
- * file. They live as real markup inside #heroTickerTrack in home.html
- * (each item is a `<span class="hero-ticker__item" data-ticker-item>`).
- * This script only reads that markup, duplicates it for the seamless
- * scrolling loop, and builds the printable report from the same DOM
- * elements — no product names/counts/labels are hard-coded in JS.
+ * - Texts   : come from the hero_section table (one row, ar + en columns).
+ * - Numbers : the four stat boxes (products, prices, listings, places).
+ * - Ticker  : latest price per product ("today's prices").
+ *
+ * Everything is fetched with ONE request (GM_API.hero) and stored in
+ * heroData. When the language changes (the <html lang> attribute), the
+ * hero is re-rendered from heroData without a new request.
+ *
+ * If the request fails, the static markup in home.html stays as a
+ * fallback and the ticker animation still runs on it.
  */
 
+let heroData = null;
+
+// Maps each hero text element to its column prefix in hero_section.
+// The real column is `${prefix}_ar` or `${prefix}_en`.
+const HERO_TEXT_MAP = [
+  { selector: '[data-i18n="hero.eyebrow"]',         column: 'hero_section_eyebrow' },
+  { selector: '[data-i18n="hero.welcome"]',         column: 'hero_section_title' },
+  { selector: '[data-i18n="hero.Live-prices"]',     column: 'hero_section_subtitle' },
+  { selector: '#heroLocation',                      column: 'hero_section_location' },
+  { selector: '.stat-box:nth-child(1) .stat-box__label', column: 'hero_section_products_label' },
+  { selector: '.stat-box:nth-child(2) .stat-box__label', column: 'hero_section_prices_label' },
+  { selector: '.stat-box:nth-child(3) .stat-box__label', column: 'hero_section_listings_label' },
+  { selector: '.stat-box:nth-child(4) .stat-box__label', column: 'hero_section_places_label' },
+  { selector: '#heroTicker .hero-ticker__label span',    column: 'hero_section_ticker_label' },
+];
+
+// Order of the stat boxes in the HTML.
+const HERO_STAT_KEYS = ['products', 'prices', 'listings', 'places'];
+
+function getCurrentLang() {
+  return document.documentElement.lang === 'en' ? 'en' : 'ar';
+}
+
+function formatTickerPrice(value) {
+  const num = Number(value);
+  if (!isFinite(num)) return '';
+  return `₪${+num.toFixed(2)}`;
+}
+
+function renderHeroTexts(section) {
+  if (!section) return;
+  const lang = getCurrentLang();
+
+  HERO_TEXT_MAP.forEach(({ selector, column }) => {
+    const el = document.querySelector(selector);
+    if (!el) return;
+
+    const value = section[`${column}_${lang}`];
+    if (typeof value !== 'string' || !value.trim()) return;
+
+    // The text now belongs to the backend, so i18n.js must not overwrite it.
+    el.removeAttribute('data-i18n');
+    el.textContent = value;
+  });
+
+  const ticker = document.getElementById('heroTicker');
+  const tickerLabel = section[`hero_section_ticker_label_${lang}`];
+  if (ticker && tickerLabel) ticker.setAttribute('aria-label', tickerLabel);
+}
+
+function renderHeroStats(stats) {
+  if (!stats) return;
+  const boxes = document.querySelectorAll('.hero__stats .stat-box__num');
+
+  HERO_STAT_KEYS.forEach((key, index) => {
+    const el = boxes[index];
+    const value = Number(stats[key]);
+    if (el && isFinite(value)) el.textContent = value;
+  });
+}
+
 const HERO_TICKER_SPEED_PX_S = 32;
+let heroTickerResizeBound = false;
+
+function setHeroTickerSpeed(track) {
+  const halfWidth = track.scrollWidth / 2;
+  if (!halfWidth) return false;
+  const duration = Math.max(halfWidth / HERO_TICKER_SPEED_PX_S, 12);
+  track.style.setProperty('--ticker-duration', `${duration}s`);
+  return true;
+}
 
 function initHeroTicker() {
   const track = document.getElementById('heroTickerTrack');
   if (!track) return;
+
+  // Only the originals: clones from a previous run are dropped first,
+  // so this function is safe to call again after a re-render.
+  track.querySelectorAll('[aria-hidden="true"]').forEach(clone => clone.remove());
 
   const sourceItems = Array.from(track.querySelectorAll('[data-ticker-item]'));
   if (!sourceItems.length) return;
@@ -302,27 +396,103 @@ function initHeroTicker() {
   });
   track.appendChild(fragment);
 
-  const applySpeed = () => {
-    const halfWidth = track.scrollWidth / 2;
-    if (!halfWidth) return;
-    const duration = Math.max(halfWidth / HERO_TICKER_SPEED_PX_S, 12);
-    track.style.setProperty('--ticker-duration', `${duration}s`);
-    track.style.transition = 'opacity .3s ease';
-    track.style.opacity = '1';
-  };
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    if (setHeroTickerSpeed(track)) {
+      track.style.transition = 'opacity .3s ease';
+      track.style.opacity = '1';
+    }
+  }));
 
-  requestAnimationFrame(() => requestAnimationFrame(applySpeed));
+  if (!heroTickerResizeBound) {
+    heroTickerResizeBound = true;
+    let resizeTimer = null;
+    window.addEventListener('resize', () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => {
+        const current = document.getElementById('heroTickerTrack');
+        if (current) setHeroTickerSpeed(current);
+      }, 200);
+    }, { passive: true });
+  }
+}
 
-  let resizeTimer = null;
-  window.addEventListener('resize', () => {
-    clearTimeout(resizeTimer);
-    resizeTimer = setTimeout(applySpeed, 200);
-  }, { passive: true });
+function renderHeroTicker(items) {
+  const track = document.getElementById('heroTickerTrack');
+  const ticker = document.getElementById('heroTicker');
+  if (!track || !Array.isArray(items)) return;
+
+  // The API answered but there are no prices: hide the strip.
+  if (!items.length) {
+    if (ticker) ticker.style.display = 'none';
+    return;
+  }
+  if (ticker) ticker.style.display = '';
+
+  const lang = getCurrentLang();
+  const fragment = document.createDocumentFragment();
+
+  items.forEach(entry => {
+    const priceText = formatTickerPrice(entry.price);
+    const nameText = entry[`name_${lang}`] || entry.name_ar || entry.name_en || '';
+    if (!nameText || !priceText) return;
+
+    const item = document.createElement('span');
+    item.className = 'hero-ticker__item';
+    item.setAttribute('data-ticker-item', '');
+
+    const name = document.createElement('span');
+    name.className = 'hero-ticker__item-name';
+    name.textContent = nameText;
+
+    const badge = document.createElement('span');
+    badge.className = 'hero-ticker__badge';
+    badge.textContent = priceText;
+
+    item.append(name, badge);
+    fragment.appendChild(item);
+  });
+
+  track.replaceChildren(fragment);
+  initHeroTicker();
+}
+
+function renderHero() {
+  if (!heroData) return;
+  renderHeroTexts(heroData.section);
+  renderHeroStats(heroData.stats);
+  renderHeroTicker(heroData.ticker);
+}
+
+async function loadHero() {
+  try {
+    const res = await fetch(GM_API.hero, { headers: { Accept: 'application/json' } });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    heroData = await res.json();
+  } catch (err) {
+    console.error('loadHero failed:', err);
+    // Fallback: keep the static HTML and just run the ticker animation on it.
+    initHeroTicker();
+    return;
+  }
+
+  renderHero();
+}
+
+// Re-render the hero when the language changes (no new request).
+function initHeroLangWatcher() {
+  let lastLang = getCurrentLang();
+
+  new MutationObserver(() => {
+    const lang = getCurrentLang();
+    if (lang === lastLang) return;
+    lastLang = lang;
+    renderHero();
+  }).observe(document.documentElement, { attributes: true, attributeFilter: ['lang'] });
 }
 
 function buildHeroTickerPrintArea() {
   const track = document.getElementById('heroTickerTrack');
-  const labelEl = document.querySelector('#heroTicker .hero-ticker__label [data-i18n="hero.tickerLabel"]');
+  const labelEl = document.querySelector('#heroTicker .hero-ticker__label span');
 
   const root = document.createElement('div');
   root.id = 'heroTickerPrintArea';
@@ -574,8 +744,8 @@ document.addEventListener('DOMContentLoaded', () => {
   initFilterButtons();
   initRegionDropdown();
   initCategoryCarousel();
-  initHeroTicker();
+  initHeroLangWatcher();
+  loadHero();
   initHeroTickerPdfButton();
   initPointsCard();
 });
-

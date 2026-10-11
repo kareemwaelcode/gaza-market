@@ -8274,6 +8274,7 @@ body.dark-mode .priceList .check-badge button {
   overflow: hidden;
   box-shadow: var(--gm-shadow);
 }
+.hero-ticker[hidden] { display: none; }
 .hero-ticker__label {
   flex: 0 0 auto;
   display: flex;

@@ -1666,36 +1666,26 @@
                 <div class="stat-box__label" data-i18n="hero.businessPremises">Shops</div>
               </div>
             </div>
-
-            <!-- <div class="hero__compare">
-              <div class="hero__compare-title" data-i18n="hero.compareTitle">Price comparison today</div>
-
-              <div class="hero__compare-product">
-                <span data-i18n="hero.compareProduct">Rice 5kg</span>
-              </div>
-
-              <div class="hero__compare-row">
-                <span class="compare-tag low" data-i18n="hero.lowest">Lowest</span>
-                <span class="compare-store" data-i18n="hero.store1">Al-Amal Market</span>
-                <span class="compare-price low">₪18</span>
-              </div>
-
-              <div class="hero__compare-row">
-                <span class="compare-tag high" data-i18n="hero.highest">Highest</span>
-                <span class="compare-store" data-i18n="hero.store2">Al-Quds Store</span>
-                <span class="compare-price high">₪24</span>
-              </div>
-
-              <div class="hero__compare-save">
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chart-line-icon lucide-chart-line"><path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="m19 9-5 5-4-4-3 3"/></svg>
-                <span data-i18n="hero.saveUpTo">Save up to</span>
-                <b>25%</b>
-                <span data-i18n="hero.byComparing">by comparing</span>
-              </div>
-            </div> -->
           </div>
         </div>
 
+
+    <!-- <div class="hero-ticker" id="heroTicker" aria-label="تقرير اليوم" role="region">
+      <div class="hero-ticker__label">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-clipboard-list-icon lucide-clipboard-list"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/></svg>
+        <span data-i18n="hero.tickerLabel">Today's Prices</span>
+      </div>
+
+    Filled by Home.js from GET /api/hero (ticker)
+      <div class="hero-ticker__viewport">
+      
+        <div class="hero-ticker__track" id="heroTickerTrack"></div>
+      </div>
+
+      <button type="button" class="hero-ticker__pdf-btn" id="heroTickerPdfBtn">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-download-icon lucide-download"><path d="M12 15V3"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/></svg>
+      </button>
+    </div> -->
         <div class="hero-ticker" id="heroTicker" aria-label="تقرير اليوم" role="region">
           <div class="hero-ticker__label">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-clipboard-list-icon lucide-clipboard-list"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/></svg>
@@ -1946,10 +1936,10 @@
 <script src="js/translations.js"></script>
 <script src="js/i18n.js"></script>
 <script src="js/exchange-rates.js"></script>
-<script src="js/Home.js"></script>
+<script src="js/home.js"></script>
 <script src="js/main.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/region-guard.js"></script>
-<script src="js/Offline.js"></script>
+<script src="js/offline.js"></script>
 </body>
 </html>
