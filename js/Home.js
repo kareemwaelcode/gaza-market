@@ -1,7 +1,66 @@
 'use strict';
 
-let activeFilter = 'all';
-let userRegion = window.GM_SELECTED_REGION || null;
+/*
+ * Region catalog (single source of truth for the frontend)
+ * ---------------------------------------------------------------------
+ * code  : the stable identifier. It equals the data-i18n key used in the
+ *         navbar dropdown, and it is what the backend should store/accept
+ *         (e.g. GET /api/prices?region=Maghazi).
+ * value : the value used by the "Add price" form (data-value on
+ *         .npw-region-btn). It differs from `code` for some regions.
+ *
+ * normalizeRegion() accepts either form (any case, spaces/dashes ignored)
+ * and always returns the `code`, so cards, dropdown, saved region and the
+ * add-price form can never silently disagree.
+ */
+const GM_REGIONS = [
+  { code: 'Nuseirat',          value: 'Nuseirat',          group: 'central' },
+  { code: 'Breij',             value: 'Breij',             group: 'central' },
+  { code: 'Maghazi',           value: 'Maghazi',           group: 'central' },
+  { code: 'Zawayda',           value: 'Zawayda',           group: 'central' },
+  { code: 'DeirBalah',         value: 'Deir al-Balah',     group: 'central' },
+  { code: 'KhanYunis',         value: 'Khan Yunis',        group: 'south' },
+  { code: 'Rafah',             value: 'Rafah',             group: 'south' },
+  { code: 'MawasiKhanYunis',   value: 'Mawasi Khan Yunis', group: 'south' },
+  { code: 'MawasiQarara',      value: 'Mawasi al-Qarara',  group: 'south' },
+  { code: 'Alrimal',           value: 'Alrimal',           group: 'north' },
+  { code: 'Alshaati',          value: 'Alshaati',          group: 'north' },
+  { code: 'SheikhRadwan',      value: 'Sheikh Radwan',     group: 'north' },
+  { code: 'Saftawi',           value: 'Saftawi',           group: 'north' },
+  { code: 'BeitHanoun',        value: 'Beit Hanoun',       group: 'north' },
+  { code: 'BeitLahia',         value: 'Beit Lahia',        group: 'north' },
+  { code: 'TalHawa',           value: 'Tal Al-Hawa',       group: 'north' },
+  { code: 'Jabalia',           value: 'Jabalia',           group: 'north' },
+];
+
+const GM_REGION_LOOKUP = (() => {
+  const squash = s => String(s).toLowerCase().replace(/[^a-z0-9]/g, '');
+  const map = new Map();
+  GM_REGIONS.forEach(r => {
+    map.set(squash(r.code), r.code);
+    map.set(squash(r.value), r.code);
+  });
+  return { squash, map };
+})();
+
+function normalizeRegion(raw) {
+  if (raw === null || raw === undefined || raw === '') return null;
+  return GM_REGION_LOOKUP.map.get(GM_REGION_LOOKUP.squash(raw)) || null;
+}
+
+const REGION_STORAGE_KEY = 'gmSelectedArea'; // نفس المفتاح اللي يستخدمه region-guard.js وباقي الصفحات
+
+function getSavedRegion() {
+  try {
+    return localStorage.getItem(REGION_STORAGE_KEY);
+  } catch (err) {
+    return null;
+  }
+}
+
+let userRegion = normalizeRegion(window.GM_SELECTED_REGION) || normalizeRegion(getSavedRegion());
+// "منطقتي" هي الافتراضية إذا المنطقة معروفة، وإلا "الكل"
+let activeFilter = userRegion ? 'nearby' : 'all';
 
 /*
  * Backend endpoints
@@ -21,26 +80,50 @@ const GM_API = {
 
 function cardMatchesFilter(card) {
   if (activeFilter === 'nearby' && userRegion) {
-    return card.dataset.region === userRegion;
+    return normalizeRegion(card.dataset.region) === userRegion;
   }
   return true;
 }
 
-function applyPriceFilter() {
+// أقصى عدد كروت نشغّل عليها الأنيميشن (الباقي يظهر مباشرة بدون حركة)
+const MAX_ANIMATED_CARDS = 12;
+
+function applyPriceFilter({ animate = false } = {}) {
   const container = document.getElementById('priceList');
   const emptyState = document.getElementById('priceEmptyState');
   if (!container) return;
 
   const cards = container.querySelectorAll('[data-role="card"]');
+  const newlyShown = [];
   let visibleCount = 0;
 
+  // مرحلة الكتابة فقط: بدون أي قراءة للأبعاد، ونكتب بس لما القيمة تتغير
   cards.forEach(card => {
     const matches = cardMatchesFilter(card);
-    card.hidden = !matches;
     if (matches) visibleCount += 1;
+
+    if (card.hidden === matches) {
+      if (matches && animate) newlyShown.push(card);
+      card.hidden = !matches;
+    }
   });
 
   if (emptyState) emptyState.hidden = visibleCount !== 0;
+
+  if (!animate || !newlyShown.length) return;
+
+  const toAnimate = newlyShown.slice(0, MAX_ANIMATED_CARDS);
+  toAnimate.forEach((card, i) => {
+    card.style.setProperty('--i', i);
+    card.classList.remove('is-entering');
+  });
+
+  void container.offsetWidth; // reflow واحد فقط لكل الكروت (بدل reflow لكل كرت)
+
+  toAnimate.forEach(card => {
+    card.classList.add('is-entering');
+    card.addEventListener('animationend', () => card.classList.remove('is-entering'), { once: true });
+  });
 }
 
 async function postVote(productId, vote) {
@@ -137,36 +220,100 @@ function initPriceListEvents() {
   });
 }
 
-function initFilterButtons() {
-  document.querySelectorAll('.filter-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.filter-btn').forEach(b => {
-        b.classList.remove('is-active');
-        b.removeAttribute('aria-current');
-      });
-
-      btn.classList.add('is-active');
-      btn.setAttribute('aria-current', 'true');
-      activeFilter = btn.dataset.filter || 'all';
-
-      applyPriceFilter();
-    });
+function syncFilterButtons() {
+  document.querySelectorAll('.filter-btn').forEach(b => {
+    const on = (b.dataset.filter || 'all') === activeFilter;
+    b.classList.toggle('is-active', on);
+    if (on) b.setAttribute('aria-current', 'true');
+    else b.removeAttribute('aria-current');
   });
 }
 
-function selectRegion(regionKey, regionLabel) {
+// الخلفية الخضراء المنزلقة
+function moveFilterPill() {
+  const active = document.querySelector('.filter-btn.is-active');
+  if (!active) return;
+
+  const group = active.parentElement;
+  group.classList.add('gm-pill-group');
+  group.style.setProperty('--pill-x', `${active.offsetLeft}px`);
+  group.style.setProperty('--pill-y', `${active.offsetTop}px`);
+  group.style.setProperty('--pill-w', `${active.offsetWidth}px`);
+  group.style.setProperty('--pill-h', `${active.offsetHeight}px`);
+
+  if (!group.classList.contains('has-pill')) {
+    group.classList.add('has-pill');
+    // نفعّل الـ transition بعد أول وضع، عشان ما ينزلق عند فتح الصفحة
+    requestAnimationFrame(() => requestAnimationFrame(() => group.classList.add('is-ready')));
+  }
+}
+
+function setFilter(next) {
+  activeFilter = next;
+  syncFilterButtons();
+  moveFilterPill();
+  applyPriceFilter({ animate: true });
+}
+
+function initFilterButtons() {
+  document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => setFilter(btn.dataset.filter || 'all'));
+  });
+
+  syncFilterButtons();
+  moveFilterPill();
+
+  // الأبعاد ممكن تتغير بعد تحميل الخطوط أو تغيير اللغة/الاتجاه
+  window.addEventListener('load', moveFilterPill, { passive: true });
+  window.addEventListener('resize', moveFilterPill, { passive: true });
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(moveFilterPill);
+
+  new MutationObserver(() => requestAnimationFrame(moveFilterPill))
+    .observe(document.documentElement, { attributes: true, attributeFilter: ['lang', 'dir'] });
+}
+
+function setRegionLabels(regionKey, regionLabel) {
+  // نحط المفتاح في data-i18n عشان النص يتترجم لحاله عند تغيير اللغة
+  const labelText = document.getElementById('areaLabelText');
+  if (labelText) {
+    labelText.dataset.i18n = regionKey;
+    if (regionLabel) labelText.textContent = regionLabel;
+  }
+
+  // اسم المنطقة على زر "منطقتي"
+  const nearbyBtn = document.querySelector('.filter-btn[data-filter="nearby"]');
+  if (nearbyBtn) {
+    const target = nearbyBtn.querySelector('[data-i18n]') || nearbyBtn.querySelector('span') || nearbyBtn;
+    target.dataset.i18n = regionKey;
+    if (regionLabel) target.textContent = regionLabel;
+    moveFilterPill(); // العرض ممكن يتغير حسب طول اسم المنطقة
+  }
+}
+
+function selectRegion(rawKey, regionLabel, { silent = false } = {}) {
+  const regionKey = normalizeRegion(rawKey) || rawKey;
+  const unchanged = regionKey === userRegion && activeFilter === 'nearby';
   userRegion = regionKey;
 
-  const labelText = document.getElementById('areaLabelText');
-  if (labelText && regionLabel) labelText.textContent = regionLabel;
+  try {
+    localStorage.setItem(REGION_STORAGE_KEY, regionKey);
+  } catch (err) {
+    console.error('save region failed:', err);
+  }
 
-  if (activeFilter === 'nearby') applyPriceFilter();
+  setRegionLabels(regionKey, regionLabel);
+
+  // نفس المنطقة ونفس الفلتر: ما في شي نعيد رسمه
+  if (unchanged) return;
+
+  // إذا اختار المستخدم منطقة، نعرض له "منطقتي" مباشرة
+  if (!silent) setFilter('nearby');
 }
 
 function initRegionDropdown() {
   if (userRegion) {
     const preselectedLink = document.querySelector(`.dropdown-menu a[data-i18n="${userRegion}"]`);
-    if (preselectedLink) selectRegion(userRegion, preselectedLink.textContent.trim());
+    if (preselectedLink) selectRegion(userRegion, preselectedLink.textContent.trim(), { silent: true });
   }
 
   document.querySelectorAll('.dropdown-menu [data-i18n]').forEach(link => {
@@ -740,9 +887,9 @@ window.initPointsCard = initPointsCard;
 
 document.addEventListener('DOMContentLoaded', () => {
   initPriceListEvents();
-  applyPriceFilter();
   initFilterButtons();
   initRegionDropdown();
+  applyPriceFilter();
   initCategoryCarousel();
   initHeroLangWatcher();
   loadHero();
