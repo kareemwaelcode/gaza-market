@@ -1,18 +1,5 @@
 'use strict';
 
-/*
- * Region catalog (single source of truth for the frontend)
- * ---------------------------------------------------------------------
- * code  : the stable identifier. It equals the data-i18n key used in the
- *         navbar dropdown, and it is what the backend should store/accept
- *         (e.g. GET /api/prices?region=Maghazi).
- * value : the value used by the "Add price" form (data-value on
- *         .npw-region-btn). It differs from `code` for some regions.
- *
- * normalizeRegion() accepts either form (any case, spaces/dashes ignored)
- * and always returns the `code`, so cards, dropdown, saved region and the
- * add-price form can never silently disagree.
- */
 const GM_REGIONS = [
   { code: 'Nuseirat',          value: 'Nuseirat',          group: 'central' },
   { code: 'Breij',             value: 'Breij',             group: 'central' },
@@ -48,7 +35,7 @@ function normalizeRegion(raw) {
   return GM_REGION_LOOKUP.map.get(GM_REGION_LOOKUP.squash(raw)) || null;
 }
 
-const REGION_STORAGE_KEY = 'gmSelectedArea'; // نفس المفتاح اللي يستخدمه region-guard.js وباقي الصفحات
+const REGION_STORAGE_KEY = 'gmSelectedArea';
 
 function getSavedRegion() {
   try {
@@ -59,165 +46,596 @@ function getSavedRegion() {
 }
 
 let userRegion = normalizeRegion(window.GM_SELECTED_REGION) || normalizeRegion(getSavedRegion());
-// "منطقتي" هي الافتراضية إذا المنطقة معروفة، وإلا "الكل"
-let activeFilter = userRegion ? 'nearby' : 'all';
 
-/*
- * Backend endpoints
- * ---------------------------------------------------------------------
- * Hero section: one request returns everything the hero needs.
- * Expected response (GET /api/hero):
- * {
- *   "section": { ...one row of the hero_section table (same column names)... },
- *   "stats":   { "products": 375, "prices": 2356, "listings": 100, "places": 35 },
- *   "ticker":  [ { "name_ar": "قهوة", "name_en": "Coffee", "price": 24 }, ... ]
- * }
- * Any part may be missing: whatever is missing keeps the static HTML value.
- */
+let activeFilter = userRegion ? 'nearby' : 'all';
+let activeCategory = 'all';
+
 const GM_API = {
   hero: '/api/hero',
 };
 
-function cardMatchesFilter(card) {
-  if (activeFilter === 'nearby' && userRegion) {
-    return normalizeRegion(card.dataset.region) === userRegion;
-  }
-  return true;
-}
-
-// أقصى عدد كروت نشغّل عليها الأنيميشن (الباقي يظهر مباشرة بدون حركة)
+const PRICE_PAGE_SIZE = 10;
 const MAX_ANIMATED_CARDS = 12;
+const PRICE_TIME_REFRESH_MS = 60000;
 
-function applyPriceFilter({ animate = false } = {}) {
-  const container = document.getElementById('priceList');
-  const emptyState = document.getElementById('priceEmptyState');
-  if (!container) return;
+const priceState = {
+  items: [],
+  nextCursor: null,
+  hasMore: false,
+  loading: false,
+  requestId: 0,
+  fromCache: false,
+  savedAt: null,
+  view: 'loading',
+  emptyKey: 'prices.empty',
+  errorKey: 'prices.errorTitle',
+};
 
-  const cards = container.querySelectorAll('[data-role="card"]');
-  const newlyShown = [];
-  let visibleCount = 0;
+const pendingVotes = new Set();
 
-  // مرحلة الكتابة فقط: بدون أي قراءة للأبعاد، ونكتب بس لما القيمة تتغير
-  cards.forEach(card => {
-    const matches = cardMatchesFilter(card);
-    if (matches) visibleCount += 1;
-
-    if (card.hidden === matches) {
-      if (matches && animate) newlyShown.push(card);
-      card.hidden = !matches;
-    }
-  });
-
-  if (emptyState) emptyState.hidden = visibleCount !== 0;
-
-  if (!animate || !newlyShown.length) return;
-
-  const toAnimate = newlyShown.slice(0, MAX_ANIMATED_CARDS);
-  toAnimate.forEach((card, i) => {
-    card.style.setProperty('--i', i);
-    card.classList.remove('is-entering');
-  });
-
-  void container.offsetWidth; // reflow واحد فقط لكل الكروت (بدل reflow لكل كرت)
-
-  toAnimate.forEach(card => {
-    card.classList.add('is-entering');
-    card.addEventListener('animationend', () => card.classList.remove('is-entering'), { once: true });
-  });
-}
-
-async function postVote(productId, vote) {
-  try {
-    await fetch(`/api/prices/${productId}/vote`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ vote }),
-    });
-  } catch (err) {
-    console.error('postVote failed:', err);
+function tr(key, fallback) {
+  if (typeof i18n !== 'undefined' && typeof i18n.t === 'function') {
+    const value = i18n.t(key);
+    if (value && value !== key) return value;
   }
+  return fallback || key;
 }
 
-const VOTE_STORAGE_PREFIX = 'gm_price_vote_';
-
-function getStoredVote(productId) {
-  try {
-    return localStorage.getItem(`${VOTE_STORAGE_PREFIX}${productId}`);
-  } catch (err) {
-    return null;
-  }
+function priceEl(id) {
+  return document.getElementById(id);
 }
 
-function setStoredVote(productId, vote) {
-  try {
-    if (vote) {
-      localStorage.setItem(`${VOTE_STORAGE_PREFIX}${productId}`, vote);
-    } else {
-      localStorage.removeItem(`${VOTE_STORAGE_PREFIX}${productId}`);
-    }
-  } catch (err) {
-    console.error('setStoredVote failed:', err);
-  }
+function priceLocale() {
+  return getCurrentLang() === 'ar' ? 'ar-EG' : 'en-GB';
 }
 
-function applyCardVote(card, vote) {
+function announcePrice(message) {
+  const sr = priceEl('priceSr');
+  if (!sr) return;
+  sr.textContent = '';
+  setTimeout(() => { sr.textContent = message; }, 50);
+}
+
+function getPriceQuery() {
+  const region = activeFilter === 'nearby' ? userRegion : null;
+  const category = activeCategory === 'all' ? null : GMPrices.normalizeCategory(activeCategory);
+  return { region, category };
+}
+
+function priceQueryKey(query) {
+  return `${query.region || 'all'}|${query.category || 'all'}`;
+}
+
+function formatRelativeTime(date) {
+  const diffSec = Math.min(0, Math.round((date.getTime() - Date.now()) / 1000));
+  const abs = Math.abs(diffSec);
+  const rtf = new Intl.RelativeTimeFormat(priceLocale(), { numeric: 'auto' });
+
+  if (abs < 45) return rtf.format(0, 'second');
+  if (abs < 3600) return rtf.format(Math.round(diffSec / 60), 'minute');
+  if (abs < 86400) return rtf.format(Math.round(diffSec / 3600), 'hour');
+  if (abs < 2592000) return rtf.format(Math.round(diffSec / 86400), 'day');
+
+  return date.toLocaleDateString(priceLocale(), { day: 'numeric', month: 'long', year: 'numeric' });
+}
+
+function formatPriceValue(value) {
+  return String(+Number(value).toFixed(2));
+}
+
+function formatProductSize(item) {
+  if (!item.quantity || !item.unit) return '';
+  return `${+item.quantity.toFixed(2)} ${tr(`prices.unitShort.${item.unit}`, item.unit)}`;
+}
+
+function setVoteButtonLabel(button, key, fallback, count) {
+  const label = tr(key, fallback);
+  button.setAttribute('aria-label', count > 0 ? `${label} (${count})` : label);
+  button.title = label;
+}
+
+function setVoteCount(el, count) {
+  if (!el) return;
+  el.textContent = String(count);
+  el.hidden = !(count > 0);
+}
+
+function applyCardVote(card, item) {
   const confirmBtn = card.querySelector('[data-role="confirm-btn"]');
   const flagBtn = card.querySelector('[data-role="flag-btn"]');
   if (!confirmBtn || !flagBtn) return;
 
-  confirmBtn.classList.toggle('is-confirmed', vote === 'correct');
-  flagBtn.classList.toggle('is-flagged', vote === 'report');
+  confirmBtn.classList.toggle('is-confirmed', item.my_vote === 'confirm');
+  flagBtn.classList.toggle('is-flagged', item.my_vote === 'report');
+  confirmBtn.setAttribute('aria-pressed', String(item.my_vote === 'confirm'));
+  flagBtn.setAttribute('aria-pressed', String(item.my_vote === 'report'));
 
-  card.dataset.vote = vote || '';
+  card.dataset.vote = item.my_vote || '';
+  card.dataset.confirmCount = String(item.confirm_count);
+  card.dataset.reportCount = String(item.report_count);
+
+  setVoteButtonLabel(confirmBtn, 'prices.confirmLabel', 'Confirm price', item.confirm_count);
+  setVoteButtonLabel(flagBtn, 'prices.reportLabel', 'Report price', item.report_count);
+  setVoteCount(card.querySelector('[data-role="confirm-count"]'), item.confirm_count);
+  setVoteCount(card.querySelector('[data-role="flag-count"]'), item.report_count);
 }
 
-function initCardVoteState(card) {
-  applyCardVote(card, getStoredVote(card.dataset.productId));
+function fillPriceCard(card, item) {
+  const lang = getCurrentLang();
+  const name = lang === 'ar'
+    ? (item.product_name_ar || item.product_name_en)
+    : (item.product_name_en || item.product_name_ar);
+
+  card.querySelector('[data-role="name-text"]').textContent = name;
+
+  const sizeEl = card.querySelector('[data-role="size"]');
+  const size = formatProductSize(item);
+  sizeEl.textContent = size;
+  sizeEl.hidden = !size;
+
+  const regionName = item.region ? tr(item.region, item.region) : '';
+  card.querySelector('[data-role="store"]').textContent = [regionName, item.store_name].filter(Boolean).join(' - ');
+
+  const timeEl = card.querySelector('[data-role="time"]');
+  if (item.created_at) {
+    const date = new Date(item.created_at);
+    timeEl.dateTime = date.toISOString();
+    timeEl.title = date.toLocaleString(priceLocale());
+    timeEl.textContent = formatRelativeTime(date);
+  } else {
+    timeEl.removeAttribute('datetime');
+    timeEl.textContent = '';
+  }
+
+  card.querySelector('[data-role="price"]').textContent = formatPriceValue(item.price);
+  applyCardVote(card, item);
 }
 
-function setCardVote(card, vote) {
-  applyCardVote(card, vote);
-  setStoredVote(card.dataset.productId, vote);
+function createPriceCard(item) {
+  const template = priceEl('priceCardTemplate');
+  if (!template) return null;
+
+  const card = template.content.firstElementChild.cloneNode(true);
+  card.id = `price-${item.price_id}`;
+  card.dataset.priceId = item.price_id;
+  if (item.product_id !== null && item.product_id !== undefined) card.dataset.productId = String(item.product_id);
+  card.dataset.region = item.region || '';
+  card.dataset.category = item.category || '';
+  card.querySelector('[data-role="confirm-btn"]').dataset.id = item.price_id;
+  card.querySelector('[data-role="flag-btn"]').dataset.id = item.price_id;
+
+  fillPriceCard(card, item);
+  return card;
 }
 
-function handleConfirm(id) {
-  const card = document.getElementById(`price-${id}`);
-  if (!card) return;
+function syncVoteButtons() {
+  const offline = navigator.onLine === false;
 
-  const nextVote = card.dataset.vote === 'correct' ? null : 'correct';
-  setCardVote(card, nextVote);
-  postVote(id, nextVote);
+  document.querySelectorAll('#priceList [data-role="card"]').forEach(card => {
+    const pending = pendingVotes.has(card.dataset.priceId);
+    card.setAttribute('aria-busy', String(pending));
+    card.querySelectorAll('[data-role="confirm-btn"], [data-role="flag-btn"]').forEach(button => {
+      button.disabled = offline || pending;
+    });
+  });
 }
 
-function handleFlag(id) {
-  const card = document.getElementById(`price-${id}`);
-  if (!card) return;
+function formatSavedTime(timestamp) {
+  return timestamp ? formatRelativeTime(new Date(timestamp)) : '';
+}
 
-  const nextVote = card.dataset.vote === 'report' ? null : 'report';
-  setCardVote(card, nextVote);
-  postVote(id, nextVote);
+function updatePriceControls() {
+  const more = priceEl('priceMoreBtn');
+  if (more) {
+    const canLoadMore = priceState.view === 'list' && priceState.hasMore && !priceState.fromCache && navigator.onLine !== false;
+    more.hidden = !canLoadMore;
+    more.disabled = priceState.loading;
+    more.classList.toggle('is-loading', priceState.loading);
+  }
+
+  const note = priceEl('priceOfflineNote');
+  if (note) {
+    const show = priceState.fromCache && priceState.view === 'list';
+    note.hidden = !show;
+    if (show) {
+      note.textContent = tr('prices.offlineNote', 'You are offline. Showing the list saved {time}.')
+        .replace('{time}', formatSavedTime(priceState.savedAt));
+    }
+  }
+
+  syncVoteButtons();
+}
+
+function setPriceView(view) {
+  priceState.view = view;
+
+  const list = priceEl('priceList');
+  const skeleton = priceEl('priceSkeleton');
+  const error = priceEl('priceError');
+  const empty = priceEl('priceEmptyState');
+
+  if (skeleton) skeleton.hidden = view !== 'loading';
+  if (list) {
+    list.hidden = view !== 'list';
+    list.setAttribute('aria-busy', String(view === 'loading'));
+  }
+  if (error) error.hidden = view !== 'error';
+  if (empty) empty.hidden = view !== 'empty';
+
+  updatePriceControls();
+}
+
+function emptyMessageKey(query) {
+  if (activeFilter === 'nearby' && !userRegion) return 'prices.emptyNoRegion';
+  if (query.region && query.category) return 'prices.emptyAreaCategory';
+  if (query.category) return 'prices.emptyCategory';
+  if (query.region) return 'prices.empty';
+  return 'prices.emptyAll';
+}
+
+function showPriceEmpty(query) {
+  priceState.emptyKey = emptyMessageKey(query);
+
+  const empty = priceEl('priceEmptyState');
+  if (empty) empty.textContent = tr(priceState.emptyKey, '');
+
+  setPriceView('empty');
+  announcePrice(tr(priceState.emptyKey, ''));
+}
+
+function showPriceError(key) {
+  priceState.errorKey = key || 'prices.errorTitle';
+
+  const text = priceEl('priceErrorText');
+  if (text) text.textContent = tr(priceState.errorKey, '');
+
+  setPriceView('error');
+  announcePrice(tr(priceState.errorKey, ''));
+}
+
+function renderPriceItems(items, { append = false, animate = false } = {}) {
+  const list = priceEl('priceList');
+  if (!list) return;
+
+  if (!append) list.replaceChildren();
+
+  const fragment = document.createDocumentFragment();
+  let animated = 0;
+
+  items.forEach(item => {
+    const card = createPriceCard(item);
+    if (!card) return;
+
+    if (animate && animated < MAX_ANIMATED_CARDS) {
+      card.style.setProperty('--i', animated);
+      card.classList.add('is-entering');
+      card.addEventListener('animationend', () => card.classList.remove('is-entering'), { once: true });
+      animated += 1;
+    }
+
+    fragment.appendChild(card);
+  });
+
+  list.appendChild(fragment);
+  syncVoteButtons();
+}
+
+function persistPriceCache() {
+  if (typeof GMPrices === 'undefined') return;
+  GMPrices.writeCache(priceQueryKey(getPriceQuery()), priceState.items);
+}
+
+async function loadPrices() {
+  const query = getPriceQuery();
+  const requestId = ++priceState.requestId;
+
+  priceState.items = [];
+  priceState.nextCursor = null;
+  priceState.hasMore = false;
+  priceState.fromCache = false;
+  priceState.savedAt = null;
+  priceState.loading = true;
+
+  if (typeof GMPrices === 'undefined') {
+    priceState.loading = false;
+    showPriceError();
+    return;
+  }
+
+  if (activeFilter === 'nearby' && !userRegion) {
+    priceState.loading = false;
+    showPriceEmpty(query);
+    return;
+  }
+
+  setPriceView('loading');
+
+  let page;
+
+  try {
+    page = await GMPrices.fetchPage({ region: query.region, category: query.category, cursor: null, limit: PRICE_PAGE_SIZE });
+  } catch (err) {
+    if (requestId !== priceState.requestId) return;
+    console.error('loadPrices failed:', err);
+    priceState.loading = false;
+
+    const cached = GMPrices.readCache(priceQueryKey(query));
+    if (cached && cached.items.length) {
+      priceState.items = cached.items;
+      priceState.fromCache = true;
+      priceState.savedAt = cached.savedAt;
+      renderPriceItems(priceState.items, { animate: true });
+      setPriceView('list');
+      return;
+    }
+
+    showPriceError(navigator.onLine === false ? 'prices.offlineNoCache' : 'prices.errorTitle');
+    return;
+  }
+
+  if (requestId !== priceState.requestId) return;
+
+  priceState.loading = false;
+  priceState.items = page.items;
+  priceState.nextCursor = page.nextCursor;
+  priceState.hasMore = page.hasMore;
+  GMPrices.writeCache(priceQueryKey(query), page.items);
+
+  if (!page.items.length) {
+    showPriceEmpty(query);
+    return;
+  }
+
+  renderPriceItems(page.items, { animate: true });
+  setPriceView('list');
+}
+
+async function loadMorePrices() {
+  if (priceState.loading || !priceState.hasMore || !priceState.nextCursor) return;
+
+  const query = getPriceQuery();
+  const requestId = priceState.requestId;
+
+  priceState.loading = true;
+  updatePriceControls();
+
+  try {
+    const page = await GMPrices.fetchPage({
+      region: query.region,
+      category: query.category,
+      cursor: priceState.nextCursor,
+      limit: PRICE_PAGE_SIZE,
+    });
+
+    if (requestId !== priceState.requestId) return;
+
+    const known = new Set(priceState.items.map(item => item.price_id));
+    const fresh = page.items.filter(item => !known.has(item.price_id));
+
+    priceState.items = priceState.items.concat(fresh);
+    priceState.nextCursor = page.nextCursor;
+    priceState.hasMore = page.hasMore;
+
+    renderPriceItems(fresh, { append: true, animate: true });
+    persistPriceCache();
+  } catch (err) {
+    if (requestId === priceState.requestId) {
+      console.error('loadMorePrices failed:', err);
+      announcePrice(tr('prices.loadMoreFailed', 'Could not load more prices. Please try again.'));
+    }
+  } finally {
+    if (requestId === priceState.requestId) {
+      priceState.loading = false;
+      updatePriceControls();
+    }
+  }
+}
+
+function findPriceItem(priceId) {
+  return priceState.items.find(item => item.price_id === String(priceId)) || null;
+}
+
+function refreshCardVote(item) {
+  const card = priceEl(`price-${item.price_id}`);
+  if (card) applyCardVote(card, item);
+  syncVoteButtons();
+}
+
+function applyVoteLocally(item, next) {
+  if (item.my_vote === 'confirm') item.confirm_count = Math.max(0, item.confirm_count - 1);
+  if (item.my_vote === 'report') item.report_count = Math.max(0, item.report_count - 1);
+  if (next === 'confirm') item.confirm_count += 1;
+  if (next === 'report') item.report_count += 1;
+  item.my_vote = next;
+}
+
+function removePriceItem(priceId) {
+  priceState.items = priceState.items.filter(item => item.price_id !== String(priceId));
+
+  const card = priceEl(`price-${priceId}`);
+  if (card) card.remove();
+
+  if (!priceState.items.length) {
+    if (priceState.hasMore) loadPrices();
+    else showPriceEmpty(getPriceQuery());
+    return;
+  }
+
+  persistPriceCache();
+}
+
+async function submitPriceVote(priceId, kind) {
+  const item = findPriceItem(priceId);
+  if (!item || pendingVotes.has(item.price_id)) return;
+
+  const previous = {
+    my_vote: item.my_vote,
+    confirm_count: item.confirm_count,
+    report_count: item.report_count,
+  };
+  const next = item.my_vote === kind ? null : kind;
+
+  applyVoteLocally(item, next);
+  pendingVotes.add(item.price_id);
+  refreshCardVote(item);
+
+  let result;
+
+  try {
+    result = await GMPrices.vote(item.price_id, next);
+  } catch (err) {
+    console.error('vote failed:', err);
+    Object.assign(item, previous);
+    pendingVotes.delete(item.price_id);
+    refreshCardVote(item);
+    announcePrice(tr('prices.voteFailed', 'Could not save your vote. Please try again.'));
+    return;
+  }
+
+  pendingVotes.delete(item.price_id);
+
+  if (result.removed) {
+    removePriceItem(item.price_id);
+    announcePrice(tr('prices.removed', 'This price was removed after being reported.'));
+    return;
+  }
+
+  item.my_vote = result.my_vote;
+  item.confirm_count = result.confirm_count;
+  item.report_count = result.report_count;
+  refreshCardVote(item);
+  persistPriceCache();
+}
+
+function requirePriceAuth(action) {
+  if (typeof gmIsLoggedIn === 'function' && gmIsLoggedIn()) {
+    action();
+    return;
+  }
+
+  if (typeof gmRequireAuthThenRun === 'function' && document.getElementById('authOverlay')) {
+    gmRequireAuthThenRun(action);
+  }
+}
+
+function handlePriceVote(priceId, kind) {
+  if (navigator.onLine === false) {
+    announcePrice(tr('prices.offlineVote', 'Voting needs an internet connection.'));
+    return;
+  }
+
+  requirePriceAuth(() => submitPriceVote(priceId, kind));
+}
+
+function rerenderPriceList() {
+  if (priceState.view === 'list') {
+    renderPriceItems(priceState.items);
+  } else if (priceState.view === 'empty') {
+    const empty = priceEl('priceEmptyState');
+    if (empty) empty.textContent = tr(priceState.emptyKey, '');
+  } else if (priceState.view === 'error') {
+    const text = priceEl('priceErrorText');
+    if (text) text.textContent = tr(priceState.errorKey, '');
+  }
+
+  updatePriceControls();
+}
+
+function refreshPriceTimes() {
+  document.querySelectorAll('#priceList time[data-role="time"][datetime]').forEach(el => {
+    const date = new Date(el.getAttribute('datetime'));
+    if (!isNaN(date.getTime())) el.textContent = formatRelativeTime(date);
+  });
+}
+
+function setCategory(next) {
+  if (next === activeCategory) return;
+  activeCategory = next;
+  loadPrices();
 }
 
 function initPriceListEvents() {
-  const container = document.getElementById('priceList');
-  if (!container) return;
+  const list = priceEl('priceList');
+  if (!list) return;
 
-  container.querySelectorAll('[data-role="card"]').forEach(initCardVoteState);
-
-  container.addEventListener('click', e => {
+  list.addEventListener('click', e => {
     const confirmBtn = e.target.closest('[data-role="confirm-btn"]');
     const flagBtn = e.target.closest('[data-role="flag-btn"]');
+    const button = confirmBtn || flagBtn;
+    if (!button || button.disabled) return;
 
-    if (confirmBtn) {
-      const id = parseInt(confirmBtn.dataset.id, 10);
-      if (!isNaN(id)) handleConfirm(id);
-    }
+    const priceId = button.dataset.id;
+    if (!priceId) return;
 
-    if (flagBtn) {
-      const id = parseInt(flagBtn.dataset.id, 10);
-      if (!isNaN(id)) handleFlag(id);
-    }
+    handlePriceVote(priceId, confirmBtn ? 'confirm' : 'report');
   });
+
+  const moreBtn = priceEl('priceMoreBtn');
+  if (moreBtn) moreBtn.addEventListener('click', loadMorePrices);
+
+  const retryBtn = priceEl('priceRetryBtn');
+  if (retryBtn) retryBtn.addEventListener('click', loadPrices);
+
+  const track = priceEl('catTrack');
+  if (track) {
+    track.addEventListener('click', e => {
+      const pill = e.target.closest('.cat-pill');
+      if (pill) setCategory(pill.dataset.category || 'all');
+    });
+  }
+
+  window.addEventListener('offline', updatePriceControls);
+  window.addEventListener('online', () => {
+    updatePriceControls();
+    if (priceState.fromCache || priceState.view === 'error') loadPrices();
+  });
+
+  let lastLang = getCurrentLang();
+  new MutationObserver(() => {
+    const lang = getCurrentLang();
+    if (lang === lastLang) return;
+    lastLang = lang;
+    rerenderPriceList();
+  }).observe(document.documentElement, { attributes: true, attributeFilter: ['lang'] });
+
+  document.addEventListener('gmRegionChanged', () => {
+    const saved = normalizeRegion(getSavedRegion());
+    if (!saved || saved === userRegion) return;
+
+    userRegion = saved;
+    setRegionLabels(saved, tr(saved, saved));
+    if (activeFilter === 'nearby') loadPrices();
+  });
+
+  setInterval(refreshPriceTimes, PRICE_TIME_REFRESH_MS);
+}
+
+function setFilter(next, force = false) {
+  const changed = next !== activeFilter;
+  activeFilter = next;
+  syncFilterButtons();
+  moveFilterPill();
+  if (changed || force) loadPrices();
+}
+
+function selectRegion(rawKey, regionLabel, { silent = false } = {}) {
+  const regionKey = normalizeRegion(rawKey);
+  if (!regionKey) return;
+
+  const unchanged = regionKey === userRegion && activeFilter === 'nearby';
+  userRegion = regionKey;
+
+  try {
+    localStorage.setItem(REGION_STORAGE_KEY, regionKey);
+  } catch (err) {
+    console.error('save region failed:', err);
+  }
+
+  setRegionLabels(regionKey, regionLabel);
+
+  if (unchanged) return;
+
+  if (!silent) setFilter('nearby', true);
 }
 
 function syncFilterButtons() {
@@ -229,7 +647,6 @@ function syncFilterButtons() {
   });
 }
 
-// الخلفية الخضراء المنزلقة
 function moveFilterPill() {
   const active = document.querySelector('.filter-btn.is-active');
   if (!active) return;
@@ -243,16 +660,9 @@ function moveFilterPill() {
 
   if (!group.classList.contains('has-pill')) {
     group.classList.add('has-pill');
-    // نفعّل الـ transition بعد أول وضع، عشان ما ينزلق عند فتح الصفحة
+
     requestAnimationFrame(() => requestAnimationFrame(() => group.classList.add('is-ready')));
   }
-}
-
-function setFilter(next) {
-  activeFilter = next;
-  syncFilterButtons();
-  moveFilterPill();
-  applyPriceFilter({ animate: true });
 }
 
 function initFilterButtons() {
@@ -263,7 +673,6 @@ function initFilterButtons() {
   syncFilterButtons();
   moveFilterPill();
 
-  // الأبعاد ممكن تتغير بعد تحميل الخطوط أو تغيير اللغة/الاتجاه
   window.addEventListener('load', moveFilterPill, { passive: true });
   window.addEventListener('resize', moveFilterPill, { passive: true });
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(moveFilterPill);
@@ -273,41 +682,20 @@ function initFilterButtons() {
 }
 
 function setRegionLabels(regionKey, regionLabel) {
-  // نحط المفتاح في data-i18n عشان النص يتترجم لحاله عند تغيير اللغة
+
   const labelText = document.getElementById('areaLabelText');
   if (labelText) {
     labelText.dataset.i18n = regionKey;
     if (regionLabel) labelText.textContent = regionLabel;
   }
 
-  // اسم المنطقة على زر "منطقتي"
   const nearbyBtn = document.querySelector('.filter-btn[data-filter="nearby"]');
   if (nearbyBtn) {
     const target = nearbyBtn.querySelector('[data-i18n]') || nearbyBtn.querySelector('span') || nearbyBtn;
     target.dataset.i18n = regionKey;
     if (regionLabel) target.textContent = regionLabel;
-    moveFilterPill(); // العرض ممكن يتغير حسب طول اسم المنطقة
+    moveFilterPill();
   }
-}
-
-function selectRegion(rawKey, regionLabel, { silent = false } = {}) {
-  const regionKey = normalizeRegion(rawKey) || rawKey;
-  const unchanged = regionKey === userRegion && activeFilter === 'nearby';
-  userRegion = regionKey;
-
-  try {
-    localStorage.setItem(REGION_STORAGE_KEY, regionKey);
-  } catch (err) {
-    console.error('save region failed:', err);
-  }
-
-  setRegionLabels(regionKey, regionLabel);
-
-  // نفس المنطقة ونفس الفلتر: ما في شي نعيد رسمه
-  if (unchanged) return;
-
-  // إذا اختار المستخدم منطقة، نعرض له "منطقتي" مباشرة
-  if (!silent) setFilter('nearby');
 }
 
 function initRegionDropdown() {
@@ -398,8 +786,6 @@ function initCategoryCarousel() {
     pill.setAttribute('aria-current', 'page');
   });
 
-  // Recompute on resize (viewport size changes) and on full load
-  // (fonts/images can shift scrollWidth after DOMContentLoaded fires).
   window.addEventListener('resize', () => applyOffset(offset), { passive: true });
   window.addEventListener('load', () => applyOffset(offset), { passive: true });
   applyOffset(0);
@@ -432,25 +818,8 @@ function updateHeroDatetime() {
   }
 }
 
-/*
- * Hero section (data from the backend)
- * ---------------------------------------------------------------------
- * - Texts   : come from the hero_section table (one row, ar + en columns).
- * - Numbers : the four stat boxes (products, prices, listings, places).
- * - Ticker  : latest price per product ("today's prices").
- *
- * Everything is fetched with ONE request (GM_API.hero) and stored in
- * heroData. When the language changes (the <html lang> attribute), the
- * hero is re-rendered from heroData without a new request.
- *
- * If the request fails, the static markup in home.html stays as a
- * fallback and the ticker animation still runs on it.
- */
-
 let heroData = null;
 
-// Maps each hero text element to its column prefix in hero_section.
-// The real column is `${prefix}_ar` or `${prefix}_en`.
 const HERO_TEXT_MAP = [
   { selector: '[data-i18n="hero.eyebrow"]',         column: 'hero_section_eyebrow' },
   { selector: '[data-i18n="hero.welcome"]',         column: 'hero_section_title' },
@@ -463,7 +832,6 @@ const HERO_TEXT_MAP = [
   { selector: '#heroTicker .hero-ticker__label span',    column: 'hero_section_ticker_label' },
 ];
 
-// Order of the stat boxes in the HTML.
 const HERO_STAT_KEYS = ['products', 'prices', 'listings', 'places'];
 
 function getCurrentLang() {
@@ -487,7 +855,6 @@ function renderHeroTexts(section) {
     const value = section[`${column}_${lang}`];
     if (typeof value !== 'string' || !value.trim()) return;
 
-    // The text now belongs to the backend, so i18n.js must not overwrite it.
     el.removeAttribute('data-i18n');
     el.textContent = value;
   });
@@ -523,8 +890,6 @@ function initHeroTicker() {
   const track = document.getElementById('heroTickerTrack');
   if (!track) return;
 
-  // Only the originals: clones from a previous run are dropped first,
-  // so this function is safe to call again after a re-render.
   track.querySelectorAll('[aria-hidden="true"]').forEach(clone => clone.remove());
 
   const sourceItems = Array.from(track.querySelectorAll('[data-ticker-item]'));
@@ -532,9 +897,6 @@ function initHeroTicker() {
 
   track.style.opacity = '0';
 
-  // Duplicate the items once so the CSS marquee animation can loop
-  // seamlessly. The duplicates are marked aria-hidden so screen readers
-  // don't announce the same report twice.
   const fragment = document.createDocumentFragment();
   sourceItems.forEach(item => {
     const clone = item.cloneNode(true);
@@ -568,7 +930,6 @@ function renderHeroTicker(items) {
   const ticker = document.getElementById('heroTicker');
   if (!track || !Array.isArray(items)) return;
 
-  // The API answered but there are no prices: hide the strip.
   if (!items.length) {
     if (ticker) ticker.style.display = 'none';
     return;
@@ -617,7 +978,7 @@ async function loadHero() {
     heroData = await res.json();
   } catch (err) {
     console.error('loadHero failed:', err);
-    // Fallback: keep the static HTML and just run the ticker animation on it.
+
     initHeroTicker();
     return;
   }
@@ -625,7 +986,6 @@ async function loadHero() {
   renderHero();
 }
 
-// Re-render the hero when the language changes (no new request).
 function initHeroLangWatcher() {
   let lastLang = getCurrentLang();
 
@@ -660,8 +1020,6 @@ function buildHeroTickerPrintArea() {
 
   const list = document.createElement('ul');
 
-  // Only use the original (non-duplicated) items for the printable
-  // report, so nothing is listed twice.
   const items = track
     ? Array.from(track.querySelectorAll('[data-ticker-item]:not([aria-hidden="true"])'))
     : [];
@@ -732,7 +1090,6 @@ const GM_MOCK_STATE = {
   },
   leaderboard: [
     { id: 'u2', name: 'سارة أبو دلال', points: 410 },
-
 
   ],
 };
@@ -889,7 +1246,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initPriceListEvents();
   initFilterButtons();
   initRegionDropdown();
-  applyPriceFilter();
+  loadPrices();
   initCategoryCarousel();
   initHeroLangWatcher();
   loadHero();

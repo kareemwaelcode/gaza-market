@@ -14,6 +14,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/frameworkG.css" />
   <link rel="stylesheet" href="css/main.css" />
+  <link rel="stylesheet" href="css/prices.css" />
   <script src="js/vendor/lucide.min.js"></script>
 </head>
 <body>
@@ -1670,23 +1671,6 @@
           </div>
         </div>
 
-
-    <!-- <div class="hero-ticker" id="heroTicker" aria-label="تقرير اليوم" role="region">
-      <div class="hero-ticker__label">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-clipboard-list-icon lucide-clipboard-list"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/></svg>
-        <span data-i18n="hero.tickerLabel">Today's Prices</span>
-      </div>
-
-    Filled by Home.js from GET /api/hero (ticker)
-      <div class="hero-ticker__viewport">
-      
-        <div class="hero-ticker__track" id="heroTickerTrack"></div>
-      </div>
-
-      <button type="button" class="hero-ticker__pdf-btn" id="heroTickerPdfBtn">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-download-icon lucide-download"><path d="M12 15V3"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/></svg>
-      </button>
-    </div> -->
         <div class="hero-ticker" id="heroTicker" aria-label="تقرير اليوم" role="region">
           <div class="hero-ticker__label">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-clipboard-list-icon lucide-clipboard-list"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/></svg>
@@ -1786,37 +1770,26 @@
         </button>
       </div>
 
-<div id="priceList" class="price-list" aria-live="polite">
-  <article class="priceList" data-role="card" id="price-1" data-product-id="1" data-region="KhanYunis" data-confirm-count="0" data-report-count="0">
-    <div class="info-price">
-      <div class="info-main">
-        <h3 class="fs-20 fw-700" data-i18n="prices.name" data-role="name">Basmati rice</h3>
-        <p class="info-sub" data-i18n="prices.store" data-role="store">Nuseirat - Obada</p>
-      </div>
-      <div class="info-meta">
-        <time data-role="time">20 hours ago</time>
-      </div>
-    </div>
-    <div class="price-acsas">
-      <div class="check-badge">
-        <button type="button" class="icon-btn--confirm" data-role="confirm-btn" data-id="1">
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
-          <span class="vote-count" data-role="confirm-count" hidden>0</span>
-        </button>
-        <button type="button" class="icon-btn--flag" data-role="flag-btn" data-id="1">
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><path d="M4 22V15"/></svg>
-          <span class="vote-count" data-role="flag-count" hidden>0</span>
-        </button>
-      </div>
-      <div class="price-value">
-        <strong class="price-value__num fs-30" data-role="price">1000</strong>
-        <span class="unit" data-i18n="prices.unit" data-role="unit">₪ / piece</span>
-      </div>
-    </div>
-  </article>
+<div id="priceSkeleton" class="price-skeleton" aria-hidden="true" hidden>
+  <div class="price-skeleton__card"></div>
+  <div class="price-skeleton__card"></div>
+  <div class="price-skeleton__card"></div>
 </div>
 
-<p id="priceEmptyState" class="price-empty" hidden data-i18n="prices.empty">No prices in this area yet.</p>
+<div id="priceList" class="price-list" aria-busy="false" hidden></div>
+
+<div id="priceError" class="price-state" hidden>
+  <p id="priceErrorText" class="price-state__title"></p>
+  <button type="button" class="price-state__btn" id="priceRetryBtn" data-i18n="prices.retry">Try again</button>
+</div>
+
+<p id="priceEmptyState" class="price-empty" hidden></p>
+
+<p id="priceOfflineNote" class="price-note" hidden></p>
+
+<button type="button" class="price-more" id="priceMoreBtn" hidden data-i18n="prices.loadMore">Show more</button>
+
+<div id="priceSr" class="visually-hidden" role="status" aria-live="polite"></div>
 
     </div>
 
@@ -1916,6 +1889,36 @@
   </a>
 </nav>
 
+<template id="priceCardTemplate">
+  <article class="priceList" data-role="card">
+    <div class="info-price">
+      <div class="info-main">
+        <h3 class="fs-20 fw-700" data-role="name"><span data-role="name-text"></span><span class="price-size" data-role="size" hidden></span></h3>
+        <p class="info-sub" data-role="store"></p>
+      </div>
+      <div class="info-meta">
+        <time data-role="time"></time>
+      </div>
+    </div>
+    <div class="price-acsas">
+      <div class="check-badge">
+        <button type="button" class="icon-btn--confirm" data-role="confirm-btn" data-id="" aria-pressed="false">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
+          <span class="vote-count" data-role="confirm-count" hidden>0</span>
+        </button>
+        <button type="button" class="icon-btn--flag" data-role="flag-btn" data-id="" aria-pressed="false">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><path d="M4 22V15"/></svg>
+          <span class="vote-count" data-role="flag-count" hidden>0</span>
+        </button>
+      </div>
+      <div class="price-value">
+        <strong class="price-value__num fs-30" data-role="price"></strong>
+        <span class="unit">₪</span>
+      </div>
+    </div>
+  </article>
+</template>
+
 <template id="pointsTierIconsTemplate">
   <svg data-tier="beginner" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7.21 15 2.66 7.14a2 2 0 0 1 .13-2.2L4.4 2.8A2 2 0 0 1 6 2h12a2 2 0 0 1 1.6.8l1.6 2.14a2 2 0 0 1 .14 2.2L16.79 15"/><path d="M11 12 5.12 2.2"/><path d="m13 12 5.88-9.8"/><path d="M8 7h8"/><circle cx="12" cy="17" r="5"/><path d="M12 18v-2h-.5"/></svg>
   <svg data-tier="active" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/></svg>
@@ -1939,6 +1942,7 @@
 <script src="js/translations.js"></script>
 <script src="js/i18n.js"></script>
 <script src="js/exchange-rates.js"></script>
+<script src="js/prices-api.js"></script>
 <script src="js/home.js"></script>
 <script src="js/main.js"></script>
 <script src="js/auth.js"></script>

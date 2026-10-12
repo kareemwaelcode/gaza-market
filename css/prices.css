@@ -1,0 +1,121 @@
+.price-size {
+  margin-inline-start: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--gm-muted);
+  white-space: nowrap;
+}
+
+.priceList .check-badge .vote-count {
+  min-width: 1ch;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.priceList .check-badge button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.priceList .info-price .info-meta time {
+  font-family: var(--en-font);
+}
+
+.price-skeleton {
+  display: block;
+}
+
+.price-skeleton__card {
+  position: relative;
+  top: -10px;
+  height: 72px;
+  margin-bottom: 10px;
+  border-radius: 10px;
+  border: 1px solid var(--border-color);
+  background:
+    linear-gradient(
+      90deg,
+      var(--card-bg) 0%,
+      var(--bg-hover) 50%,
+      var(--card-bg) 100%
+    );
+  background-size: 200% 100%;
+  animation: gm-price-shimmer 1.2s ease-in-out infinite;
+}
+
+@keyframes gm-price-shimmer {
+  from { background-position: 200% 0; }
+  to   { background-position: -200% 0; }
+}
+
+.price-empty,
+.price-state,
+.price-note {
+  position: relative;
+  top: -10px;
+  margin: 0 0 10px;
+  padding: 24px 16px;
+  border-radius: 10px;
+  border: 1px dashed var(--border-color);
+  background-color: var(--card-bg);
+  color: var(--gm-muted);
+  font-family: var(--en-font);
+  font-size: 14px;
+  line-height: 1.6;
+  text-align: center;
+}
+
+.price-note {
+  padding: 8px 12px;
+  font-size: 12px;
+}
+
+.price-state__title {
+  margin: 0 0 12px;
+  color: var(--text);
+  font-weight: 600;
+}
+
+.price-state__btn,
+.price-more {
+  display: block;
+  margin: 0 auto;
+  padding: 0.4rem 1.4rem;
+  border-radius: 100px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+  font-family: var(--en-font);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.price-more {
+  margin-bottom: 16px;
+}
+
+.price-state__btn:hover,
+.price-more:hover:not(:disabled) {
+  background: var(--bg-hover);
+  border-color: var(--gm-border-h);
+}
+
+.price-state__btn:focus-visible,
+.price-more:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+}
+
+.price-more.is-loading {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .price-skeleton__card {
+    animation: none;
+  }
+}
