@@ -493,6 +493,7 @@ async function submitPriceVote(priceId, kind) {
   }
 
   pendingVotes.delete(item.price_id);
+  document.dispatchEvent(new CustomEvent('gmPointsChanged'));
 
   if (result.removed) {
     removePriceItem(item.price_id);
@@ -1071,47 +1072,356 @@ if (!window._heroDatetimeStarted) {
   setInterval(updateHeroDatetime, 1000);
 }
 
-const GM_LEVELS = [
-  { key: 'beginner', min: 0, max: 50, label: 'points.tierBeginner', fallback: 'مبتدئ', className: 'points-tier--bronze' },
-  { key: 'active', min: 50, max: 150, label: 'points.tierActive', fallback: 'نشيط', className: 'points-tier--silver' },
-  { key: 'expert', min: 150, max: 400, label: 'points.tierExpert', fallback: 'خبير', className: 'points-tier--gold' },
-  { key: 'legend', min: 400, max: null, label: 'points.tierLegend', fallback: 'أسطورة', className: 'points-tier--legend' },
-];
-
-const GM_MOCK_STATE = {
-  auth: {
-    isLoggedIn: true,
-  },
-  currentUser: {
-    id: 'u2',
-    name: 'سارة أبو دلال',
-    points: 410,
-    avatarUrl: null,
-  },
-  leaderboard: [
-    { id: 'u2', name: 'سارة أبو دلال', points: 410 },
-
-  ],
+/**
+ * points-api.js — Gaza Market
+ * ---------------------------------------------------------------
+ * Data layer for the "Contributors Points" card on the home page.
+ * The UI (Home.js) only talks to window.GMPoints, so switching from
+ * mock data to the real Laravel API never touches the UI code.
+ *
+ * Switch to the real backend:
+ *   1) Set USE_MOCK = false (or window.GM_CONFIG.USE_MOCK = false
+ *      before this script loads).
+ *   2) Implement GET {API_BASE}/points returning:
+ *
+ *      {
+ *        "user": { "id": "12", "name": "Sara", "points": 410,
+ *                  "avatar_url": null,
+ *                  "weekly_rank": 7, "weekly_points": 12 } | null,
+ *        "leaderboard": [ { "id": "3", "name": "Ahmad Khalil",
+ *                           "points": 95, "avatar_url": null } ],
+ *        "rules": [ { "key": "addPrice", "points": 10 } ]
+ *      }
+ *
+ *      - "user" is null for guests (no session).
+ *      - "points" on the user is the TOTAL balance (used for the level).
+ *      - "leaderboard" holds WEEKLY points, already sorted by the server.
+ *      - "weekly_rank" / "weekly_points" are optional; they are only used
+ *        to show the user's own row when they are outside the leaderboard.
+ *      - "rules" is optional; keys: addPrice, confirmPrice, reportPrice,
+ *        addStore, postListing.
+ *
+ * Authentication works like prices-api.js (Sanctum cookie or Bearer).
+ */
+(function () {
+const DEFAULTS = {
+USE_MOCK: true,
+API_BASE: '/api',
+TIMEOUT_MS: 15000,
+CREDENTIALS: 'same-origin',
+TOKEN_KEY: 'gm_token',
+getToken: null,
+MOCK_DELAY_MS: 250,
 };
 
-async function gmFetchPointsData() {
-  return Promise.resolve(GM_MOCK_STATE);
+const CONFIG = Object.assign({}, DEFAULTS, window.GM_CONFIG || {});
+const USE_MOCK = !!CONFIG.USE_MOCK;
+const API_BASE = String(CONFIG.API_BASE).replace(/\/+$/, '');
+
+const CACHE_KEY = 'gm_points_cache_v1';
+const MOCK_POINTS_KEY = 'gm_mock_points_v1';
+const USER_STORAGE_KEY = 'user';
+const RULE_KEYS = ['addPrice', 'confirmPrice', 'reportPrice', 'addStore', 'postListing'];
+
+/* ------------------------------------------------------------ */
+/* Errors                                                        */
+/* ------------------------------------------------------------ */
+
+/** code: 'network' | 'timeout' | 'unauthorized' | 'server' | 'invalid_response' */
+function GMPointsError(code, message, status) {
+const err = new Error(message || code);
+err.name = 'GMPointsError';
+err.code = code;
+err.status = status || 0;
+return err;
 }
+
+/* ------------------------------------------------------------ */
+/* Helpers                                                       */
+/* ------------------------------------------------------------ */
+
+function readJson(key, fallback) {
+try {
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : fallback;
+} catch (err) {
+    return fallback;
+}
+}
+
+function writeJson(key, value) {
+try {
+    localStorage.setItem(key, JSON.stringify(value));
+} catch (err) {
+    console.error('points storage failed:', err);
+}
+}
+
+function delay(ms) {
+return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function toPoints(value) {
+const num = Math.floor(Number(value));
+return isFinite(num) && num > 0 ? num : 0;
+}
+
+/** Only allow image sources that cannot run script (http/https, relative, data:image). */
+function safeAvatarUrl(value) {
+if (typeof value !== 'string') return null;
+const url = value.trim();
+if (!url) return null;
+if (/^data:image\/(png|jpe?g|gif|webp);base64,[a-z0-9+/=]+$/i.test(url)) return url;
+if (/^https?:\/\//i.test(url) || /^\/(?!\/)/.test(url)) return url;
+return null;
+}
+
+function getCurrentOwner() {
+const user = readJson(USER_STORAGE_KEY, null);
+return user && user.phone ? String(user.phone) : 'guest';
+}
+
+/* ------------------------------------------------------------ */
+/* Normalizers (clean whatever the server returns)               */
+/* ------------------------------------------------------------ */
+
+function normalizeEntry(raw) {
+if (!raw || raw.id === undefined || raw.id === null || raw.id === '') return null;
+
+const name = typeof raw.name === 'string' ? raw.name.trim() : '';
+if (!name) return null;
+
+return {
+    id: String(raw.id),
+    name,
+    points: toPoints(raw.points),
+    avatarUrl: safeAvatarUrl(raw.avatar_url !== undefined ? raw.avatar_url : raw.avatarUrl),
+};
+}
+
+function normalizeUser(raw) {
+const entry = normalizeEntry(raw);
+if (!entry) return null;
+
+const rank = Math.floor(Number(raw.weekly_rank));
+const weekly = raw.weekly_points === undefined || raw.weekly_points === null ? NaN : Number(raw.weekly_points);
+
+entry.weeklyRank = isFinite(rank) && rank > 0 ? rank : null;
+entry.weeklyPoints = isFinite(weekly) && weekly >= 0 ? Math.floor(weekly) : null;
+return entry;
+}
+
+function normalizeRules(raw) {
+if (!Array.isArray(raw)) return [];
+
+return raw
+    .filter((rule) => rule && RULE_KEYS.indexOf(rule.key) !== -1 && isFinite(Number(rule.points)))
+    .map((rule) => ({ key: rule.key, points: Math.floor(Number(rule.points)) }));
+}
+
+function normalizeSummary(raw) {
+if (!raw || typeof raw !== 'object') throw GMPointsError('invalid_response', 'Bad points payload');
+
+return {
+    user: normalizeUser(raw.user),
+    leaderboard: (Array.isArray(raw.leaderboard) ? raw.leaderboard : []).map(normalizeEntry).filter(Boolean),
+    rules: normalizeRules(raw.rules),
+};
+}
+
+/* ------------------------------------------------------------ */
+/* Cache (last good response, kept per signed-in user)           */
+/* ------------------------------------------------------------ */
+
+function writeCache(summary) {
+writeJson(CACHE_KEY, { owner: getCurrentOwner(), savedAt: Date.now(), data: summary });
+}
+
+/** Returns { data, savedAt } only when it belongs to the current user (or guest). */
+function readCache() {
+const cached = readJson(CACHE_KEY, null);
+if (!cached || !cached.data || cached.owner !== getCurrentOwner()) return null;
+
+try {
+    return { data: normalizeSummary(cached.data), savedAt: cached.savedAt || null };
+} catch (err) {
+    return null;
+}
+}
+
+/* ------------------------------------------------------------ */
+/* Real API                                                      */
+/* ------------------------------------------------------------ */
+
+function getXsrfToken() {
+const match = document.cookie.match(/(?:^|;\s*)XSRF-TOKEN=([^;]+)/);
+return match ? decodeURIComponent(match[1]) : null;
+}
+
+function getBearerToken() {
+try {
+    if (typeof CONFIG.getToken === 'function') return CONFIG.getToken() || null;
+    return localStorage.getItem(CONFIG.TOKEN_KEY) || null;
+} catch (err) {
+    return null;
+}
+}
+
+function buildHeaders() {
+const headers = { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' };
+const xsrf = getXsrfToken();
+const token = getBearerToken();
+if (xsrf) headers['X-XSRF-TOKEN'] = xsrf;
+if (token) headers.Authorization = `Bearer ${token}`;
+return headers;
+}
+
+async function requestSummary() {
+const controller = typeof AbortController === 'function' ? new AbortController() : null;
+const timer = controller ? setTimeout(() => controller.abort(), CONFIG.TIMEOUT_MS) : null;
+
+let res;
+try {
+    res = await fetch(`${API_BASE}/points`, {
+    method: 'GET',
+    headers: buildHeaders(),
+    credentials: CONFIG.CREDENTIALS,
+    signal: controller ? controller.signal : undefined,
+    });
+} catch (err) {
+    throw GMPointsError(err && err.name === 'AbortError' ? 'timeout' : 'network', 'Points request failed', 0);
+} finally {
+    if (timer) clearTimeout(timer);
+}
+
+if (!res.ok) {
+    throw GMPointsError(res.status === 401 || res.status === 419 ? 'unauthorized' : 'server', `HTTP ${res.status}`, res.status);
+}
+
+let json;
+try {
+    json = await res.json();
+} catch (err) {
+    throw GMPointsError('invalid_response', 'Points response is not JSON', res.status);
+}
+
+return json;
+}
+
+/* ------------------------------------------------------------ */
+/* Mock (development only — real users and real points come      */
+/* from the backend)                                             */
+/* ------------------------------------------------------------ */
+
+const MOCK_LEADERBOARD = [
+{ id: 'm1', name: 'أحمد خليل', points: 95 },
+{ id: 'm2', name: 'ليلى حسونة', points: 72 },
+{ id: 'm3', name: 'محمد النجار', points: 58 },
+{ id: 'm4', name: 'Rania Abu Shamala', points: 41 },
+{ id: 'm5', name: 'يوسف البيوك', points: 33 },
+];
+
+const MOCK_RULES = [
+{ key: 'addPrice', points: 10 },
+{ key: 'confirmPrice', points: 2 },
+{ key: 'reportPrice', points: 1 },
+{ key: 'addStore', points: 15 },
+{ key: 'postListing', points: 5 },
+];
+
+/**
+ * The signed-in user comes from localStorage ("user", set by the login
+ * flow). Their points come from localStorage key gm_mock_points_v1
+ * (set it in the console to test levels, e.g.
+ * localStorage.setItem('gm_mock_points_v1', '120')). Guests get user: null.
+ */
+function buildMockSummary() {
+const stored = readJson(USER_STORAGE_KEY, null);
+const loggedIn = !!(stored && stored.phone && stored.name);
+const total = toPoints(readJson(MOCK_POINTS_KEY, 0));
+
+const user = loggedIn
+    ? { id: String(stored.phone), name: stored.name, points: total, avatar_url: stored.avatar || null }
+    : null;
+
+const leaderboard = MOCK_LEADERBOARD.slice();
+if (user && total > 0) leaderboard.push({ id: user.id, name: user.name, points: total, avatar_url: user.avatar_url });
+leaderboard.sort((a, b) => b.points - a.points);
+
+return { user, leaderboard, rules: MOCK_RULES };
+}
+
+/* ------------------------------------------------------------ */
+/* Public API                                                    */
+/* ------------------------------------------------------------ */
+
+async function fetchSummary() {
+let raw;
+
+if (USE_MOCK) {
+    await delay(CONFIG.MOCK_DELAY_MS);
+    raw = buildMockSummary();
+} else {
+    raw = await requestSummary();
+}
+
+const summary = normalizeSummary(raw);
+writeCache(summary);
+return summary;
+}
+
+window.GMPoints = {
+fetchSummary,
+readCache,
+};
+})();
+
+const GM_POINTS_LEADERBOARD_LIMIT = 5;
+
+const GM_LEVELS = [
+  { key: 'beginner', min: 0, max: 50, label: 'points.tierBeginner', fallback: 'Beginner', className: 'points-tier--bronze' },
+  { key: 'active', min: 50, max: 150, label: 'points.tierActive', fallback: 'Active', className: 'points-tier--silver' },
+  { key: 'expert', min: 150, max: 400, label: 'points.tierExpert', fallback: 'Expert', className: 'points-tier--gold' },
+  { key: 'legend', min: 400, max: null, label: 'points.tierLegend', fallback: 'Legend', className: 'points-tier--legend' },
+];
+
+let pointsGuestIcon = null;
+
+const pointsState = {
+  data: null,
+  fromCache: false,
+  requestId: 0,
+  view: 'loading',
+};
 
 function gmGetLevel(points) {
   return GM_LEVELS.find(l => points >= l.min && (l.max === null || points < l.max)) || GM_LEVELS[0];
 }
 
-function gmTranslate(key, fallback) {
-  if (window.i18n && typeof window.i18n.t === 'function') {
-    const value = window.i18n.t(key);
-    if (value && value !== key) return value;
-  }
-  return fallback;
+function gmFormatPoints(value) {
+  return Number(value).toLocaleString('en-US');
 }
 
 function gmInitials(name) {
-  return (name || '').trim().charAt(0).toUpperCase() || '؟';
+  return Array.from((name || '').trim())[0]?.toUpperCase() || '?';
+}
+
+function gmShortName(name) {
+  const parts = String(name || '').trim().split(/\s+/).filter(Boolean);
+  if (parts.length < 2) return parts[0] || '';
+  return `${parts[0]} ${Array.from(parts[parts.length - 1])[0]}.`;
+}
+
+function gmLocalUser() {
+  if (typeof gmIsLoggedIn !== 'function' || !gmIsLoggedIn()) return null;
+
+  try {
+    const stored = JSON.parse(localStorage.getItem('user') || 'null');
+    if (!stored || !stored.name) return null;
+    return { id: String(stored.phone), name: stored.name, points: null, avatarUrl: null };
+  } catch (err) {
+    return null;
+  }
 }
 
 function gmSetTierIcon(level) {
@@ -1124,7 +1434,55 @@ function gmSetTierIcon(level) {
   if (iconSvg) iconContainer.appendChild(iconSvg.cloneNode(true));
 }
 
-function gmRenderUserCard(user) {
+function gmFillAvatar(container, name, avatarUrl, guestIcon) {
+  container.replaceChildren();
+  container.setAttribute('aria-hidden', 'true');
+
+  if (!name && guestIcon) {
+    container.append(...guestIcon.map(node => node.cloneNode(true)));
+  } else if (avatarUrl) {
+    const img = document.createElement('img');
+    img.src = avatarUrl;
+    img.alt = '';
+    img.addEventListener('error', () => {
+      container.replaceChildren(document.createTextNode(gmInitials(name)));
+    }, { once: true });
+    container.appendChild(img);
+  } else {
+    container.textContent = gmInitials(name);
+  }
+}
+
+function setPointsView(view) {
+  pointsState.view = view;
+
+  const skeleton = document.getElementById('pointsLeaderboardSkeleton');
+  const list = document.getElementById('pointsLeaderboardList');
+  const error = document.getElementById('pointsError');
+
+  if (skeleton) skeleton.hidden = view !== 'loading';
+  if (list) {
+    list.hidden = view !== 'ready';
+    list.setAttribute('aria-busy', String(view === 'loading'));
+  }
+  if (error) error.hidden = view !== 'error';
+
+  const note = document.getElementById('pointsNote');
+  if (note) {
+    const show = view === 'ready' && pointsState.fromCache;
+    note.hidden = !show;
+    if (show) note.textContent = tr('points.offlineNote', 'Showing the last saved points.');
+  }
+}
+
+/**
+ * user: { name, points, avatarUrl } | null (guest)
+ * user.points === null means "not loaded yet / unavailable": no level, no number.
+ * The three text nodes below lose their data-i18n on purpose: i18n.js would
+ * overwrite them with the static "Guest" / "Beginner" text on every language
+ * switch. This code owns them and re-renders on language change instead.
+ */
+function gmRenderUserCard(user, { statusHint = '' } = {}) {
   const nameEl = document.getElementById('pointsUserName');
   const valueEl = document.getElementById('userPointsValue');
   const avatarEl = document.getElementById('pointsAvatar');
@@ -1136,108 +1494,214 @@ function gmRenderUserCard(user) {
 
   if (!nameEl || !valueEl || !avatarEl || !badgeEl || !textEl || !barEl || !trackEl || !hintEl) return;
 
-  const points = user ? (user.points || 0) : 0;
+  [nameEl, textEl, hintEl].forEach(el => el.removeAttribute('data-i18n'));
+
+  // Keep the default user icon from the markup so guests get it back after a login/logout.
+  if (!pointsGuestIcon) pointsGuestIcon = Array.from(avatarEl.childNodes);
+
+  const hasPoints = !!user && Number.isFinite(user.points);
+  const points = hasPoints ? user.points : 0;
   const level = gmGetLevel(points);
 
-  nameEl.textContent = user ? user.name : gmTranslate('points.guest', 'ضيف');
-  valueEl.textContent = points;
+  nameEl.textContent = user ? user.name : tr('points.guest', 'Guest');
+  nameEl.title = nameEl.textContent;
+  valueEl.textContent = hasPoints || !user ? gmFormatPoints(points) : '—';
 
-  avatarEl.replaceChildren();
-  if (user && user.avatarUrl) {
-    const img = document.createElement('img');
-    img.src = user.avatarUrl;
-    img.alt = '';
-    avatarEl.appendChild(img);
-  } else {
-    const span = document.createElement('span');
-    span.textContent = gmInitials(user && user.name);
-    avatarEl.appendChild(span);
-  }
+  gmFillAvatar(avatarEl, user && user.name, user && user.avatarUrl, pointsGuestIcon);
 
   badgeEl.className = `points-tier ${level.className}`;
-  textEl.textContent = gmTranslate(level.label, level.fallback);
+  badgeEl.hidden = !!user && !hasPoints;
+  textEl.textContent = tr(level.label, level.fallback);
   gmSetTierIcon(level);
 
-  const rangeEnd = level.max === null ? points : level.max;
-  const pct = level.max === null
-    ? 100
-    : Math.min(100, Math.max(0, Math.round(((points - level.min) / (rangeEnd - level.min)) * 100)));
+  const pct = !hasPoints || level.max === null
+    ? (hasPoints ? 100 : 0)
+    : Math.min(100, Math.max(0, Math.round(((points - level.min) / (level.max - level.min)) * 100)));
+
+  let hint;
+  if (!user) hint = tr('points.hintLogin', 'Log in to start earning points');
+  else if (!hasPoints) hint = statusHint;
+  else if (level.max === null) hint = tr('points.hintMax', 'You have reached the highest level');
+  else hint = tr('points.hintRemaining', 'You need {count} more points to reach the next level')
+    .replace('{count}', gmFormatPoints(level.max - points));
 
   barEl.style.width = `${pct}%`;
+  trackEl.setAttribute('aria-label', tr('points.progressLabel', 'Progress to next level'));
   trackEl.setAttribute('aria-valuenow', pct);
-
-  hintEl.textContent = !user
-    ? gmTranslate('points.hintLogin', 'سجّل دخول عشان تبلش تجمع نقاط')
-    : level.max === null
-      ? gmTranslate('points.hintMax', 'وصلت لأعلى مستوى 🎉')
-      : gmTranslate('points.hintRemaining', 'محتاج {count} نقطة عشان توصل للمستوى الجاي').replace('{count}', level.max - points);
+  trackEl.setAttribute('aria-valuetext', hint ? `${pct}% - ${hint}` : `${pct}%`);
+  hintEl.textContent = hint;
 }
 
-function gmRenderLeaderboard(entries, currentUserId) {
+function gmRenderPointRules(rules) {
+  if (!Array.isArray(rules)) return;
+
+  rules.forEach(rule => {
+    const el = document.querySelector(`[data-points-rule="${rule.key}"]`);
+    if (el) el.textContent = `+${rule.points}`;
+  });
+}
+
+function gmBuildLeaderboardRow(template, entry, rank, isMe) {
+  const row = template.content.firstElementChild.cloneNode(true);
+
+  if (isMe) row.classList.add('points-leaderboard__row--me');
+
+  const rankEl = row.querySelector('[data-role="rank"]');
+  rankEl.textContent = rank;
+  if (rank <= 3) rankEl.classList.add(`points-rank--${rank}`);
+
+  const displayName = isMe ? entry.name : gmShortName(entry.name);
+  gmFillAvatar(row.querySelector('[data-role="avatar"]'), entry.name, entry.avatarUrl);
+
+  const nameEl = row.querySelector('[data-role="name"]');
+  nameEl.dir = 'auto';
+  nameEl.textContent = displayName;
+  nameEl.title = displayName;
+
+  if (isMe) {
+    const you = document.createElement('span');
+    you.className = 'points-you';
+    you.textContent = tr('points.you', 'You');
+    nameEl.append(' ', you);
+  }
+
+  row.querySelector('[data-role="count"]').prepend(document.createTextNode(`${gmFormatPoints(entry.points)} `));
+  return row;
+}
+
+function gmRenderLeaderboard(data) {
   const listEl = document.getElementById('pointsLeaderboardList');
   const rowTemplate = document.getElementById('leaderboardRowTemplate');
   if (!listEl || !rowTemplate) return;
 
-  const sorted = (entries || []).slice().sort((a, b) => b.points - a.points);
+  const currentUser = data.user;
+  const currentUserId = currentUser ? currentUser.id : null;
+  const sorted = data.leaderboard.slice().sort((a, b) => b.points - a.points);
+  const top = sorted.slice(0, GM_POINTS_LEADERBOARD_LIMIT);
+
   listEl.replaceChildren();
 
-  if (!sorted.length) {
+  if (!top.length) {
     const empty = document.createElement('p');
     empty.className = 'points-leaderboard__empty';
-    empty.textContent = gmTranslate('points.leaderboardEmpty', 'لا يوجد متصدرين بعد');
+    empty.textContent = tr('points.leaderboardEmpty', 'No top contributors yet');
     listEl.appendChild(empty);
     return;
   }
 
   const fragment = document.createDocumentFragment();
 
-  sorted.forEach((entry, index) => {
-    const rank = index + 1;
-    const row = rowTemplate.content.firstElementChild.cloneNode(true);
-
-    if (entry.id === currentUserId) row.classList.add('points-leaderboard__row--me');
-
-    const rankEl = row.querySelector('[data-role="rank"]');
-    rankEl.textContent = rank;
-    if (rank <= 3) rankEl.classList.add(`points-rank--${rank}`);
-
-    const avatarEl = row.querySelector('[data-role="avatar"]');
-    avatarEl.replaceChildren();
-    if (entry.avatarUrl) {
-      const img = document.createElement('img');
-      img.src = entry.avatarUrl;
-      img.alt = '';
-      avatarEl.appendChild(img);
-    } else {
-      avatarEl.textContent = gmInitials(entry.name);
-    }
-
-    row.querySelector('[data-role="name"]').textContent = entry.name;
-
-    const countEl = row.querySelector('[data-role="count"]');
-    countEl.prepend(document.createTextNode(`${entry.points} `));
-
-    fragment.appendChild(row);
+  top.forEach((entry, index) => {
+    fragment.appendChild(gmBuildLeaderboardRow(rowTemplate, entry, index + 1, entry.id === currentUserId));
   });
+
+  // The user is outside the visible top list: show their own rank below it.
+  const inTop = top.some(entry => entry.id === currentUserId);
+  if (currentUser && !inTop && currentUser.weeklyRank && currentUser.weeklyPoints !== null) {
+    const gap = document.createElement('div');
+    gap.className = 'points-leaderboard__gap';
+    gap.setAttribute('aria-hidden', 'true');
+    fragment.appendChild(gap);
+
+    fragment.appendChild(gmBuildLeaderboardRow(
+      rowTemplate,
+      { name: currentUser.name, avatarUrl: currentUser.avatarUrl, points: currentUser.weeklyPoints },
+      currentUser.weeklyRank,
+      true
+    ));
+  }
 
   listEl.appendChild(fragment);
 }
 
-async function initPointsCard() {
-  let data;
+function renderPoints() {
+  const data = pointsState.data;
+  if (!data) return;
 
-  try {
-    data = await gmFetchPointsData();
-  } catch (err) {
-    console.error('gmFetchPointsData failed:', err);
-    data = { auth: { isLoggedIn: false }, currentUser: null, leaderboard: [] };
+  gmRenderUserCard(data.user);
+  gmRenderPointRules(data.rules);
+  gmRenderLeaderboard(data);
+  setPointsView('ready');
+}
+
+function refreshPointsTexts() {
+  if (pointsState.data) {
+    renderPoints();
+    return;
   }
 
-  const isLoggedIn = !!(data.auth && data.auth.isLoggedIn);
-  const user = isLoggedIn ? data.currentUser : null;
+  gmRenderUserCard(gmLocalUser(), {
+    statusHint: pointsState.view === 'error' ? tr('points.errorTitle', 'Could not load points') : '',
+  });
+}
 
-  gmRenderUserCard(user);
-  gmRenderLeaderboard(data.leaderboard, user ? user.id : null);
+async function initPointsCard() {
+  const requestId = ++pointsState.requestId;
+
+  if (!pointsState.data) {
+    gmRenderUserCard(gmLocalUser());
+    setPointsView('loading');
+  }
+
+  let data;
+  let fromCache = false;
+
+  try {
+    if (typeof GMPoints === 'undefined') throw new Error('GMPoints is not loaded');
+    data = await GMPoints.fetchSummary();
+  } catch (err) {
+    if (requestId !== pointsState.requestId) return;
+    console.error('initPointsCard failed:', err);
+
+    const cached = typeof GMPoints !== 'undefined' ? GMPoints.readCache() : null;
+
+    if (!cached) {
+      pointsState.data = null;
+      gmRenderUserCard(gmLocalUser(), { statusHint: tr('points.errorTitle', 'Could not load points') });
+      setPointsView('error');
+      return;
+    }
+
+    data = cached.data;
+    fromCache = true;
+  }
+
+  if (requestId !== pointsState.requestId) return;
+
+  pointsState.data = data;
+  pointsState.fromCache = fromCache;
+  renderPoints();
+}
+
+function resetPointsCard() {
+  pointsState.data = null;
+  pointsState.fromCache = false;
+  initPointsCard();
+}
+
+function initPointsEvents() {
+  const retryBtn = document.getElementById('pointsRetryBtn');
+  if (retryBtn) retryBtn.addEventListener('click', initPointsCard);
+
+  document.addEventListener('gmUserLoggedIn', resetPointsCard);
+  document.addEventListener('gmUserLoggedOut', resetPointsCard);
+  document.addEventListener('gmPointsChanged', initPointsCard);
+
+  window.addEventListener('storage', e => {
+    if (e.key === 'user') resetPointsCard();
+  });
+
+  window.addEventListener('online', () => {
+    if (pointsState.fromCache || pointsState.view === 'error') initPointsCard();
+  });
+
+  let lastLang = getCurrentLang();
+  new MutationObserver(() => {
+    const lang = getCurrentLang();
+    if (lang === lastLang) return;
+    lastLang = lang;
+    refreshPointsTexts();
+  }).observe(document.documentElement, { attributes: true, attributeFilter: ['lang'] });
 }
 
 window.initPointsCard = initPointsCard;
@@ -1252,4 +1716,5 @@ document.addEventListener('DOMContentLoaded', () => {
   loadHero();
   initHeroTickerPdfButton();
   initPointsCard();
+  initPointsEvents();
 });

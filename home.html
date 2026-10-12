@@ -1602,7 +1602,17 @@
 
         <div class="points-leaderboard">
           <div class="points-leaderboard__title" data-i18n="points.topContributors">Top Contributors This Week</div>
-          <div id="pointsLeaderboardList"></div>
+          <p class="points-note" id="pointsNote" hidden></p>
+          <div class="points-skeleton" id="pointsLeaderboardSkeleton" aria-hidden="true">
+            <span class="points-skeleton__row"></span>
+            <span class="points-skeleton__row"></span>
+            <span class="points-skeleton__row"></span>
+          </div>
+          <div id="pointsLeaderboardList" role="list" hidden></div>
+          <div class="points-error" id="pointsError" role="alert" hidden>
+            <span data-i18n="points.errorTitle">Could not load points</span>
+            <button type="button" class="points-retry-btn" id="pointsRetryBtn" data-i18n="points.retry">Try again</button>
+          </div>
         </div>
         <details class="points-howto">
           <summary>
@@ -1610,11 +1620,11 @@
             <span data-i18n="points.howTo">How do you earn points?</span>
           </summary>
           <ul class="points-howto__list">
-            <li><span data-i18n="points.addPrice">Add a new price</span><strong>+10</strong></li>
-            <li><span data-i18n="points.confirmPrice">Confirm a correct price</span><strong>+2</strong></li>
-            <li><span data-i18n="points.reportPrice">Report a wrong price</span><strong>+1</strong></li>
-            <li><span data-i18n="points.addStore">Add a new store</span><strong>+15</strong></li>
-            <li><span data-i18n="points.postListing">Post a marketplace ad</span><strong>+5</strong></li>
+            <li><span data-i18n="points.addPrice">Add a new price</span><strong data-points-rule="addPrice">+10</strong></li>
+            <li><span data-i18n="points.confirmPrice">Confirm a correct price</span><strong data-points-rule="confirmPrice">+2</strong></li>
+            <li><span data-i18n="points.reportPrice">Report a wrong price</span><strong data-points-rule="reportPrice">+1</strong></li>
+            <li><span data-i18n="points.addStore">Add a new store</span><strong data-points-rule="addStore">+15</strong></li>
+            <li><span data-i18n="points.postListing">Post a marketplace ad</span><strong data-points-rule="postListing">+5</strong></li>
           </ul>
         </details>
       </div>
@@ -1927,7 +1937,7 @@
 </template>
 
 <template id="leaderboardRowTemplate">
-  <div class="points-leaderboard__row" data-role="row">
+  <div class="points-leaderboard__row" data-role="row" role="listitem">
     <span class="points-rank" data-role="rank"></span>
     <span class="points-leaderboard__avatar" data-role="avatar"></span>
     <span class="points-name" data-role="name"></span>

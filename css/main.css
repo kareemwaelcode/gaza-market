@@ -351,6 +351,38 @@ body.dark-mode .add-listing-select {
 body.dark-mode .points-summary__avatar {
   color: #1a1a1a;
 }
+body.dark-mode .points-tier--bronze {
+  background: color-mix(in srgb, #cd7f32 28%, transparent);
+  color: #f0c9a0;
+}
+body.dark-mode .points-tier--silver {
+  background: color-mix(in srgb, #c0c0c0 24%, transparent);
+  color: #d6d6d6;
+}
+body.dark-mode .points-tier--gold {
+  background: color-mix(in srgb, var(--gm-primary) 28%, transparent);
+  color: #f2d675;
+}
+body.dark-mode .points-tier--legend {
+  background: color-mix(in srgb, var(--gm-blue-c) 30%, transparent);
+  color: #9db8ff;
+}
+body.dark-mode .points-rank--1 {
+  background: color-mix(in srgb, var(--gm-primary) 30%, transparent);
+  color: #f2d675;
+}
+body.dark-mode .points-rank--2 {
+  background: color-mix(in srgb, #c0c0c0 24%, transparent);
+  color: #d6d6d6;
+}
+body.dark-mode .points-rank--3 {
+  background: color-mix(in srgb, #cd7f32 30%, transparent);
+  color: #f0c9a0;
+}
+body.dark-mode .points-leaderboard__avatar {
+  background: color-mix(in srgb, var(--gm-blue-c) 30%, transparent);
+  color: #9db8ff;
+}
 body.dark-mode .stat-box {
   background: rgba(255, 255, 255, 0.08);
 }
@@ -5139,6 +5171,7 @@ body.dark-mode #gmLoader {
   font-size: 12px;
   white-space: nowrap;
   overflow: hidden;
+  text-overflow: ellipsis;
   color: var(--blue);
 }
 .points-tier {
@@ -5318,6 +5351,99 @@ body.dark-mode #gmLoader {
 }
 .points-howto__list strong {
   color: var(--blue);
+}
+.points-tier[hidden],
+.points-note[hidden],
+.points-skeleton[hidden],
+.points-error[hidden],
+#pointsLeaderboardList[hidden] {
+  display: none;
+}
+.points-note {
+  font-size: 11px;
+  color: var(--gm-muted);
+  margin: 0 0 8px;
+}
+.points-leaderboard__empty {
+  font-size: 12px;
+  color: var(--gm-muted);
+  margin: 0;
+  padding: 6px 0;
+}
+.points-leaderboard__gap {
+  height: 0;
+  margin: 4px 0;
+  border-top: 1px dashed var(--border-color);
+}
+.points-you {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  padding: 2px 6px;
+  border-radius: 999px;
+  color: var(--blue);
+  background: var(--gm-accent-s);
+  vertical-align: middle;
+}
+.points-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.points-skeleton__row {
+  display: block;
+  height: 26px;
+  border-radius: 8px;
+  background: linear-gradient(90deg, var(--border-color) 25%, var(--gm-accent-s) 50%, var(--border-color) 75%);
+  background-size: 200% 100%;
+  animation: points-shimmer 1.2s ease-in-out infinite;
+}
+@keyframes points-shimmer {
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
+}
+.points-error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--gm-muted);
+  padding: 6px 0;
+}
+.points-retry-btn {
+  flex-shrink: 0;
+  border: 1px solid var(--border-color);
+  background: transparent;
+  color: var(--blue);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 12px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: var(--transition);
+}
+.points-retry-btn:hover {
+  background: var(--gm-accent-s);
+}
+.points-retry-btn:focus-visible,
+.points-howto summary:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+html[dir="rtl"] .points-progress__fill {
+  background: linear-gradient(270deg, var(--gm-primary), var(--blue));
+}
+@media (prefers-reduced-motion: reduce) {
+  .points-progress__fill {
+    transition: none;
+  }
+  .points-skeleton__row {
+    animation: none;
+  }
 }
 
 .profile-page-layout {

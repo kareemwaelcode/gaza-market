@@ -158,6 +158,9 @@
 
     clearUser();
     renderLoggedOut();
+
+    // Let other scripts (e.g. the points card) react to the logout.
+    document.dispatchEvent(new CustomEvent("gmUserLoggedOut"));
   }
 
   /* ------------------------------------------------------------ */
