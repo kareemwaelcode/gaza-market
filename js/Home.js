@@ -55,6 +55,9 @@ const GM_API = {
 };
 
 const PRICE_PAGE_SIZE = 10;
+const PRICE_LOAD_TIMEOUT_MS = 15000;
+const POINTS_LOAD_TIMEOUT_MS = 15000;
+const HERO_LOAD_TIMEOUT_MS = 8000;
 const MAX_ANIMATED_CARDS = 12;
 const PRICE_TIME_REFRESH_MS = 60000;
 
@@ -79,6 +82,24 @@ function tr(key, fallback) {
     if (value && value !== key) return value;
   }
   return fallback || key;
+}
+
+/**
+ * Rejects if the promise takes longer than `ms`, so a weak connection can never
+ * leave a skeleton spinning forever (the caller falls back to cache / error + retry).
+ */
+function withTimeout(promise, ms) {
+  let timer = null;
+
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(() => {
+      const err = new Error('Request timed out');
+      err.code = 'timeout';
+      reject(err);
+    }, ms);
+  });
+
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
 }
 
 function priceEl(id) {
@@ -353,7 +374,10 @@ async function loadPrices() {
   let page;
 
   try {
-    page = await GMPrices.fetchPage({ region: query.region, category: query.category, cursor: null, limit: PRICE_PAGE_SIZE });
+    page = await withTimeout(
+      GMPrices.fetchPage({ region: query.region, category: query.category, cursor: null, limit: PRICE_PAGE_SIZE }),
+      PRICE_LOAD_TIMEOUT_MS
+    );
   } catch (err) {
     if (requestId !== priceState.requestId) return;
     console.error('loadPrices failed:', err);
@@ -877,53 +901,118 @@ function renderHeroStats(stats) {
 }
 
 const HERO_TICKER_SPEED_PX_S = 32;
-let heroTickerResizeBound = false;
+const HERO_TICKER_MIN_DURATION_S = 12;
 
-function setHeroTickerSpeed(track) {
+let heroTickerSource = [];
+let heroTickerBuiltWidth = 0;
+let heroTickerObserverBound = false;
+let heroTickerPauseBound = false;
+
+/**
+ * Fills the track with: [set x N] [set x N] where N is enough to make each half
+ * at least as wide as the viewport. The animation moves the track by exactly
+ * half of its width, so the loop is seamless on small AND large screens.
+ * Returns false when the ticker is not measurable yet (hidden / not laid out).
+ */
+function buildHeroTicker(track) {
+  const viewport = track.parentElement;
+  if (!viewport || !heroTickerSource.length) return false;
+
+  const viewWidth = viewport.clientWidth;
+  if (!viewWidth) return false;
+
+  track.replaceChildren(...heroTickerSource.map(item => item.cloneNode(true)));
+
+  const setWidth = track.scrollWidth;
+  if (!setWidth) return false;
+
+  const repeats = Math.max(1, Math.ceil(viewWidth / setWidth));
+  const fragment = document.createDocumentFragment();
+
+  for (let half = 0; half < 2; half += 1) {
+    for (let copy = 0; copy < repeats; copy += 1) {
+      heroTickerSource.forEach(item => {
+        const clone = item.cloneNode(true);
+        if (half === 1 || copy > 0) clone.setAttribute('aria-hidden', 'true');
+        fragment.appendChild(clone);
+      });
+    }
+  }
+
+  track.replaceChildren(fragment);
+
   const halfWidth = track.scrollWidth / 2;
   if (!halfWidth) return false;
-  const duration = Math.max(halfWidth / HERO_TICKER_SPEED_PX_S, 12);
+
+  const duration = Math.max(halfWidth / HERO_TICKER_SPEED_PX_S, HERO_TICKER_MIN_DURATION_S);
   track.style.setProperty('--ticker-duration', `${duration}s`);
+  track.style.transition = 'opacity .3s ease';
+  track.style.opacity = '1';
+
+  heroTickerBuiltWidth = viewWidth;
   return true;
+}
+
+function rebuildHeroTicker(force = false) {
+  const track = document.getElementById('heroTickerTrack');
+  if (!track || !heroTickerSource.length) return;
+
+  const viewport = track.parentElement;
+  const width = viewport ? viewport.clientWidth : 0;
+
+  // Rebuild only when the width really changed (or the last build failed).
+  if (!force && width && width === heroTickerBuiltWidth) return;
+
+  if (!buildHeroTicker(track)) heroTickerBuiltWidth = 0;
+}
+
+function bindHeroTickerObservers(track) {
+  if (!heroTickerObserverBound) {
+    heroTickerObserverBound = true;
+
+    let frame = null;
+    const schedule = () => {
+      if (frame) cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => { frame = null; rebuildHeroTicker(); });
+    };
+
+    if (typeof ResizeObserver === 'function' && track.parentElement) {
+      new ResizeObserver(schedule).observe(track.parentElement);
+    }
+
+    window.addEventListener('resize', schedule, { passive: true });
+    window.addEventListener('orientationchange', schedule, { passive: true });
+    window.addEventListener('load', schedule, { passive: true });
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(schedule);
+  }
+
+  // Hold a finger (or the mouse button) on the ticker to pause it.
+  if (!heroTickerPauseBound && track.parentElement) {
+    heroTickerPauseBound = true;
+    const viewport = track.parentElement;
+    const pause = () => track.classList.add('is-paused');
+    const resume = () => track.classList.remove('is-paused');
+
+    viewport.addEventListener('pointerdown', pause, { passive: true });
+    ['pointerup', 'pointercancel', 'pointerleave'].forEach(type => viewport.addEventListener(type, resume, { passive: true }));
+  }
 }
 
 function initHeroTicker() {
   const track = document.getElementById('heroTickerTrack');
   if (!track) return;
 
-  track.querySelectorAll('[aria-hidden="true"]').forEach(clone => clone.remove());
+  const items = Array.from(track.querySelectorAll('[data-ticker-item]:not([aria-hidden="true"])'));
+  if (!items.length) return;
 
-  const sourceItems = Array.from(track.querySelectorAll('[data-ticker-item]'));
-  if (!sourceItems.length) return;
+  heroTickerSource = items.map(item => item.cloneNode(true));
+  heroTickerBuiltWidth = 0;
 
-  track.style.opacity = '0';
+  bindHeroTickerObservers(track);
 
-  const fragment = document.createDocumentFragment();
-  sourceItems.forEach(item => {
-    const clone = item.cloneNode(true);
-    clone.setAttribute('aria-hidden', 'true');
-    fragment.appendChild(clone);
-  });
-  track.appendChild(fragment);
-
-  requestAnimationFrame(() => requestAnimationFrame(() => {
-    if (setHeroTickerSpeed(track)) {
-      track.style.transition = 'opacity .3s ease';
-      track.style.opacity = '1';
-    }
-  }));
-
-  if (!heroTickerResizeBound) {
-    heroTickerResizeBound = true;
-    let resizeTimer = null;
-    window.addEventListener('resize', () => {
-      clearTimeout(resizeTimer);
-      resizeTimer = setTimeout(() => {
-        const current = document.getElementById('heroTickerTrack');
-        if (current) setHeroTickerSpeed(current);
-      }, 200);
-    }, { passive: true });
-  }
+  // Measure after layout; if it is still not measurable, the ResizeObserver
+  // (or the load / fonts events) will build it as soon as it becomes visible.
+  requestAnimationFrame(() => requestAnimationFrame(() => rebuildHeroTicker(true)));
 }
 
 function renderHeroTicker(items) {
@@ -972,18 +1061,35 @@ function renderHero() {
   renderHeroTicker(heroData.ticker);
 }
 
+function finishHeroLoading() {
+  ['heroStats', 'heroTicker'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.classList.remove('is-loading');
+  });
+}
+
 async function loadHero() {
+  const controller = typeof AbortController === 'function' ? new AbortController() : null;
+  const timer = controller ? setTimeout(() => controller.abort(), HERO_LOAD_TIMEOUT_MS) : null;
+
   try {
-    const res = await fetch(GM_API.hero, { headers: { Accept: 'application/json' } });
+    const res = await fetch(GM_API.hero, {
+      headers: { Accept: 'application/json' },
+      signal: controller ? controller.signal : undefined,
+    });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     heroData = await res.json();
   } catch (err) {
     console.error('loadHero failed:', err);
 
+    finishHeroLoading();
     initHeroTicker();
     return;
+  } finally {
+    if (timer) clearTimeout(timer);
   }
 
+  finishHeroLoading();
   renderHero();
 }
 
@@ -1467,6 +1573,9 @@ function setPointsView(view) {
   }
   if (error) error.hidden = view !== 'error';
 
+  const summary = document.getElementById('pointsSummary');
+  if (summary) summary.classList.toggle('is-loading', view === 'loading');
+
   const note = document.getElementById('pointsNote');
   if (note) {
     const show = view === 'ready' && pointsState.fromCache;
@@ -1648,7 +1757,7 @@ async function initPointsCard() {
 
   try {
     if (typeof GMPoints === 'undefined') throw new Error('GMPoints is not loaded');
-    data = await GMPoints.fetchSummary();
+    data = await withTimeout(GMPoints.fetchSummary(), POINTS_LOAD_TIMEOUT_MS);
   } catch (err) {
     if (requestId !== pointsState.requestId) return;
     console.error('initPointsCard failed:', err);
@@ -1706,15 +1815,32 @@ function initPointsEvents() {
 
 window.initPointsCard = initPointsCard;
 
+/**
+ * Runs one init step. A failure in one section must never stop the others
+ * (before, one error here left prices / points loading forever).
+ */
+function safeInit(step) {
+  try {
+    const result = step();
+    if (result && typeof result.catch === 'function') {
+      result.catch(err => console.error(`${step.name} failed:`, err));
+    }
+  } catch (err) {
+    console.error(`${step.name} failed:`, err);
+  }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
-  initPriceListEvents();
-  initFilterButtons();
-  initRegionDropdown();
-  loadPrices();
-  initCategoryCarousel();
-  initHeroLangWatcher();
-  loadHero();
-  initHeroTickerPdfButton();
-  initPointsCard();
-  initPointsEvents();
+  [
+    initPriceListEvents,
+    initFilterButtons,
+    initRegionDropdown,
+    loadPrices,
+    initCategoryCarousel,
+    initHeroLangWatcher,
+    loadHero,
+    initHeroTickerPdfButton,
+    initPointsCard,
+    initPointsEvents,
+  ].forEach(safeInit);
 });

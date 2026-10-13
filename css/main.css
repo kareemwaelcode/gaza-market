@@ -8433,10 +8433,18 @@ body.dark-mode .priceList .check-badge button {
   width: max-content;
   will-change: transform;
   animation-name: heroTickerScroll;
-  animation-duration: var(--ticker-duration);
+  animation-duration: var(--ticker-duration, 40s);
   animation-timing-function: linear;
   animation-iteration-count: infinite;
   animation-play-state: running;
+}
+.hero-ticker__track.is-paused {
+  animation-play-state: paused;
+}
+@media (hover: hover) and (pointer: fine) {
+  .hero-ticker__viewport:hover .hero-ticker__track {
+    animation-play-state: paused;
+  }
 }
 @keyframes heroTickerScroll {
   from {
@@ -8515,12 +8523,6 @@ body.dark-mode .priceList .check-badge button {
 }
 .hero-ticker__pdf-btn svg:hover {
   color: var(--blue);
-}
-@media (prefers-reduced-motion: reduce) {
-  .hero-ticker__track {
-    animation: none;
-    overflow-x: auto;
-  }
 }
 #heroTickerPrintArea {
   display: none;
@@ -8956,4 +8958,158 @@ nav.nav-bar {
 @media (prefers-reduced-motion: reduce) {
   .is-entering { animation: none; }
   .gm-pill-group.is-ready::before { transition: none; }
+}
+
+/* ==========================================================
+   Skeleton loading (shared by every page)
+   - .gm-skel            : shimmering block (set width / height)
+   - .is-loading         : on a container; its [data-skel] children become
+                           shimmering placeholders (layout is preserved)
+   - .gm-skel-timeout    : CSS-only fallback shown if loading takes too long
+   Light / Dark, RTL / LTR and reduced-motion safe.
+   ========================================================== */
+:root {
+  --gm-skel-base: var(--border-color);
+  --gm-skel-shine: var(--gm-accent-s);
+  --gm-skel-timeout: 20s;
+}
+
+body.dark-mode {
+  --gm-skel-shine: rgba(255, 255, 255, 0.1);
+}
+
+@keyframes gm-skel-shimmer {
+  from { background-position: 200% 0; }
+  to   { background-position: -200% 0; }
+}
+
+/* Last resort: JS timeouts handle normal failures; this only fires if the
+   page script never ran at all. */
+@keyframes gm-skel-expire {
+  to { visibility: hidden; }
+}
+
+@keyframes gm-skel-expire-text {
+  to {
+    color: inherit;
+    -webkit-text-fill-color: currentColor;
+    background: none;
+  }
+}
+
+@keyframes gm-skel-timeout-show {
+  to { max-height: 120px; opacity: 1; }
+}
+
+.gm-skel,
+.is-loading [data-skel],
+.points-summary.is-loading .points-summary__avatar {
+  background: linear-gradient(
+    90deg,
+    var(--gm-skel-base) 25%,
+    var(--gm-skel-shine) 50%,
+    var(--gm-skel-base) 75%
+  );
+  background-size: 200% 100%;
+  animation: gm-skel-shimmer 1.2s ease-in-out infinite;
+  border-radius: 8px;
+}
+
+.gm-skel {
+  display: block;
+  min-height: 12px;
+}
+
+.is-loading [data-skel] {
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  pointer-events: none;
+  user-select: none;
+  animation:
+    gm-skel-shimmer 1.2s ease-in-out infinite,
+    gm-skel-expire-text 0s var(--gm-skel-timeout) forwards;
+}
+
+.is-loading [data-skel] > *,
+.points-summary.is-loading .points-summary__avatar > * {
+  visibility: hidden;
+}
+
+.gm-skel-timeout {
+  max-height: 0;
+  margin: 0;
+  overflow: hidden;
+  opacity: 0;
+  visibility: visible;
+  color: var(--gm-muted);
+  font-size: 13px;
+  text-align: center;
+  animation: gm-skel-timeout-show 0s var(--gm-skel-timeout) forwards;
+}
+
+.gm-skel-timeout a {
+  margin-inline-start: 6px;
+  color: var(--blue);
+  font-weight: 700;
+}
+
+/* Hero stats */
+.hero__stats.is-loading .stat-box__num {
+  display: inline-block;
+  min-width: 2.2ch;
+}
+
+/* Hero ticker: overlay on top of the (already measurable) viewport */
+.hero-ticker__skeleton {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: none;
+  align-items: center;
+  gap: 14px;
+  padding: 0 14px;
+  overflow: hidden;
+  background-color: var(--card-bg);
+}
+
+.hero-ticker.is-loading .hero-ticker__skeleton {
+  display: flex;
+  animation: gm-skel-expire 0s var(--gm-skel-timeout) forwards;
+}
+
+.hero-ticker__skeleton .gm-skel {
+  flex: 0 0 auto;
+  width: 84px;
+  height: 14px;
+  border-radius: 999px;
+}
+
+.hero-ticker__skeleton .gm-skel:nth-child(2n) { width: 64px; }
+.hero-ticker__skeleton .gm-skel:nth-child(3n) { width: 100px; }
+
+/* Points card */
+.points-summary.is-loading .points-summary__name {
+  min-width: 90px;
+  min-height: 16px;
+}
+
+.points-summary.is-loading .points-summary__score strong {
+  display: inline-block;
+  min-width: 2.2ch;
+}
+
+.points-summary.is-loading .points-tier {
+  visibility: hidden;
+}
+
+#pointsLeaderboardSkeleton {
+  animation: gm-skel-expire 0s var(--gm-skel-timeout) forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gm-skel,
+  .is-loading [data-skel],
+  .points-summary.is-loading .points-summary__avatar {
+    animation-duration: 0s;
+  }
 }

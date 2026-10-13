@@ -1572,12 +1572,12 @@
           <span data-i18n="points.title">Contributors Points</span>
         </div>
 
-        <div class="points-summary">
+        <div class="points-summary is-loading" id="pointsSummary">
           <div class="points-summary__avatar" id="pointsAvatar" aria-hidden="true">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-user-icon lucide-user"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
           </div>
           <div class="points-summary__info">
-            <div class="points-summary__name" id="pointsUserName" data-i18n="points.guest">Guest</div>
+            <div class="points-summary__name" id="pointsUserName" data-i18n="points.guest" data-skel>Guest</div>
             <span class="points-tier points-tier--bronze" id="userLevelBadge">
               <span class="points-tier-icon" id="userLevelIcon" aria-hidden="true">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7.21 15 2.66 7.14a2 2 0 0 1 .13-2.2L4.4 2.8A2 2 0 0 1 6 2h12a2 2 0 0 1 1.6.8l1.6 2.14a2 2 0 0 1 .14 2.2L16.79 15"/><path d="M11 12 5.12 2.2"/><path d="m13 12 5.88-9.8"/><path d="M8 7h8"/><circle cx="12" cy="17" r="5"/><path d="M12 18v-2h-.5"/></svg>
@@ -1586,7 +1586,7 @@
             </span>
           </div>
           <div class="points-summary__score">
-            <strong id="userPointsValue">0</strong>
+            <strong id="userPointsValue" data-skel>0</strong>
             <span data-i18n="points.pts">pts</span>
           </div>
         </div>
@@ -1603,10 +1603,14 @@
         <div class="points-leaderboard">
           <div class="points-leaderboard__title" data-i18n="points.topContributors">Top Contributors This Week</div>
           <p class="points-note" id="pointsNote" hidden></p>
-          <div class="points-skeleton" id="pointsLeaderboardSkeleton" aria-hidden="true">
-            <span class="points-skeleton__row"></span>
-            <span class="points-skeleton__row"></span>
-            <span class="points-skeleton__row"></span>
+          <div class="points-skeleton" id="pointsLeaderboardSkeleton">
+            <span class="points-skeleton__row" aria-hidden="true"></span>
+            <span class="points-skeleton__row" aria-hidden="true"></span>
+            <span class="points-skeleton__row" aria-hidden="true"></span>
+            <p class="gm-skel-timeout">
+              <span data-i18n="points.errorTitle">Could not load points</span>
+              <a href="" data-i18n="points.retry">Try again</a>
+            </p>
           </div>
           <div id="pointsLeaderboardList" role="list" hidden></div>
           <div class="points-error" id="pointsError" role="alert" hidden>
@@ -1660,34 +1664,41 @@
           </div>
 
           <div class="hero__right">
-            <div class="hero__stats">
+            <div class="hero__stats is-loading" id="heroStats">
               <div class="stat-box">
-                <div class="stat-box__num">375</div>
+                <div class="stat-box__num" data-skel>375</div>
                 <div class="stat-box__label" data-i18n="hero.products">Products</div>
               </div>
               <div class="stat-box">
-                <div class="stat-box__num">2356</div>
+                <div class="stat-box__num" data-skel>2356</div>
                 <div class="stat-box__label" data-i18n="hero.prices">Prices</div>
               </div>
               <div class="stat-box">
-                <div class="stat-box__num">100</div>
+                <div class="stat-box__num" data-skel>100</div>
                 <div class="stat-box__label" data-i18n="hero.forSale">For sale</div>
               </div>
               <div class="stat-box">
-                <div class="stat-box__num">35</div>
+                <div class="stat-box__num" data-skel>35</div>
                 <div class="stat-box__label" data-i18n="hero.businessPremises">Shops</div>
               </div>
             </div>
           </div>
         </div>
 
-        <div class="hero-ticker" id="heroTicker" aria-label="تقرير اليوم" role="region">
+        <div class="hero-ticker is-loading" id="heroTicker" aria-label="تقرير اليوم" role="region">
           <div class="hero-ticker__label">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-clipboard-list-icon lucide-clipboard-list"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/></svg>
             <span data-i18n="hero.tickerLabel">Today's Prices</span>
           </div>
 
           <div class="hero-ticker__viewport">
+            <div class="hero-ticker__skeleton" aria-hidden="true">
+              <span class="gm-skel"></span>
+              <span class="gm-skel"></span>
+              <span class="gm-skel"></span>
+              <span class="gm-skel"></span>
+              <span class="gm-skel"></span>
+            </div>
             <div class="hero-ticker__track" id="heroTickerTrack">
               <span class="hero-ticker__item" data-ticker-item>
                 <span class="hero-ticker__item-name">قهوة</span>
@@ -1780,13 +1791,26 @@
         </button>
       </div>
 
-<div id="priceSkeleton" class="price-skeleton" aria-hidden="true" hidden>
-  <div class="price-skeleton__card"></div>
-  <div class="price-skeleton__card"></div>
-  <div class="price-skeleton__card"></div>
+<div id="priceSkeleton" class="price-skeleton">
+  <div class="price-skeleton__card" aria-hidden="true">
+    <div class="price-skeleton__info"><span class="gm-skel"></span><span class="gm-skel"></span></div>
+    <div class="price-skeleton__price"><span class="gm-skel"></span><span class="gm-skel"></span><span class="gm-skel"></span></div>
+  </div>
+  <div class="price-skeleton__card" aria-hidden="true">
+    <div class="price-skeleton__info"><span class="gm-skel"></span><span class="gm-skel"></span></div>
+    <div class="price-skeleton__price"><span class="gm-skel"></span><span class="gm-skel"></span><span class="gm-skel"></span></div>
+  </div>
+  <div class="price-skeleton__card" aria-hidden="true">
+    <div class="price-skeleton__info"><span class="gm-skel"></span><span class="gm-skel"></span></div>
+    <div class="price-skeleton__price"><span class="gm-skel"></span><span class="gm-skel"></span><span class="gm-skel"></span></div>
+  </div>
+  <p class="gm-skel-timeout">
+    <span data-i18n="prices.errorTitle">Could not load prices.</span>
+    <a href="" data-i18n="prices.retry">Try again</a>
+  </p>
 </div>
 
-<div id="priceList" class="price-list" aria-busy="false" hidden></div>
+<div id="priceList" class="price-list" aria-busy="true" hidden></div>
 
 <div id="priceError" class="price-state" hidden>
   <p id="priceErrorText" class="price-state__title"></p>
@@ -1957,5 +1981,6 @@
 <script src="js/main.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/offline.js"></script>
+
 </body>
 </html>

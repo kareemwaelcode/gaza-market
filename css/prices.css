@@ -23,31 +23,45 @@
 }
 
 .price-skeleton {
-  display: block;
+  animation: gm-skel-expire 0s var(--gm-skel-timeout) forwards;
 }
 
 .price-skeleton__card {
   position: relative;
   top: -10px;
-  height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  min-height: 88px;
   margin-bottom: 10px;
+  padding: 14px;
   border-radius: 10px;
   border: 1px solid var(--border-color);
-  background:
-    linear-gradient(
-      90deg,
-      var(--card-bg) 0%,
-      var(--bg-hover) 50%,
-      var(--card-bg) 100%
-    );
-  background-size: 200% 100%;
-  animation: gm-price-shimmer 1.2s ease-in-out infinite;
+  background-color: var(--card-bg);
 }
 
-@keyframes gm-price-shimmer {
-  from { background-position: 200% 0; }
-  to   { background-position: -200% 0; }
+.price-skeleton__info {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
+
+.price-skeleton__info .gm-skel:nth-child(1) { width: 55%; height: 16px; }
+.price-skeleton__info .gm-skel:nth-child(2) { width: 38%; height: 12px; }
+
+.price-skeleton__price {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.price-skeleton__price .gm-skel:nth-child(1) { width: 56px; height: 28px; }
+.price-skeleton__price .gm-skel:nth-child(2),
+.price-skeleton__price .gm-skel:nth-child(3) { width: 28px; height: 28px; border-radius: 50%; }
 
 .price-empty,
 .price-state,
@@ -112,10 +126,4 @@
 .price-more.is-loading {
   opacity: 0.6;
   cursor: progress;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .price-skeleton__card {
-    animation: none;
-  }
 }
