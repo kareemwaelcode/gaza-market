@@ -19,7 +19,7 @@
   const langOptions = Array.from(langDropdown.querySelectorAll("li[data-lang]"));
 
   const STORAGE_KEY = "gm_guide_visited";
-  const LANG_KEY = "gm_guide_lang";
+  const LANG_KEY = "gm_lang";
   const MOBILE_BREAKPOINT = 980;
 
   const pageOrder = navButtons.map((btn) => btn.getAttribute("data-page"));

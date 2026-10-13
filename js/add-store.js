@@ -411,38 +411,3 @@
     : init();
 
 })();
-
-(function(){
-  const bar = document.getElementById('gmLoaderBar');
-  const pct = document.getElementById('gmLoaderPct');
-  const statusEl = document.getElementById('gmLoaderText');
-  const loader = document.getElementById('gmLoader');
-  const app = document.getElementById('gmApp');
-
-  const steps = [
-    [15, 'Loading stores'],
-    [40, 'Loading price list'],
-    [65, 'Syncing latest updates'],
-    [88, 'Preparing interface'],
-    [100, 'Successfully loaded']
-  ];
-
-  let i = 0;
-  function step(){
-    if(i >= steps.length){
-      setTimeout(()=>{
-        if (loader) loader.classList.add('gm-leave');
-        if (app) app.style.display = 'flex';
-        setTimeout(()=>{ if (loader) loader.remove(); }, 200);
-      }, 300);
-      return;
-    }
-    const [value, text] = steps[i];
-    if (bar) bar.style.width = value + '%';
-    if (pct) pct.textContent = value + '%';
-    if (statusEl) statusEl.textContent = text;
-    i++;
-    setTimeout(step, 420 + Math.random()*260);
-  }
-  step();
-})();

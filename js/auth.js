@@ -167,17 +167,7 @@
   /* Init                                                           */
   /* ------------------------------------------------------------ */
 
-  function init() {
-    slotEl = document.getElementById(SLOT_ID);
-    if (!slotEl) {
-      console.warn(`[auth.js] #${SLOT_ID} not found. Auth UI not initialized.`);
-      return;
-    }
-
-    // Capture the existing login button markup exactly as authored in HTML,
-    // so we can restore it later without hardcoding/duplicating it.
-    loginTemplateHTML = slotEl.innerHTML;
-
+  function render() {
     const user = getUser();
     if (user) {
       renderLoggedIn(user);
@@ -186,12 +176,37 @@
     }
   }
 
+  function init() {
+    slotEl = document.getElementById(SLOT_ID);
+    if (!slotEl) {
+      console.warn(`[auth.js] #${SLOT_ID} not found. Auth UI not initialized.`);
+      return;
+    }
+
+    // Capture the login button markup ONCE, exactly as authored in HTML.
+    // Never re-capture it later: after a login the slot contains the
+    // logged-in markup, and capturing that would break logout.
+    if (loginTemplateHTML === null) {
+      loginTemplateHTML = slotEl.innerHTML;
+    }
+
+    render();
+  }
+
+  function refresh() {
+    if (!slotEl) {
+      init();
+      return;
+    }
+    render();
+  }
+
   document.addEventListener("DOMContentLoaded", init);
 
   // Expose a small public API in case other scripts (or Laravel login
   // handler) need to trigger a re-render after login succeeds.
   window.AuthUI = {
-    refresh: init,
+    refresh: refresh,
     logout: performLogout,
   };
 })();
