@@ -1,7 +1,9 @@
 // sw.js — لازم يكون بجذر الموقع (جنب index.html) عشان يغطي كل الصفحات
-// كل مرة بتغير فيها أي ملف من PRECACHE أو بدك تجبر المتصفحات تحدّث الكاش: غيّر رقم CACHE_VERSION
+// كل مرة بتغير فيها أي ملف من PRECACHE (أو أي ملف CSS/JS/صورة/خط بالموقع) غيّر رقم CACHE_VERSION
+// مثال: 'gm-v4' → 'gm-v5'. المتصفح بيلقط التغيير تلقائياً، وبيحمّل النسخة الجديدة ويمسح القديمة.
 
-const CACHE_VERSION = 'gm-v3';
+const CACHE_PREFIX = 'gm-';
+const CACHE_VERSION = 'gm-v4';
 const SCOPE = self.registration.scope;
 
 const PRECACHE = [
@@ -44,21 +46,44 @@ const NAVIGATION_TIMEOUT = 4000;
 // المسارات اللي الـ SW ما بيلمسها أبداً (داشبورد، API، تجارب)
 const BYPASS_PATHS = ['/api/', '/dashboard-users/', '/test/'];
 
-self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_VERSION).then((cache) =>
-      // allSettled: لو ملف واحد فشل ما يوقف تثبيت الباقي
-      Promise.allSettled(
-        PRECACHE.map((path) => cache.add(new Request(new URL(path, SCOPE).href, { cache: 'reload' })))
-      )
-    ).then(() => self.skipWaiting())
+// بعض الاستضافات بتحوّل home.html إلى /home. المتصفح بيرفض يعرض استجابة "redirected"
+// لطلب تنقل، فبنحوّلها لاستجابة عادية قبل ما نخزنها بالكاش
+async function cleanResponse(response) {
+  if (!response.redirected) return response;
+  const body = await response.blob();
+  return new Response(body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers: response.headers
+  });
+}
+
+// تحميل كل ملفات PRECACHE: إذا فشل أي ملف بيفشل التثبيت كله
+// وبهالحالة النسخة القديمة (والكاش القديم) بتضل شغالة، والمتصفح بيعيد المحاولة لاحقاً
+async function precacheAll() {
+  const cache = await caches.open(CACHE_VERSION);
+  await Promise.all(
+    PRECACHE.map(async (path) => {
+      const url = new URL(path, SCOPE).href;
+      const response = await fetch(new Request(url, { cache: 'reload' }));
+      if (!response.ok) throw new Error('precache failed (' + response.status + '): ' + url);
+      await cache.put(url, await cleanResponse(response));
+    })
   );
+}
+
+self.addEventListener('install', (event) => {
+  event.waitUntil(precacheAll().then(() => self.skipWaiting()));
 });
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys()
-      .then((keys) => Promise.all(keys.filter((key) => key !== CACHE_VERSION).map((key) => caches.delete(key))))
+      .then((keys) => Promise.all(
+        keys
+          .filter((key) => key.indexOf(CACHE_PREFIX) === 0 && key !== CACHE_VERSION)
+          .map((key) => caches.delete(key))
+      ))
       .then(() => self.clients.claim())
   );
 });
@@ -72,7 +97,7 @@ async function store(request, response) {
   if (response && response.ok && response.type === 'basic') {
     try {
       const cache = await caches.open(CACHE_VERSION);
-      await cache.put(request, response.clone());
+      await cache.put(request, await cleanResponse(response.clone()));
     } catch (err) {
       // امتلاء التخزين أو خطأ مؤقت: ما بنكسر الاستجابة الأصلية
     }
