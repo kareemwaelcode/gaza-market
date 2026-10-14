@@ -8824,41 +8824,49 @@ body.dark-mode .priceList .check-badge button {
 }
 
 
+/* Offline banner: sits in normal flow at the top of the page, so it pushes
+   whatever header comes after it (.nav-bar, .guide-topbar, ...) down instead
+   of covering it. Collapsed to zero height while hidden. */
 #offline-banner {
-  position: fixed;
+  position: sticky;
   top: 0;
-  left: 0;
-  right: 0;
   z-index: 9999;
+  box-sizing: border-box;
 
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
 
-  padding: 11px 16px;
-   background-color: hsla(26, 100%, 4%, 1);
-    background-image: radial-gradient(circle at 9% 15%, hsla(24, 100%, 10%, 1) 2.4015369836695486%, transparent 53.48241393046237%), radial-gradient(circle at 100% 100%, hsla(26, 100%, 4%, 1) 0%, transparent 76.36516261032061%), radial-gradient(circle at 8% 98%, hsla(26, 100%, 4%, 1) 0%, transparent 77%), radial-gradient(circle at 98% 3%, hsla(25, 100%, 49%, 1) 39.8090373542192%, transparent 150%);
-    background-blend-mode: normal, normal, normal, normal;
+  max-height: 0;
+  padding: 0 16px;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+
+  background-color: hsla(26, 100%, 4%, 1);
+  background-image: radial-gradient(circle at 9% 15%, hsla(24, 100%, 10%, 1) 2.4015369836695486%, transparent 53.48241393046237%), radial-gradient(circle at 100% 100%, hsla(26, 100%, 4%, 1) 0%, transparent 76.36516261032061%), radial-gradient(circle at 8% 98%, hsla(26, 100%, 4%, 1) 0%, transparent 77%), radial-gradient(circle at 98% 3%, hsla(25, 100%, 49%, 1) 39.8090373542192%, transparent 150%);
   color: #fff;
   font-family: 'Cairo', sans-serif;
   font-size: 14px;
   font-weight: 600;
   text-align: center;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
 
-  transform: translateY(-100%);
-  opacity: 0;
-  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1),
-  opacity 0.35s ease;
+  transition: max-height 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+    padding 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.35s ease;
 }
 
 #offline-banner:not(.hidden) {
-  transform: translateY(0);
+  max-height: 80px;
+  padding: 11px 16px;
   opacity: 1;
+  pointer-events: auto;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
 }
 
-#offline-banner .offline-banner-icon {
+#offline-banner .offline-banner-icon,
+#offline-banner > svg {
   flex-shrink: 0;
   width: 18px;
   height: 18px;
@@ -8874,28 +8882,17 @@ body.dark-mode .priceList .check-badge button {
   50% { opacity: 0.55; }
 }
 
-body.offline-active nav.nav-bar {
-  margin-top: 44px;
-  transition: margin-top 0.35s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-nav.nav-bar {
-  transition: margin-top 0.35s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
 @media (max-width: 480px) {
-  #offline-banner {
+  #offline-banner:not(.hidden) {
     font-size: 12.5px;
     padding: 9px 12px;
   }
-  #offline-banner .offline-banner-icon {
+  #offline-banner .offline-banner-icon,
+  #offline-banner > svg {
     width: 16px;
     height: 16px;
   }
 }
-
-
-
 
 @keyframes gm-card-in {
   from { opacity: 0; transform: translateY(8px); }
