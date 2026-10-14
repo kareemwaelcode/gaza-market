@@ -1,33 +1,13 @@
 'use strict';
 
-/**
- * prices-api.js — Gaza Market
- * ---------------------------------------------------------------
- * Data layer for the prices feed (list + confirm/report votes).
- * The UI (Home.js) only talks to window.GMPrices, so switching from
- * mock data to the real Laravel API never touches the UI code.
- *
- * Switch to the real backend:
- *   1) Set USE_MOCK = false below (or window.GM_CONFIG.USE_MOCK = false
- *      before this script loads).
- *   2) Implement the endpoints in docs/prices-api-contract.md.
- *
- * Authentication works with BOTH Laravel Sanctum modes:
- *   - Cookie / SPA : sends credentials + X-XSRF-TOKEN (read from the
- *                    XSRF-TOKEN cookie Laravel sets).
- *   - Bearer token : sends "Authorization: Bearer <token>" when a token
- *                    exists (localStorage key "gm_token", or a custom
- *                    window.GM_CONFIG.getToken function).
- * Whichever is available is sent; both can be present safely.
- */
 (function () {
 const DEFAULTS = {
 USE_MOCK: true,
 API_BASE: '/api',
 TIMEOUT_MS: 15000,
-CREDENTIALS: 'same-origin', // use 'include' if the API is on another origin
+CREDENTIALS: 'same-origin',
 TOKEN_KEY: 'gm_token',
-getToken: null,             // optional: () => string | null
+getToken: null,
 };
 
 const CONFIG = Object.assign({}, DEFAULTS, window.GM_CONFIG || {});
@@ -48,17 +28,6 @@ const CATEGORY_ALIASES = {
 'baby-supplies': 'diapers-baby',
 };
 
-/* ------------------------------------------------------------ */
-/* Errors                                                        */
-/* ------------------------------------------------------------ */
-
-/**
- * code: 'network' | 'timeout' | 'unauthorized' | 'forbidden' |
- *       'not_found' | 'validation' | 'rate_limited' | 'server' |
- *       'invalid_response'
- * status: HTTP status (0 when there was no response)
- * errors: Laravel validation errors object ({ field: [messages] }) or null
- */
 function GMPricesError(code, message, status, errors) {
 const err = new Error(message || code);
 err.name = 'GMPricesError';
@@ -76,10 +45,6 @@ if (status === 422) return 'validation';
 if (status === 429) return 'rate_limited';
 return 'server';
 }
-
-/* ------------------------------------------------------------ */
-/* Helpers                                                       */
-/* ------------------------------------------------------------ */
 
 function normalizeCategory(slug) {
 if (slug === null || slug === undefined || slug === '') return null;
@@ -121,10 +86,6 @@ try {
 }
 }
 
-/* ------------------------------------------------------------ */
-/* Normalizers (clean whatever the server returns)               */
-/* ------------------------------------------------------------ */
-
 function normalizeItem(raw) {
 if (!raw || raw.price_id === undefined || raw.price_id === null || raw.price_id === '') return null;
 
@@ -157,9 +118,6 @@ return {
 };
 }
 
-// Accepts both Laravel shapes:
-//  - plain cursorPaginate():       { data, next_cursor, ... }
-//  - API Resource collection:      { data, links, meta: { next_cursor, ... } }
 function normalizePage(json) {
 if (!json || !Array.isArray(json.data)) {
     throw GMPricesError('invalid_response', 'Invalid prices response');
@@ -176,7 +134,6 @@ return {
 };
 }
 
-// Accepts { my_vote, ... } or Laravel's wrapped { data: { my_vote, ... } }
 function normalizeVoteResult(json) {
 if (json && json.data && typeof json.data === 'object' && !Array.isArray(json.data)) json = json.data;
 if (!json || typeof json !== 'object') {
@@ -191,10 +148,6 @@ return {
     removed: !!json.removed,
 };
 }
-
-/* ------------------------------------------------------------ */
-/* Real API (Laravel)                                            */
-/* ------------------------------------------------------------ */
 
 function getAuthToken() {
 try {
@@ -279,12 +232,6 @@ function apiVote(priceId, vote) {
 return request('POST', '/prices/' + encodeURIComponent(priceId) + '/vote', { vote });
 }
 
-/* ------------------------------------------------------------ */
-/* Mock data — one sample record only.                           */
-/* Used only while USE_MOCK = true. Delete this whole section    */
-/* (and the mock* functions) once the backend is live.           */
-/* ------------------------------------------------------------ */
-
 const MOCK_BASE_TIME = Math.floor(Date.now() / 60000) * 60000;
 
 const MOCK_ROWS = [
@@ -340,7 +287,6 @@ if (index < 1) return null;
 return { created_at: cursor.slice(0, index), price_id: Number(cursor.slice(index + 1)) };
 }
 
-// Test modes via URL: ?gm_test=slow | error | empty | votefail
 async function mockFetchPage(params) {
 const mode = getTestMode();
 await delay(mode === 'slow' ? 3000 : 300);
@@ -401,10 +347,6 @@ return {
     removed: removedNow,
 };
 }
-
-/* ------------------------------------------------------------ */
-/* Public functions                                              */
-/* ------------------------------------------------------------ */
 
 async function fetchPage(params) {
 const json = USE_MOCK ? await mockFetchPage(params) : await apiFetchPage(params);

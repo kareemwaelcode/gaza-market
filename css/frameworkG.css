@@ -1,6 +1,4 @@
-
-  /* Start Box */
-  .d-flex {
+.d-flex {
     display: flex;
   }
   .f-wrap {
@@ -24,8 +22,6 @@
   .d-block {
     display: block;
   }
-  /* End Box */
-  /* Start Padding */
   .p-0 {
     padding: 0px;
   }
@@ -71,9 +67,7 @@
   .pr-15 {
     padding-right: 15px;
   }
-    /* End Padding */
 
-    /* Start Margin */
   .m-0 {
     margin: 0;
   }
@@ -140,17 +134,13 @@
   .mb-50 {
     margin-bottom: 50px;
   }
-  /* End Margin */
-  /* Start Color */
   .c-black {
     color: black;
   }
   .c-white {
     color: white;
   }
-  /* End Color */
 
-  /* Start Font */
   .fs-18 {
     font-size: 18px;
   }
@@ -226,8 +216,6 @@
   .z-in {
     z-index: 99999;
   }
-    /* End Font */
-    /* Start left */
   .le-50 {
     left: 50%;
   }
@@ -240,9 +228,7 @@
   .le--100 {
     left: 100px;
   }
-    /* End left */
 
-  /* Start top */
   .to-50 {
     top: 50%;
   }
@@ -252,8 +238,6 @@
   .to--100 {
     top: 100px;
   }
-   /* End top */
-  /* Start Border */
   .border-rad-5 {
     border-radius: 5px;
   }
@@ -276,9 +260,6 @@
     border: 1px solid #eee;
   }
   
-  /* End Border */
-
-  /* Start Width + Height */
   .w-full {
     width: 100%;
   }
@@ -303,9 +284,7 @@
   .h-50 {
     height: 50px;
   }
-  /* End Width + Height */
   
-  /* Start Components */
   .di-bl {
     display: block;
   }
@@ -319,4 +298,3 @@
     align-items: center;
     justify-content: space-between;
   }
-  /* End Components */

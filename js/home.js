@@ -84,10 +84,6 @@ function tr(key, fallback) {
   return fallback || key;
 }
 
-/**
- * Rejects if the promise takes longer than `ms`, so a weak connection can never
- * leave a skeleton spinning forever (the caller falls back to cache / error + retry).
- */
 function withTimeout(promise, ms) {
   let timer = null;
 
@@ -908,12 +904,6 @@ let heroTickerBuiltWidth = 0;
 let heroTickerObserverBound = false;
 let heroTickerPauseBound = false;
 
-/**
- * Fills the track with: [set x N] [set x N] where N is enough to make each half
- * at least as wide as the viewport. The animation moves the track by exactly
- * half of its width, so the loop is seamless on small AND large screens.
- * Returns false when the ticker is not measurable yet (hidden / not laid out).
- */
 function buildHeroTicker(track) {
   const viewport = track.parentElement;
   if (!viewport || !heroTickerSource.length) return false;
@@ -960,7 +950,6 @@ function rebuildHeroTicker(force = false) {
   const viewport = track.parentElement;
   const width = viewport ? viewport.clientWidth : 0;
 
-  // Rebuild only when the width really changed (or the last build failed).
   if (!force && width && width === heroTickerBuiltWidth) return;
 
   if (!buildHeroTicker(track)) heroTickerBuiltWidth = 0;
@@ -986,7 +975,6 @@ function bindHeroTickerObservers(track) {
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(schedule);
   }
 
-  // Hold a finger (or the mouse button) on the ticker to pause it.
   if (!heroTickerPauseBound && track.parentElement) {
     heroTickerPauseBound = true;
     const viewport = track.parentElement;
@@ -1010,8 +998,6 @@ function initHeroTicker() {
 
   bindHeroTickerObservers(track);
 
-  // Measure after layout; if it is still not measurable, the ResizeObserver
-  // (or the load / fonts events) will build it as soon as it becomes visible.
   requestAnimationFrame(() => requestAnimationFrame(() => rebuildHeroTicker(true)));
 }
 
@@ -1178,37 +1164,6 @@ if (!window._heroDatetimeStarted) {
   setInterval(updateHeroDatetime, 1000);
 }
 
-/**
- * points-api.js — Gaza Market
- * ---------------------------------------------------------------
- * Data layer for the "Contributors Points" card on the home page.
- * The UI (Home.js) only talks to window.GMPoints, so switching from
- * mock data to the real Laravel API never touches the UI code.
- *
- * Switch to the real backend:
- *   1) Set USE_MOCK = false (or window.GM_CONFIG.USE_MOCK = false
- *      before this script loads).
- *   2) Implement GET {API_BASE}/points returning:
- *
- *      {
- *        "user": { "id": "12", "name": "Sara", "points": 410,
- *                  "avatar_url": null,
- *                  "weekly_rank": 7, "weekly_points": 12 } | null,
- *        "leaderboard": [ { "id": "3", "name": "Ahmad Khalil",
- *                           "points": 95, "avatar_url": null } ],
- *        "rules": [ { "key": "addPrice", "points": 10 } ]
- *      }
- *
- *      - "user" is null for guests (no session).
- *      - "points" on the user is the TOTAL balance (used for the level).
- *      - "leaderboard" holds WEEKLY points, already sorted by the server.
- *      - "weekly_rank" / "weekly_points" are optional; they are only used
- *        to show the user's own row when they are outside the leaderboard.
- *      - "rules" is optional; keys: addPrice, confirmPrice, reportPrice,
- *        addStore, postListing.
- *
- * Authentication works like prices-api.js (Sanctum cookie or Bearer).
- */
 (function () {
 const DEFAULTS = {
 USE_MOCK: true,
@@ -1229,11 +1184,6 @@ const MOCK_POINTS_KEY = 'gm_mock_points_v1';
 const USER_STORAGE_KEY = 'user';
 const RULE_KEYS = ['addPrice', 'confirmPrice', 'reportPrice', 'addStore', 'postListing'];
 
-/* ------------------------------------------------------------ */
-/* Errors                                                        */
-/* ------------------------------------------------------------ */
-
-/** code: 'network' | 'timeout' | 'unauthorized' | 'server' | 'invalid_response' */
 function GMPointsError(code, message, status) {
 const err = new Error(message || code);
 err.name = 'GMPointsError';
@@ -1241,10 +1191,6 @@ err.code = code;
 err.status = status || 0;
 return err;
 }
-
-/* ------------------------------------------------------------ */
-/* Helpers                                                       */
-/* ------------------------------------------------------------ */
 
 function readJson(key, fallback) {
 try {
@@ -1272,7 +1218,6 @@ const num = Math.floor(Number(value));
 return isFinite(num) && num > 0 ? num : 0;
 }
 
-/** Only allow image sources that cannot run script (http/https, relative, data:image). */
 function safeAvatarUrl(value) {
 if (typeof value !== 'string') return null;
 const url = value.trim();
@@ -1286,10 +1231,6 @@ function getCurrentOwner() {
 const user = readJson(USER_STORAGE_KEY, null);
 return user && user.phone ? String(user.phone) : 'guest';
 }
-
-/* ------------------------------------------------------------ */
-/* Normalizers (clean whatever the server returns)               */
-/* ------------------------------------------------------------ */
 
 function normalizeEntry(raw) {
 if (!raw || raw.id === undefined || raw.id === null || raw.id === '') return null;
@@ -1335,15 +1276,10 @@ return {
 };
 }
 
-/* ------------------------------------------------------------ */
-/* Cache (last good response, kept per signed-in user)           */
-/* ------------------------------------------------------------ */
-
 function writeCache(summary) {
 writeJson(CACHE_KEY, { owner: getCurrentOwner(), savedAt: Date.now(), data: summary });
 }
 
-/** Returns { data, savedAt } only when it belongs to the current user (or guest). */
 function readCache() {
 const cached = readJson(CACHE_KEY, null);
 if (!cached || !cached.data || cached.owner !== getCurrentOwner()) return null;
@@ -1354,10 +1290,6 @@ try {
     return null;
 }
 }
-
-/* ------------------------------------------------------------ */
-/* Real API                                                      */
-/* ------------------------------------------------------------ */
 
 function getXsrfToken() {
 const match = document.cookie.match(/(?:^|;\s*)XSRF-TOKEN=([^;]+)/);
@@ -1414,11 +1346,6 @@ try {
 return json;
 }
 
-/* ------------------------------------------------------------ */
-/* Mock (development only — real users and real points come      */
-/* from the backend)                                             */
-/* ------------------------------------------------------------ */
-
 const MOCK_LEADERBOARD = [
 { id: 'm1', name: 'أحمد خليل', points: 95 },
 { id: 'm2', name: 'ليلى حسونة', points: 72 },
@@ -1435,12 +1362,6 @@ const MOCK_RULES = [
 { key: 'postListing', points: 5 },
 ];
 
-/**
- * The signed-in user comes from localStorage ("user", set by the login
- * flow). Their points come from localStorage key gm_mock_points_v1
- * (set it in the console to test levels, e.g.
- * localStorage.setItem('gm_mock_points_v1', '120')). Guests get user: null.
- */
 function buildMockSummary() {
 const stored = readJson(USER_STORAGE_KEY, null);
 const loggedIn = !!(stored && stored.phone && stored.name);
@@ -1456,10 +1377,6 @@ leaderboard.sort((a, b) => b.points - a.points);
 
 return { user, leaderboard, rules: MOCK_RULES };
 }
-
-/* ------------------------------------------------------------ */
-/* Public API                                                    */
-/* ------------------------------------------------------------ */
 
 async function fetchSummary() {
 let raw;
@@ -1584,13 +1501,6 @@ function setPointsView(view) {
   }
 }
 
-/**
- * user: { name, points, avatarUrl } | null (guest)
- * user.points === null means "not loaded yet / unavailable": no level, no number.
- * The three text nodes below lose their data-i18n on purpose: i18n.js would
- * overwrite them with the static "Guest" / "Beginner" text on every language
- * switch. This code owns them and re-renders on language change instead.
- */
 function gmRenderUserCard(user, { statusHint = '' } = {}) {
   const nameEl = document.getElementById('pointsUserName');
   const valueEl = document.getElementById('userPointsValue');
@@ -1605,7 +1515,6 @@ function gmRenderUserCard(user, { statusHint = '' } = {}) {
 
   [nameEl, textEl, hintEl].forEach(el => el.removeAttribute('data-i18n'));
 
-  // Keep the default user icon from the markup so guests get it back after a login/logout.
   if (!pointsGuestIcon) pointsGuestIcon = Array.from(avatarEl.childNodes);
 
   const hasPoints = !!user && Number.isFinite(user.points);
@@ -1704,7 +1613,6 @@ function gmRenderLeaderboard(data) {
     fragment.appendChild(gmBuildLeaderboardRow(rowTemplate, entry, index + 1, entry.id === currentUserId));
   });
 
-  // The user is outside the visible top list: show their own rank below it.
   const inTop = top.some(entry => entry.id === currentUserId);
   if (currentUser && !inTop && currentUser.weeklyRank && currentUser.weeklyPoints !== null) {
     const gap = document.createElement('div');
@@ -1815,10 +1723,6 @@ function initPointsEvents() {
 
 window.initPointsCard = initPointsCard;
 
-/**
- * Runs one init step. A failure in one section must never stop the others
- * (before, one error here left prices / points loading forever).
- */
 function safeInit(step) {
   try {
     const result = step();

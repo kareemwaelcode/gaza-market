@@ -1,9 +1,7 @@
 const i18n = (() => {
   const STORAGE_KEY  = "gm_lang";
-  const DEFAULT_LANG = "ar"; // اللغة الافتراضية للموقع = عربي
+  const DEFAULT_LANG = "ar";
 
-  // نقرأ اللغة المحفوظة (إن وجدت) وإلا نستخدم الافتراضي مباشرة،
-  // بدل ما نبلش دايماً بـ "en" ثم ننتظر setLang لتغييرها.
   function getStoredLang() {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
@@ -74,8 +72,6 @@ const i18n = (() => {
     },
   };
 
-  // Categories used in the "Suggest a new product" (npw) step 1 grid.
-  // Keys match the data-value on each .npw-category-btn in the HTML.
   const productCategories = {
     en: {
       "grains-flour": "Grains & Flour", "oils": "Oils", "sugars": "Sugars",
@@ -158,20 +154,17 @@ const i18n = (() => {
     return (productCategories[currentLang] && productCategories[currentLang][val]) || val;
   }
   function updateArrowIcons(isRtl) {
-    // 1) Explicit direction via data-arrow="next" | "back"
     document.querySelectorAll("[data-arrow]").forEach((icon) => {
-      const base   = icon.getAttribute("data-arrow"); // "next" or "back"
+      const base   = icon.getAttribute("data-arrow");
       const isBack = base === "back";
       const shouldFlip = isBack ? !isRtl : isRtl;
       icon.classList.toggle("gm-icon-flip", shouldFlip);
     });
 
-    // 2) Fallback for arrow SVGs inside known back-style buttons that
-    //    don't carry an explicit data-arrow attribute.
     document.querySelectorAll(
       ".gm-btn svg, .gm-back-btn svg, .gm-success-btn svg, #otpBackBtn svg, #successCloseBtn svg"
     ).forEach((icon) => {
-      if (icon.hasAttribute("data-arrow")) return; // already handled above
+      if (icon.hasAttribute("data-arrow")) return;
 
       const inBackBtn = icon.closest(
         ".gm-back-btn, .gm-success-btn, #otpBackBtn, #successCloseBtn"
@@ -210,11 +203,6 @@ const i18n = (() => {
       el.label = t(el.getAttribute("data-i18n-label"));
     });
 
-    // Confirm-modal attributes: any element carrying data-i18n-confirm-title /
-    // data-i18n-confirm-message / data-i18n-confirm-action gets its matching
-    // data-confirm-title / data-confirm-message / data-confirm-action attribute
-    // (the ones the confirm-modal JS actually reads at open time) overwritten
-    // with the translated string for the current language.
     const CONFIRM_ATTR_MAP = {
       "data-i18n-confirm-title":   "data-confirm-title",
       "data-i18n-confirm-message": "data-confirm-message",
@@ -235,15 +223,10 @@ const i18n = (() => {
       btn.textContent = regionLabel(btn.getAttribute("data-val"));
     });
 
-    // "Suggest a new product" category grid (npw step 1) — buttons carry
-    // English category slugs in data-value (grains-flour, oils, ...) and
-    // no visible text of their own; we translate them the same way as
-    // storeTags/regionOptions above.
     document.querySelectorAll(".npw-category-btn[data-value]").forEach((btn) => {
       btn.textContent = productCategoryLabel(btn.getAttribute("data-value"));
     });
 
-    // Directional SVG arrows (flipped according to the page direction)
     updateArrowIcons(isRtl);
 
     document.querySelectorAll(".lang-dropdown li[data-lang]").forEach((li) => {
@@ -327,7 +310,6 @@ const i18n = (() => {
     try {
       localStorage.setItem(STORAGE_KEY, lang);
     } catch (e) {
-      /* localStorage may be unavailable (private mode, etc.) — ignore */
     }
     applyLang();
   }

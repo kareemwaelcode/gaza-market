@@ -1,30 +1,11 @@
-/**
- * auth.js
- * ----------------------------------------------------------------
- * Handles frontend-only authentication UI state for the navbar.
- * - Does NOT rebuild the navbar.
- * - Does NOT touch any existing scripts or markup outside #navAuthSlot.
- * - Reads/writes user data to localStorage under AUTH_STORAGE_KEY.
- * - Login is phone-based (not email). Expected shape:
- *     { "name": "Kareem", "phone": "01012345678", "avatar": "data:image/..." }
- * - Built to be swapped later for real Laravel API calls:
- *     -> replace localStorage.getItem/removeItem calls with API calls
- *     -> replace performLogout() body with a fetch() to /api/logout
- * ----------------------------------------------------------------
- */
-
 (function () {
   "use strict";
 
-  const AUTH_STORAGE_KEY = "user"; // { name, phone, region, avatar }
+  const AUTH_STORAGE_KEY = "user";
   const SLOT_ID = "navAuthSlot";
 
   let slotEl = null;
-  let loginTemplateHTML = null; // captured automatically from existing DOM
-
-  /* ------------------------------------------------------------ */
-  /* Storage helpers (swap these for API calls later)             */
-  /* ------------------------------------------------------------ */
+  let loginTemplateHTML = null;
 
   function getUser() {
     try {
@@ -42,10 +23,6 @@
   function clearUser() {
     localStorage.removeItem(AUTH_STORAGE_KEY);
   }
-
-  /* ------------------------------------------------------------ */
-  /* Rendering                                                     */
-  /* ------------------------------------------------------------ */
 
   function renderLoggedOut() {
     if (!slotEl || loginTemplateHTML === null) return;
@@ -71,8 +48,6 @@
 
     if (avatarBtn) avatarBtn.title = user.name;
 
-    // ── AVATAR: لو المستخدم عندو صورة بروفايل محفوظة (user.avatar)
-    // نعرضها بدل الحرف. وإلا منرجع لسلوك الحرف متل ما كان.
     if (user.avatar && avatarLetter) {
       const avatarImg = document.createElement("img");
       avatarImg.className = "authx-avatar-img";
@@ -98,10 +73,6 @@
 
     bindDropdownEvents();
   }
-
-  /* ------------------------------------------------------------ */
-  /* Dropdown behavior                                              */
-  /* ------------------------------------------------------------ */
 
   function bindDropdownEvents() {
     const avatarBtn = document.getElementById("authxAvatarBtn");
@@ -147,25 +118,13 @@
     }
   }
 
-  /* ------------------------------------------------------------ */
-  /* Logout                                                         */
-  /* ------------------------------------------------------------ */
-
   function performLogout() {
-    // TODO (Laravel integration): call your logout endpoint here, e.g.
-    // fetch('/api/logout', { method: 'POST', headers: {...} })
-    //   .finally(() => { clearUser(); renderLoggedOut(); });
 
     clearUser();
     renderLoggedOut();
 
-    // Let other scripts (e.g. the points card) react to the logout.
     document.dispatchEvent(new CustomEvent("gmUserLoggedOut"));
   }
-
-  /* ------------------------------------------------------------ */
-  /* Init                                                           */
-  /* ------------------------------------------------------------ */
 
   function render() {
     const user = getUser();
@@ -183,9 +142,6 @@
       return;
     }
 
-    // Capture the login button markup ONCE, exactly as authored in HTML.
-    // Never re-capture it later: after a login the slot contains the
-    // logged-in markup, and capturing that would break logout.
     if (loginTemplateHTML === null) {
       loginTemplateHTML = slotEl.innerHTML;
     }
@@ -203,8 +159,6 @@
 
   document.addEventListener("DOMContentLoaded", init);
 
-  // Expose a small public API in case other scripts (or Laravel login
-  // handler) need to trigger a re-render after login succeeds.
   window.AuthUI = {
     refresh: refresh,
     logout: performLogout,

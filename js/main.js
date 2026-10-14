@@ -36,7 +36,6 @@ const TRANSLATIONS = {
     "addListing.cardPhoneSub":     "سيستخدم المشترون هذا الرقم للتواصل معك",
     "addListing.errRequired":      "هذا الحقل مطلوب",
 
-    /* Suggest New Product — unit & quantity step */
     "npw.unit":                    "الوحدة",
     "npw.quantity":                "الكمية",
     "npw.unitPlaceholder":         "اختر الوحدة...",
@@ -89,7 +88,6 @@ const TRANSLATIONS = {
     "addListing.cardPhoneSub":     "Buyers will use this number to contact you",
     "addListing.errRequired":      "This field is required",
 
-    /* Suggest New Product — unit & quantity step */
     "npw.unit":                    "Unit",
     "npw.quantity":                "Quantity",
     "npw.unitPlaceholder":         "Select unit...",
@@ -188,41 +186,6 @@ window.gmSaveSelectedArea   = gmSaveSelectedArea;
 window.gmNormalizeRegionKey = gmNormalizeRegionKey;
 window.gmSyncUserRegion     = gmSyncUserRegion;
 
-/* --------------------------------------------------------------------
-   Auth gate helper — shared by "Add Price", "Suggest New Product", and
-   (on add-store.html) "Add Store": submitting any of these requires a
-   logged-in user. "Add Listing" is intentionally excluded and keeps
-   working without login, per product requirements.
-
-   MODAL-CONFLICT FIX
-   -------------------
-   The login/OTP flow lives in a custom, non-Bootstrap overlay
-   (#authOverlay), while the wizards ("Add Price" / "Suggest New
-   Product") are real Bootstrap modals with their own backdrop. Simply
-   opening #authOverlay on top of an already-open Bootstrap modal used
-   to stack two overlays/backdrops on top of each other.
-
-   To fix this properly:
-     1. If a `sourceModalId` is supplied, the caller's Bootstrap modal
-        is hidden FIRST (via the real Bootstrap API), which also tears
-        down its backdrop and the body's `modal-open` state.
-     2. Only once that modal has fully finished hiding (`hidden.bs.modal`)
-        do we open the login overlay, so at any given moment only ONE
-        modal/overlay is ever visible.
-     3. The wizard's DOM (and therefore everything the user already
-        typed) is left completely untouched while it's hidden — we just
-        flag it with `data-gm-suppress-reset` so the wizard's own
-        `show.bs.modal` → resetForm() listener skips wiping the fields
-        the next time it's shown again.
-     4. If the login flow succeeds, we simply run the original pending
-        `action` (the wizard's own submit logic), which builds its
-        payload from those still-intact fields and moves on to the
-        success modal — effectively "resuming" the operation the user
-        was trying to complete.
-     5. If the user cancels/closes the login overlay without logging
-        in, we reopen the exact same wizard modal, on the exact same
-        step, with all previously entered data still in place.
-   -------------------------------------------------------------------- */
 function gmIsLoggedIn() {
   try {
     const raw = localStorage.getItem("user");
@@ -234,25 +197,6 @@ function gmIsLoggedIn() {
   }
 }
 
-/**
- * Runs `action` immediately if the user is already logged in.
- *
- * Otherwise, it cleanly hides the caller's Bootstrap modal (identified
- * by `sourceModalId`, if provided) and opens the existing login/register
- * overlay in its place — never both at once. `action` is deferred until
- * the user finishes phone verification.
- *
- * If the user closes the login overlay without completing verification,
- * `action` is never called, and (when `sourceModalId` was provided) the
- * caller's modal is reopened on the same step with its fields intact —
- * no error, no forced retry, no lost progress.
- *
- * @param {Function} action          Callback to run once the user is authenticated.
- * @param {string}  [sourceModalId]  id of the Bootstrap modal that triggered this
- *                                   call (e.g. "addPriceModal"), so it can be
- *                                   hidden before the login overlay opens and
- *                                   safely restored if the user cancels.
- */
 function gmRequireAuthThenRun(action, sourceModalId) {
   if (typeof action !== "function") return;
 
@@ -263,8 +207,6 @@ function gmRequireAuthThenRun(action, sourceModalId) {
 
   const overlay = document.getElementById("authOverlay");
   if (!overlay) {
-    // Auth modal not present on this page for some reason — fail open
-    // rather than silently blocking the user's action.
     action();
     return;
   }
@@ -287,14 +229,10 @@ function gmRequireAuthThenRun(action, sourceModalId) {
       observer.disconnect();
 
       if (loggedInDuringFlow) {
-        // Small delay so the overlay's own close transition finishes
-        // before we run the caller's pending submit/action.
         setTimeout(action, 50);
         return;
       }
 
-      // User backed out of login without verifying — restore the
-      // wizard exactly as they left it, without resetting its fields.
       if (sourceEl && hasBootstrap) {
         sourceEl.setAttribute("data-gm-suppress-reset", "1");
         setTimeout(() => {
@@ -310,19 +248,12 @@ function gmRequireAuthThenRun(action, sourceModalId) {
 
     document.addEventListener("gmUserLoggedIn", onLoggedIn);
 
-    // Make sure the login overlay renders above everything else, now
-    // that it is the ONLY modal/overlay left open on the page.
     overlay.style.zIndex = "2000";
 
-    // Reuse the exact same "open login modal" behavior already wired to
-    // the navbar login button, instead of duplicating that logic here.
     document.getElementById("loginBtn")?.click();
   }
 
   if (sourceEl && sourceInstance) {
-    // Wait for the wizard modal to fully finish hiding (backdrop
-    // removed, body classes cleaned up by Bootstrap itself) before
-    // opening the login overlay, so the two are never visible together.
     sourceEl.addEventListener("hidden.bs.modal", function onHidden() {
       sourceEl.removeEventListener("hidden.bs.modal", onHidden);
       openLoginOverlay();
@@ -449,12 +380,6 @@ window.gmRequireAuthThenRun = gmRequireAuthThenRun;
   restoreSelection();
   document.addEventListener("languageChanged", restoreSelection);
 
-  // FIX: صفحة البروفايل (profile.js) بتقدر تغيّر منطقة المستخدم من
-  // مودال "تعديل البروفايل" مباشرة، بدون ما تعمل رفرش للصفحة. حتى
-  // لابل المنطقة بالناف بار ينحدث فوراً بنفس اللحظة (لو الناف بار
-  // موجود بنفس الصفحة)، منستمع لحدث مخصص "gmRegionChanged" ومنعيد
-  // استدعاء نفس restoreSelection() يلي أصلاً بتقرأ القيمة المحدّثة
-  // من localStorage (gmSelectedArea / gmSelectedAreaLabel).
   document.addEventListener("gmRegionChanged", restoreSelection);
 
   document.querySelectorAll(".dropdown-menu .dropdown-item[data-i18n]").forEach(item => {
@@ -925,9 +850,6 @@ document.addEventListener("DOMContentLoaded", () => {
             );
             window.AuthUI?.refresh();
 
-            // نعلم أي كود آخر بانتظار تسجيل الدخول (مثل معالج "أضف سعر"
-            // أو "اقترح منتج") إنو المستخدم سجّل دخوله بنجاح، حتى يقدر
-            // يكمل العملية المعلّقة تلقائياً بعد إغلاق نافذة التحقق.
             document.dispatchEvent(new CustomEvent("gmUserLoggedIn", {
               detail: { phone, mode },
             }));
@@ -1063,84 +985,8 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 
-/* =========================================================================
-   ADDITION FLOWS — Add Price / Add Listing / Suggest New Product
-   Each modal is a true Multi-Step Wizard: one .gm-form-card[data-step] is
-   visible at a time (see .gm-step-active in main.css), navigated through
-   the shared Back / Next footer, with per-step validation before advancing
-   and a single "submit" call fired from the last step. The generic engine
-   lives in initStepWizard() (section 3b) and is reused unchanged by all
-   three modals below — only the field-level validation/payload logic is
-   modal-specific.
-
-   AUTH GATE: "Add Price" and "Suggest New Product" require a logged-in
-   user before the final submit actually goes through (via the shared
-   gmRequireAuthThenRun() helper defined above). "Add Listing" is
-   intentionally excluded and keeps publishing without login.
-
-   MODAL-CONFLICT FIX: both auth-gated wizards now pass their own modal
-   id to gmRequireAuthThenRun(action, "theirModalId"), so the helper can
-   hide their Bootstrap modal before opening the login overlay, and
-   restore it afterwards without wiping the user's progress (see the
-   "gm-gmSuppressReset" guards inside each modal's show.bs.modal
-   listener below).
-
-   STEP-1 "BACK" ROUTING: Step 1 of every wizard has no previous step to
-   go back to. Rather than disabling the button forever or silently
-   doing nothing, pressing "Back" while on Step 1 now fully resets that
-   wizard (fields, validation states, temporary upload state, current
-   step) and reopens the addition-type chooser (#additionModal) using
-   the same safe switchModal() hide-then-show pattern already used
-   throughout this file, so the user can immediately pick a different
-   addition type. From Step 2 onward, "Back" keeps its original
-   behavior of moving back exactly one step. This is driven by the new
-   `onFirstStepBack` option accepted by initStepWizard() (section 3b)
-   and implemented per-modal via a small goBackToAdditionMenu() helper
-   inside each of the three init*Modal() functions below.
-
-   STRUCTURE (one question per screen):
-     Add Price        (6 steps): product -> region -> price -> store(optional)
-                                  -> photo(optional) -> review & submit
-                                  * region (step 2) uses a pill/tag grid
-                                  * price (step 3) uses a big live display
-                                    plus quick-pick price buttons
-     Suggest Product  (7 steps): name -> category -> quantity & unit
-                                  -> price -> store name -> region
-                                  -> review, extra details & submit
-                                  * quantity & unit (step 3) uses a plain
-                                    number input for quantity next to a
-                                    real <select> dropdown for the unit
-                                    (kg/g/l/ml/piece/pack/box/sack), laid
-                                    out side by side like the region/price
-                                    steps elsewhere in the wizard
-                                  * price (step 4) reuses the big live
-                                    display + quick-pick buttons pattern
-                                  * region (step 6) uses the same pill/tag
-                                    grid as Add Price
-     Add Listing      (8 steps): title -> category (pill grid) -> condition
-                                  -> description -> price(if any) -> photos
-                                  -> phone & whatsapp -> review & publish
-                                  * category (step 2) uses the same
-                                    pill/tag grid pattern as region/category
-                                    grids elsewhere in the wizard (FIXED:
-                                    previously pointed at a non-existent
-                                    <select id="listingCategory">, which
-                                    made step 2 impossible to pass)
-                                  * step 7 now collects BOTH the
-                                    advertiser's phone number and a
-                                    separate WhatsApp number; both are
-                                    read into the payload and surfaced on
-                                    the review screen (step 8)
-
-   Self-contained IIFE, DOM-cached, event-delegated.
-   ========================================================================= */
-
 (function () {
 
-  /* --------------------------------------------------------------------
-     0. Small shared helpers (modal show/hide, translation fallback,
-        digit normalization, and a "safe" hidden-<select> value setter)
-     -------------------------------------------------------------------- */
   const MAX_IMAGE_MB = 5;
   const MAX_IMAGE_BYTES = MAX_IMAGE_MB * 1024 * 1024;
   const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
@@ -1152,7 +998,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const result = translate(key);
         if (result && result !== key) return result;
       }
-    } catch (e) { /* translations.js may not be loaded yet */ }
+    } catch (e) { }
     return fallback;
   }
 
@@ -1174,8 +1020,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  /** Swap `fromId` for `toId` once the first modal has fully closed,
-   *  so Bootstrap never has to animate two modals at the same time. */
   function switchModal(fromId, toId, delay = 280) {
     hideModal(fromId);
     document.activeElement?.blur();
@@ -1198,8 +1042,6 @@ document.addEventListener("DOMContentLoaded", () => {
     inputEl?.classList.remove("gm-invalid-input", "npw-invalid");
   }
 
-  /** Focuses + scrolls the first invalid field into view inside a
-   *  scrollable modal body, so the user isn't left guessing what failed. */
   function focusFirstInvalid(container, el) {
     if (!el) return;
     container?.scrollTo?.({
@@ -1210,26 +1052,12 @@ document.addEventListener("DOMContentLoaded", () => {
     setTimeout(() => el.focus?.({ preventScroll: true }), 250);
   }
 
-  /** Truncates long free-text for compact review-screen display. */
   function truncateForReview(str, max = 60) {
     const s = (str || "").trim();
     if (!s) return "—";
     return s.length > max ? s.slice(0, max).trim() + "…" : s;
   }
 
-  /**
-   * Normalizes user-typed numeric text so validation never rejects a
-   * value the person can clearly see they entered. Handles the two most
-   * common causes of a "looks filled but reads empty" numeric field on
-   * Arabic-locale mobile keyboards:
-   *   - Arabic-Indic (٠-٩) and Persian (۰-۹) digits, which native
-   *     <input type="number"> silently treats as invalid (its `.value`
-   *     collapses to "" even though the field visually shows digits).
-   *   - Arabic decimal/thousands separators ("٫", "،") and stray
-   *     bidi/direction marks some virtual keyboards insert around
-   *     numbers, which also break numeric parsing.
-   * Safe to call on already-clean Western-digit input (no-op).
-   */
   function normalizeDigits(str) {
     if (str === null || str === undefined) return "";
     const arabicIndic = "٠١٢٣٤٥٦٧٨٩";
@@ -1237,27 +1065,11 @@ document.addEventListener("DOMContentLoaded", () => {
     return String(str)
       .replace(/[٠-٩]/g, (d) => String(arabicIndic.indexOf(d)))
       .replace(/[۰-۹]/g, (d) => String(persian.indexOf(d)))
-      .replace(/[٫،]/g, ".")                 // Arabic decimal / thousands separators
-      .replace(/[\u200e\u200f\u202a-\u202e]/g, "") // strip bidi/direction marks
+      .replace(/[٫،]/g, ".")
+      .replace(/[\u200e\u200f\u202a-\u202e]/g, "")
       .trim();
   }
 
-  /**
-   * Applies a value coming from a pill/tag button or a custom dropdown
-   * option onto a real hidden <select>, the way the wizards' validation
-   * expects to read it back. Plain `select.value = someValue` silently
-   * fails (leaves the select's value unchanged / empty) whenever
-   * `someValue` doesn't exactly match one of the <option value="...">
-   * strings — which is exactly what made a field look "selected" in the
-   * UI while the wizard still reported it as required. This helper:
-   *   1. Tries an exact <option value> match.
-   *   2. Falls back to a trimmed, case-insensitive value match.
-   *   3. Falls back to matching the option's visible text/label.
-   *   4. As a last resort, creates a matching <option> on the fly so the
-   *      user's choice is never silently dropped.
-   * Always dispatches a native "change" event so any existing listeners
-   * (error-clearing, review-screen population, etc.) keep working.
-   */
   function setSelectValueSafe(selectEl, rawValue, labelHint) {
     if (!selectEl) return false;
     const wanted = (rawValue ?? "").toString().trim();
@@ -1292,18 +1104,6 @@ document.addEventListener("DOMContentLoaded", () => {
     return selectEl.value === match.value;
   }
 
-  /* --------------------------------------------------------------------
-     1. Generic custom "select" dropdown
-        Drives any [data-gm-custom-select] wrapper containing:
-          [data-select-trigger] [data-select-trigger-text]
-          [data-select-panel] > .npw-custom-select-option[data-value]
-          a hidden <select> referenced via data-hidden-select="<id>"
-          an optional [data-select-err] message
-        Kept as a generic, reusable utility (not currently wired to any
-        markup, since the Add Price region field now uses the pill/tag
-        grid below instead of a dropdown) — safe no-op if no matching
-        [data-gm-custom-select] wrapper exists on the page.
-     -------------------------------------------------------------------- */
   function initCustomSelects(root) {
     const wrappers = root.querySelectorAll("[data-gm-custom-select]");
 
@@ -1338,14 +1138,6 @@ document.addEventListener("DOMContentLoaded", () => {
         const value = opt.dataset.value;
         const label = opt.textContent.trim();
 
-        // FIX: previously did a raw `hiddenSelect.value = value`, which
-        // silently fails (leaves the select empty) whenever `value`
-        // doesn't exactly match an <option value>. That's what made the
-        // option look "selected" in the UI while validateStep() still
-        // read an empty value and reported "required". setSelectValueSafe
-        // guarantees the real <select> actually ends up holding the
-        // chosen value (matching by value, then label, then creating the
-        // option if truly missing) and fires a "change" event.
         setSelectValueSafe(hiddenSelect, value, label);
 
         if (triggerText) {
@@ -1388,9 +1180,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  /* --------------------------------------------------------------------
-     2. Single-image upload (Add Price receipt / Suggest Product photo)
-     -------------------------------------------------------------------- */
   function initSingleImageUpload(areaId, inputId) {
     const area = document.getElementById(areaId);
     const input = document.getElementById(inputId);
@@ -1445,10 +1234,6 @@ document.addEventListener("DOMContentLoaded", () => {
     return { reset };
   }
 
-  /* --------------------------------------------------------------------
-     3. Multi-image upload for Add Listing (up to 3 photos, previews,
-        per-photo delete, drag & drop, event delegation for deletes).
-     -------------------------------------------------------------------- */
   function initMultiImageUpload({ gridId, inputId, addTileId, countId, errId, hintId }) {
     const grid = document.getElementById(gridId);
     const input = document.getElementById(inputId);
@@ -1458,7 +1243,6 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!grid || !input || !addTile) return null;
 
     const tileTemplate = document.getElementById("gmImageTileTemplate");
-    /** @type {{file: File, url: string, tile: HTMLElement}[]} */
     let items = [];
 
     function updateCount() {
@@ -1530,18 +1314,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
     input.addEventListener("change", function () {
       addFiles(this.files);
-      this.value = ""; // allow re-selecting the same file later
+      this.value = "";
     });
 
-    // Event delegation: a single listener handles delete clicks for
-    // every current and future thumbnail — no per-tile listeners.
     grid.addEventListener("click", (e) => {
       const delBtn = e.target.closest(".gm-image-delete-btn");
       if (!delBtn) return;
       removeItem(delBtn.closest(".gm-image-tile"));
     });
 
-    // Optional drag & drop onto the add-tile for a nicer, modern feel.
     ["dragover", "dragenter"].forEach((evt) => {
       addTile.addEventListener(evt, (e) => {
         e.preventDefault();
@@ -1573,20 +1354,6 @@ document.addEventListener("DOMContentLoaded", () => {
     return { reset, getFiles, get count() { return items.length; } };
   }
 
-  /* --------------------------------------------------------------------
-     3b. Generic step-wizard controller
-        Turns a modal's `.gm-form-card[data-step]` sections into a
-        one-card-per-step flow with Back / Next navigation, a shared
-        progress bar (.npw-progress/.npw-dot) and per-step validation.
-        One implementation, reused by all three "Addition" modals below —
-        each modal only supplies its own validateStep()/onSubmit(), and
-        optionally onStepChange() (fired after every render, used here to
-        populate the review screen right before the last step is shown)
-        and onFirstStepBack() (fired when "Back" is pressed while already
-        on Step 1, since there is no previous step to go back to — used
-        by each modal to close itself and reopen the addition-type
-        chooser instead of doing nothing).
-     -------------------------------------------------------------------- */
  function initStepWizard(modalEl, { validateStep, onSubmit, onStepChange, onFirstStepBack } = {}) {
     const body = modalEl.querySelector("[data-step-body]");
     const steps = [...modalEl.querySelectorAll(".gm-form-card[data-step]")]
@@ -1613,18 +1380,8 @@ document.addEventListener("DOMContentLoaded", () => {
         d.classList.toggle("done", n < current);
       });
 
-      // NOTE: the Back button used to be `disabled` on Step 1 because
-      // there was nowhere for it to go. It now always stays enabled —
-      // pressing it on Step 1 routes to onFirstStepBack() instead (see
-      // the click handler below) so the user can jump straight back to
-      // the addition-type chooser and pick a different option.
       if (backBtn) backBtn.disabled = false;
 
-      // FIX: بدل ما ناخد النص جاهز إنجليزي من data-label-next/data-label-submit،
-      // منستخدم translate()/i18n.t() عبر مفاتيح data-i18n-label-next /
-      // data-i18n-label-submit، وبنحدّث attribute الـ data-i18n على السبان
-      // نفسه حتى لو تبدل اللغة وانتي واقفة على آخر خطوة، محرك الترجمة العام
-      // (i18n.js) يقدر يترجمها صح كمان.
       if (nextBtn && nextLabel) {
         const isLast = current === total;
         const i18nKey = isLast ? nextBtn.dataset.i18nLabelSubmit : nextBtn.dataset.i18nLabelNext;
@@ -1646,12 +1403,6 @@ document.addEventListener("DOMContentLoaded", () => {
       render();
     }
 
-    // Step 1 has no previous step within this wizard: instead of
-    // silently doing nothing (or navigating away to another page), we
-    // hand off to onFirstStepBack() — supplied per-modal — which closes
-    // this modal and reopens the addition-type chooser (#additionModal)
-    // with this wizard fully reset. From Step 2 onward, behavior is
-    // unchanged: go back exactly one step.
     backBtn?.addEventListener("click", () => {
       if (current > 1) {
         goTo(current - 1);
@@ -1687,9 +1438,6 @@ document.addEventListener("DOMContentLoaded", () => {
     return { reset, goTo, get current() { return current; }, get total() { return total; } };
   }
 
-  /* --------------------------------------------------------------------
-     4. #additionModal → routes to the right modal
-     -------------------------------------------------------------------- */
   function initAdditionRouter() {
     const additionModal = document.getElementById("additionModal");
     if (!additionModal) return;
@@ -1719,12 +1467,6 @@ document.addEventListener("DOMContentLoaded", () => {
     if (params.get("openAddition") === "1") showModal("additionModal", 200);
   }
 
-  /* --------------------------------------------------------------------
-     5. Add Price modal — 6 steps: (1) product, (2) region (pill/tag
-        grid), (3) price (big live display + quick-pick buttons),
-        (4) store name (optional), (5) optional receipt photo,
-        (6) review & submit.
-     -------------------------------------------------------------------- */
   function initAddPriceModal() {
     const modalEl = document.getElementById("addPriceModal");
     if (!modalEl) return;
@@ -1737,19 +1479,14 @@ document.addEventListener("DOMContentLoaded", () => {
     const storeAddressInput = document.getElementById("storeAddress");
     const storePhoneInput = document.getElementById("storePhone");
 
-    // Region — pill/tag grid (kept in sync with a hidden <select> so the
-    // rest of the wizard, e.g. populateReview()/submitForm(), can keep
-    // reading `regionSelect.value`).
     const regionSelect = document.getElementById("regionSelect");
     const regionGrid = document.getElementById("addPriceRegionGrid");
     const regionErr = document.getElementById("addPriceRegionErr");
 
-    // Price — big live display + quick-pick buttons
     const quickPriceRow = document.getElementById("quickPriceRow");
 
     const receiptUpload = initSingleImageUpload("uploadArea", "receiptImage");
 
-    /* ---- Region grid: single-select pill buttons ---- */
     function setRegionSelection(btn) {
       regionGrid?.querySelectorAll(".npw-region-btn").forEach((b) => {
         b.classList.remove("active");
@@ -1759,13 +1496,6 @@ document.addEventListener("DOMContentLoaded", () => {
       if (btn) {
         btn.classList.add("active");
         btn.setAttribute("aria-pressed", "true");
-        // FIX: raw `regionSelect.value = btn.dataset.value` silently no-ops
-        // whenever the pill's data-value doesn't exactly match an
-        // <option value> on the hidden select — leaving the field
-        // effectively empty for validation despite the pill showing
-        // "active" in the UI. setSelectValueSafe guarantees the value
-        // actually lands (matching by value, then label, then creating
-        // the option if truly missing).
         setSelectValueSafe(regionSelect, btn.dataset.value, btn.textContent);
         clearFieldError(regionErr, regionGrid);
       } else if (regionSelect) {
@@ -1790,7 +1520,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     prefillSavedRegion();
 
-    /* ---- Price: quick-pick buttons feed the big live display ---- */
     function setQuickPriceActive(value) {
       quickPriceRow?.querySelectorAll(".npw-quick-price-btn").forEach((b) => {
         b.classList.toggle("active", String(b.dataset.price) === String(value));
@@ -1810,7 +1539,6 @@ document.addEventListener("DOMContentLoaded", () => {
       clearFieldError(priceErr, priceInput);
     });
 
-    /** Validates only the field that lives inside the given step. */
     function validateStep(step) {
       if (step === 1) {
         const productOk = !!productInput?.value?.trim();
@@ -1833,7 +1561,6 @@ document.addEventListener("DOMContentLoaded", () => {
       return { valid: true };
     }
 
-    /** Fills the review screen (step 6) with the values entered so far. */
     function populateReview(step, total) {
       if (step !== total) return;
       const list = document.getElementById("addPriceReviewList");
@@ -1858,8 +1585,6 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     }
 
-    /** Final step reached → require login first, then build payload,
-     *  "submit", and switch to the success modal. */
     function submitForm(btn) {
       function proceedWithSubmit() {
         const payload = {
@@ -1887,10 +1612,6 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     }
 
-    /** Step 1's "Back" button has no previous step to go to. Instead of
-     *  disabling it or leaving the page, we close this wizard and reopen
-     *  the addition-type chooser, fully resetting this form first so the
-     *  next time it's opened it starts completely clean. */
     function goBackToAdditionMenu() {
       resetForm();
       switchModal("addPriceModal", "additionModal");
@@ -1917,10 +1638,6 @@ document.addEventListener("DOMContentLoaded", () => {
       prefillSavedRegion();
     }
 
-    // MODAL-CONFLICT FIX: when gmRequireAuthThenRun() re-opens this modal
-    // after the user cancels the login overlay, it flags the modal with
-    // data-gm-suppress-reset first — we honor that flag here and skip
-    // resetForm() exactly once, so the user's progress isn't wiped.
     modalEl.addEventListener("show.bs.modal", () => {
       if (modalEl.dataset.gmSuppressReset === "1") {
         delete modalEl.dataset.gmSuppressReset;
@@ -1935,29 +1652,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  /* --------------------------------------------------------------------
-     6. Add Listing modal — 8 steps: (1) ad title, (2) category (pill
-        grid), (3) condition, (4) description, (5) price (if any),
-        (6) photos, (7) advertiser phone + WhatsApp number, (8) review,
-        contact & publish.
-
-        No login required for this flow, by design.
-
-        FIX: category selection now uses the same pill-grid pattern as
-        the region grid in Add Price and the category grid in Suggest
-        Product — tracked via `selectedCategory` / `selectedCategoryLabel`
-        instead of a non-existent <select id="listingCategory">, which
-        previously made it impossible to pass step 2 at all.
-
-        ADDED: step 7 now has a second field, "WhatsApp Number"
-        (#listingWhatsapp), alongside the existing phone field. It is
-        read via `whatsappInput`, cleared on reset, and included both in
-        the review screen (data-review="whatsapp") and in the submitted
-        payload (`whatsapp`). Kept optional (no validateStep entry) to
-        match how it was added to the markup — see the note at the
-        bottom of this file if you want it to be a required field
-        instead.
-     -------------------------------------------------------------------- */
   function initAddListingModal() {
     const modalEl = document.getElementById("addListingModal");
     if (!modalEl) return;
@@ -1984,13 +1678,9 @@ document.addEventListener("DOMContentLoaded", () => {
       errId: "listingImagesErr",
     });
 
-    // Track the category selection in JS state (the grid is plain
-    // buttons, not a <select>), same pattern used for region/category
-    // pill grids elsewhere in the wizard.
     let selectedCategory = null;
     let selectedCategoryLabel = "";
 
-    // Event delegation for the category pill grid — one listener only.
     categoryGrid?.addEventListener("click", (e) => {
       const btn = e.target.closest(".npw-region-btn");
       if (!btn) return;
@@ -2017,7 +1707,6 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     }
 
-    // Event delegation for the 3 condition pills — one listener, not three.
     conditionGroup?.addEventListener("click", (e) => {
       const btn = e.target.closest(".condition-btn");
       if (!btn) return;
@@ -2031,7 +1720,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const conditionLabels = { new: "جديد", used: "مستعمل", urgent: "عاجل" };
 
-    /** Validates only the field(s) that live inside the given step. */
     function validateStep(step) {
       if (step === 1) {
         const nameOk = !!nameInput?.value?.trim();
@@ -2051,21 +1739,15 @@ document.addEventListener("DOMContentLoaded", () => {
         if (!descOk) return { valid: false, focusEl: descriptionInput };
         return { valid: true };
       }
-      // Step 5 (price) is optional per spec ("السعر إذا وجد") — no mandatory validation.
       if (step === 7) {
         const phoneOk = !!phoneInput?.value?.trim();
         phoneOk ? clearFieldError(phoneErr, phoneInput) : showFieldError(phoneErr, phoneInput);
         if (!phoneOk) return { valid: false, focusEl: phoneInput };
-        // whatsappInput is intentionally optional (no error span wired
-        // up for it in the markup, matching the current phoneErr being
-        // commented out too). Flip this into a required check the same
-        // way as phoneOk above if you want it mandatory later.
         return { valid: true };
       }
       return { valid: true };
     }
 
-    /** Fills the review screen (last step) with the values entered so far. */
     function populateReview(step, total) {
       if (step !== total) return;
       const list = document.getElementById("addListingReviewList");
@@ -2092,8 +1774,6 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     }
 
-    /** Final step reached → build payload, "submit", switch to success modal.
-     *  No login gate here — Add Listing works without authentication. */
     function submitForm(btn) {
       const payload = {
         title: nameInput?.value?.trim() || "",
@@ -2116,10 +1796,6 @@ document.addEventListener("DOMContentLoaded", () => {
       }, 700);
     }
 
-    /** Step 1's "Back" button has no previous step to go to. Instead of
-     *  disabling it or leaving the page, we close this wizard and reopen
-     *  the addition-type chooser, fully resetting this form first so the
-     *  next time it's opened it starts completely clean. */
     function goBackToAdditionMenu() {
       resetForm();
       switchModal("addListingModal", "additionModal");
@@ -2156,49 +1832,32 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  /* --------------------------------------------------------------------
-     7. Suggest New Product modal — 7 steps: (1) name, (2) category,
-        (3) quantity & unit (a number input for quantity next to a real
-        <select> dropdown for the unit — matches the reference design),
-        (4) price (big live display + quick-pick buttons), (5) store
-        name, (6) region (pill/tag grid), (7) review, optional extra
-        details (store address / phone / receipt photo) & submit.
-     -------------------------------------------------------------------- */
   function initSuggestProductModal() {
     const modalEl = document.getElementById("addNewProductModal");
     if (!modalEl) return;
 
-    // Step 1: product name
     const nameInput = document.getElementById("npwProductName");
     const nameErr = document.getElementById("npwProductNameErr");
 
-    // Step 2: category
     const categoryGrid = document.getElementById("npwCategoryGrid");
     const categoryErr = document.getElementById("npwCategoryErr");
 
-    // Step 3: quantity & unit
     const quantityInput = document.getElementById("npwQuantity");
     const quantityErr = document.getElementById("npwQuantityErr");
     const unitSelect = document.getElementById("npwUnitSelect");
     const unitErr = document.getElementById("npwUnitErr");
 
-    // Step 4: price
     const priceInput = document.getElementById("npwPrice");
     const priceErr = document.getElementById("npwPriceErr");
     const quickPriceRow = document.getElementById("npwQuickPriceRow");
 
-    // Step 5: store name
     const storeNameInput = document.getElementById("npwStoreName");
     const storeNameErr = document.getElementById("npwStoreNameErr");
 
-    // Step 6: region — pill/tag grid kept in sync with a hidden <select>,
-    // same pattern as Add Price, so populateReview()/submitForm() can
-    // keep reading `regionSelect.value`.
     const regionSelect = document.getElementById("npwRegionSelect");
     const regionGrid = document.getElementById("npwRegionGrid");
     const regionErr = document.getElementById("npwRegionErr");
 
-    // Step 7: optional extra details
     const storeAddressInput = document.getElementById("npwStoreAddress");
     const storePhoneInput = document.getElementById("npwStorePhone");
 
@@ -2207,7 +1866,6 @@ document.addEventListener("DOMContentLoaded", () => {
     let selectedCategory = null;
     let selectedCategoryLabel = "";
 
-    // Event delegation for the (long) category grid — one listener only.
     categoryGrid?.addEventListener("click", (e) => {
       const btn = e.target.closest(".npw-category-btn");
       if (!btn) return;
@@ -2219,18 +1877,6 @@ document.addEventListener("DOMContentLoaded", () => {
       clearFieldError(categoryErr, categoryGrid);
     });
 
-    /* ---- Quantity & unit ----
-       FIX: native <input type="number"> silently reports an empty
-       `.value` whenever the text typed into it doesn't parse as a plain
-       Western-digit number — which happens on plenty of Arabic-locale
-       mobile keyboards that insert Arabic-Indic digits (٠-٩) or an
-       Arabic decimal separator (٫) even though the field visually shows
-       the number the user typed. That made this step's validation
-       ("هذا الحقل مطلوب") fire even though the quantity was clearly
-       filled in. We switch the field to a JS-controlled numeric-mode
-       text input so we can normalize what's typed in real time instead
-       of silently losing it. Nothing about the visible design changes —
-       mobile browsers still show a numeric keypad thanks to inputmode. */
     if (quantityInput && quantityInput.type === "number") {
       quantityInput.setAttribute("inputmode", "decimal");
       quantityInput.type = "text";
@@ -2241,7 +1887,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (normalized !== quantityInput.value) {
         const caret = quantityInput.selectionStart;
         quantityInput.value = normalized;
-        try { quantityInput.setSelectionRange(caret, caret); } catch (err) { /* no-op */ }
+        try { quantityInput.setSelectionRange(caret, caret); } catch (err) { }
       }
       clearFieldError(quantityErr, quantityInput);
     });
@@ -2253,14 +1899,6 @@ document.addEventListener("DOMContentLoaded", () => {
       return opt?.value ? (opt.textContent?.trim() || "") : "";
     }
 
-    /**
-     * Defensive resync for the unit field: if some skins drive it via a
-     * custom pill/dropdown widget on top of the real hidden <select>
-     * (see initCustomSelects/setSelectValueSafe above) and, for any
-     * reason, the widget's visual "selected" state never made it onto
-     * the real <select>, pull it across right before validating instead
-     * of failing the step.
-     */
     function resyncUnitSelect() {
       if (!unitSelect || unitSelect.value) return;
       const wrapper =
@@ -2272,7 +1910,6 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     }
 
-    /* ---- Price: quick-pick buttons feed the big live display ---- */
     function setQuickPriceActive(value) {
       quickPriceRow?.querySelectorAll(".npw-quick-price-btn").forEach((b) => {
         b.classList.toggle("active", String(b.dataset.price) === String(value));
@@ -2294,7 +1931,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     storeNameInput?.addEventListener("input", () => clearFieldError(storeNameErr, storeNameInput));
 
-    /* ---- Region grid: single-select pill buttons ---- */
     function setRegionSelection(btn) {
       regionGrid?.querySelectorAll(".npw-region-btn").forEach((b) => {
         b.classList.remove("active");
@@ -2304,9 +1940,6 @@ document.addEventListener("DOMContentLoaded", () => {
       if (btn) {
         btn.classList.add("active");
         btn.setAttribute("aria-pressed", "true");
-        // FIX: see setSelectValueSafe() above — guarantees the hidden
-        // <select> actually receives the value instead of silently
-        // staying empty on a mismatch.
         setSelectValueSafe(regionSelect, btn.dataset.value, btn.textContent);
         clearFieldError(regionErr, regionGrid);
       } else if (regionSelect) {
@@ -2331,7 +1964,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     prefillSavedRegion();
 
-    /** Validates only the field(s) that live inside the given step. */
     function validateStep(step) {
       if (step === 1) {
         const ok = !!nameInput?.value?.trim();
@@ -2346,10 +1978,6 @@ document.addEventListener("DOMContentLoaded", () => {
         return { valid: true };
       }
       if (step === 3) {
-        // Normalize first (Arabic-Indic digits / Arabic decimal
-        // separator / stray bidi marks) so the check below reflects
-        // what the user actually sees in the field, then re-sync the
-        // unit field in case it's driven by a custom dropdown skin.
         const qtyNormalized = normalizeDigits(quantityInput?.value);
         if (quantityInput && qtyNormalized !== quantityInput.value) {
           quantityInput.value = qtyNormalized;
@@ -2386,7 +2014,6 @@ document.addEventListener("DOMContentLoaded", () => {
       return { valid: true };
     }
 
-    /** Fills the review screen (last step) with the values entered so far. */
     function populateReview(step, total) {
       if (step !== total) return;
       const list = document.getElementById("npwReviewList");
@@ -2407,8 +2034,6 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     }
 
-    /** Final step reached → require login first, then build payload,
-     *  "submit", and switch to the success modal. */
     function submitForm(btn) {
       function proceedWithSubmit() {
         const payload = {
@@ -2439,10 +2064,6 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     }
 
-    /** Step 1's "Back" button has no previous step to go to. Instead of
-     *  disabling it or leaving the page, we close this wizard and reopen
-     *  the addition-type chooser, fully resetting this form first so the
-     *  next time it's opened it starts completely clean. */
     function goBackToAdditionMenu() {
       resetForm();
       switchModal("addNewProductModal", "additionModal");
@@ -2485,9 +2106,6 @@ document.addEventListener("DOMContentLoaded", () => {
       prefillSavedRegion();
     }
 
-    // MODAL-CONFLICT FIX: same guard as Add Price above — when
-    // gmRequireAuthThenRun() re-opens this modal after a cancelled
-    // login, skip the reset exactly once so nothing typed is lost.
     modalEl.addEventListener("show.bs.modal", () => {
       if (modalEl.dataset.gmSuppressReset === "1") {
         delete modalEl.dataset.gmSuppressReset;
@@ -2502,9 +2120,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  /* --------------------------------------------------------------------
-     Boot
-     -------------------------------------------------------------------- */
   document.addEventListener("DOMContentLoaded", () => {
     initCustomSelects(document);
     initAdditionRouter();

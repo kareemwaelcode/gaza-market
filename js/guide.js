@@ -24,10 +24,6 @@
 
   const pageOrder = navButtons.map((btn) => btn.getAttribute("data-page"));
 
-  /* ------------------------------------------------------------------ */
-  /* قاموس ترجمة صفحة الدليل بالكامل (إنجليزي/عربي)                     */
-  /* كل نص ظاهر بالصفحة موجود هون بلغتين، وبتطبّقهم دالة applyGuideI18n */
-  /* ------------------------------------------------------------------ */
   const GUIDE_I18N = {
     en: {
       sidebarTitle: "User Manual",
@@ -146,9 +142,6 @@
               "Fill in your contact details—such as your phone number and address—in detail to make it easier to reach you and showcase your project.",
             ],
             [
-              // ملاحظة: كان اسمها بالنص الأصلي "Medical Review" رغم إنو الوصف
-              // بيحكي عن مراجعة طلب عامة (هاتف وعنوان) مالها علاقة بأي شي طبي.
-              // صلحناها هون لعنوان صحيح ومنطقي.
               "Application Review",
               "Review your application and verify key details—such as your phone number and address—then submit it. It will be approved within 24 hours, and we will send you the link to your dashboard.",
             ],
@@ -445,9 +438,6 @@
     },
   };
 
-  /* ------------------------------------------------------------------ */
-  /* تطبيق الترجمة فعلياً على كل عناصر الصفحة (مو بس اتجاه/علم)          */
-  /* ------------------------------------------------------------------ */
   function applyGuideI18n(lang) {
     const t = GUIDE_I18N[lang] || GUIDE_I18N.ar;
 
@@ -460,7 +450,6 @@
     const sheetTitleEl = document.querySelector(".guide-sheet-title");
     if (sheetTitleEl) sheetTitleEl.textContent = t.sheetTitle;
 
-    // عناوين الأقسام بالسايدبار
     navButtons.forEach((btn) => {
       const id = btn.getAttribute("data-page");
       const label = t.nav[id];
@@ -469,7 +458,6 @@
       if (span) span.textContent = label;
     });
 
-    // نفس العناوين بنسخة الشيت السفلي (الشاشات الصغيرة)
     sheetNav.querySelectorAll(".guide-sheet-item").forEach((item) => {
       const id = item.getAttribute("data-page");
       const label = t.nav[id];
@@ -478,7 +466,6 @@
       if (span) span.textContent = label;
     });
 
-    // محتوى كل لوحة (عنوان، مقدمة، خطوات)
     Object.keys(t.panels).forEach((panelId) => {
       const data = t.panels[panelId];
       const panelEl = document.querySelector(`.guide-panel[data-panel="${panelId}"]`);
@@ -502,7 +489,6 @@
         });
       }
 
-      // بطاقات خاصة بلوحة "تأكيد الأسعار"
       if (panelId === "confirm-prices") {
         const confirmCard = panelEl.querySelector(".confirm-card--confirm");
         if (confirmCard) {
@@ -532,7 +518,6 @@
       }
     });
 
-    // صناديق الشريط الجانبي (نصائح، أسئلة شائعة، قواعد...)
     Object.keys(t.aside).forEach((panelId) => {
       const data = t.aside[panelId];
       const asideEl = document.querySelector(`.guide-aside-panel[data-panel="${panelId}"]`);
@@ -572,7 +557,6 @@
           });
         }
       } else {
-        // لوحات فيها صندوق واحد بسيط: اقتراح منتج / السوق / المحلات / الحساب
         const box = asideEl.querySelector(".guide-box");
         if (box) {
           const header = box.querySelector(".guide-box-header span:last-child");
@@ -591,7 +575,6 @@
       }
     });
 
-    // تحديث عنوان زر التبديل بالجوال ليطابق القسم الحالي باللغة الجديدة
     const activeBtn = navButtons.find((btn) => btn.classList.contains("is-active"));
     if (mobileTriggerTitle && activeBtn) {
       const span = activeBtn.querySelector("span:not(.guide-nav-icon):not(.guide-nav-check)");
@@ -599,9 +582,6 @@
     }
   }
 
-  /* ------------------------------------------------------------------ */
-  /* تتبّع الأقسام اللي زارها المستخدم (لعلامة الصح بجانب كل قسم)        */
-  /* ------------------------------------------------------------------ */
   function getVisited() {
     try {
       return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
@@ -616,13 +596,9 @@
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify([...visited]));
     } catch (e) {
-      /* تجاهل لو التخزين مش متاح بمتصفح المستخدم */
     }
   }
 
-  /* ------------------------------------------------------------------ */
-  /* بناء نسخة الشيت السفلي من نفس أزرار السايدبار (مرة وحدة بالبداية)    */
-  /* ------------------------------------------------------------------ */
   function buildSheetNav() {
     navButtons.forEach((btn) => {
       const id = btn.getAttribute("data-page");
@@ -660,13 +636,9 @@
     });
   }
 
-  /* ------------------------------------------------------------------ */
-  /* شيت الاختيار بالشاشات الصغيرة                                       */
-  /* ------------------------------------------------------------------ */
   function openSheet() {
     sheetBackdrop.hidden = false;
     sheet.hidden = false;
-    // فريم إضافي عشان الترانزيشن يشتغل صح بعد إزالة hidden
     requestAnimationFrame(() => {
       sheetBackdrop.classList.add("is-visible");
       sheet.classList.add("is-open");
@@ -703,9 +675,6 @@
   });
   sheetBackdrop.addEventListener("click", closeSheet);
 
-  /* ------------------------------------------------------------------ */
-  /* الشريط المتحرك خلف العنصر المفعّل بالسايدبار (شاشات كبيرة)           */
-  /* ------------------------------------------------------------------ */
   function moveIndicator(activeBtn) {
     if (!activeBtn || window.innerWidth <= MOBILE_BREAKPOINT) return;
     const navRect = guideNav.getBoundingClientRect();
@@ -715,9 +684,6 @@
     navIndicator.classList.add("is-ready");
   }
 
-  /* ------------------------------------------------------------------ */
-  /* تبديل اللوحات + انيميشن سلايد بالاتجاه الصحيح                       */
-  /* ------------------------------------------------------------------ */
   let currentId = null;
 
   function showPage(id, opts) {
@@ -734,7 +700,6 @@
       panel.hidden = !isTarget;
       panel.classList.remove("is-slide-in-fwd", "is-slide-in-back");
       if (isTarget && !opts.skipAnimation) {
-        // إعادة تشغيل الانيميشن
         void panel.offsetWidth;
         panel.classList.add(goingForward ? "is-slide-in-fwd" : "is-slide-in-back");
       }
@@ -767,8 +732,6 @@
     if (!opts.skipHash) {
       history.replaceState(null, "", `#${targetId}`);
     }
-    // ملاحظة: ما في أي سكرول تلقائي هون بقصد — التنقل بين الأقسام لازم يصير
-    // بمكانه بدون ما تتحرك الصفحة أو ينسحب المستخدم لتحت/لفوق.
   }
 
   navButtons.forEach((btn) => {
@@ -777,13 +740,11 @@
     });
   });
 
-  // دعم زر رجوع/تقدم المتصفح بين أقسام الدليل
   window.addEventListener("hashchange", () => {
     const id = location.hash.replace("#", "");
     if (id) showPage(id, { skipHash: true });
   });
 
-  // زر الرجوع بالهيدر
   document.getElementById("guideBackBtn").addEventListener("click", () => {
     if (document.referrer) {
       history.back();
@@ -792,7 +753,6 @@
     }
   });
 
-  // إعادة ضبط موقع الشريط المتحرك لما يتغيّر حجم الشاشة (مثلاً تدوير الجوال)
   let resizeTimer;
   window.addEventListener("resize", () => {
     clearTimeout(resizeTimer);
@@ -803,13 +763,6 @@
     }, 120);
   });
 
-  /* ------------------------------------------------------------------ */
-  /* مبدّل اللغة: نفس ماركب/كلاسات الصفحة الرئيسية (.lang-switcher)      */
-  /* بيبدّل dir/lang محلياً، بيترجم كل نص الصفحة فعلياً عبر               */
-  /* applyGuideI18n، وبيبعت حدث لباقي نظام الموقع.                       */
-  /* لو الصفحة عندها js/i18n.js عام زي الرئيسية، اربط عليه عن طريق:       */
-  /*   window.addEventListener('gm:language-change', (e) => { ... })     */
-  /* ------------------------------------------------------------------ */
   const LANG_FLAGS = {
     en: "assets/img/us.svg",
     ar: "assets/img/ps.svg",
@@ -861,14 +814,11 @@
     try {
       localStorage.setItem(LANG_KEY, lang);
     } catch (e) {
-      /* تجاهل */
     }
 
-    // ترجمة كل نص الصفحة فعلياً (مو بس الاتجاه والعلم)
     applyGuideI18n(isEn ? "en" : "ar");
 
     window.dispatchEvent(new CustomEvent("gm:language-change", { detail: { lang } }));
-    // إعادة قياس مكان الشريط المتحرك لأن اتجاه الصفحة ممكن يتغيّر
     requestAnimationFrame(() => {
       const activeBtn = navButtons.find((btn) => btn.classList.contains("is-active"));
       moveIndicator(activeBtn);
@@ -882,9 +832,6 @@
     });
   });
 
-  /* ------------------------------------------------------------------ */
-  /* نقطة البداية                                                        */
-  /* ------------------------------------------------------------------ */
   buildSheetNav();
   closeLangDropdown();
 
@@ -892,14 +839,12 @@
   try {
     savedLang = localStorage.getItem(LANG_KEY) || "ar";
   } catch (e) {
-    /* تجاهل */
   }
   applyLang(savedLang);
 
   const initialId = location.hash.replace("#", "") || "add-price";
   showPage(initialId, { skipScroll: true, skipAnimation: true });
 
-  // بعد أول رسم، فعّل الشريط المتحرك بحركة سلسة
   requestAnimationFrame(() => {
     const activeBtn = navButtons.find((btn) => btn.classList.contains("is-active"));
     moveIndicator(activeBtn);

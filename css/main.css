@@ -1,3 +1,9 @@
+@font-face{font-family:'Cairo';font-style:normal;font-display:swap;font-weight:400;src:url(../assets/fonts/cairo-arabic-400-normal.woff2) format('woff2');unicode-range:U+0600-06FF,U+0750-077F,U+0870-088E,U+0890-0891,U+0897-08E1,U+08E3-08FF,U+200C-200E,U+2010-2011,U+204F,U+2E41,U+FB50-FDFF,U+FE70-FE74,U+FE76-FEFC;}
+@font-face{font-family:'Cairo';font-style:normal;font-display:swap;font-weight:400;src:url(../assets/fonts/cairo-latin-400-normal.woff2) format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;}
+@font-face{font-family:'Cairo';font-style:normal;font-display:swap;font-weight:600;src:url(../assets/fonts/cairo-arabic-600-normal.woff2) format('woff2');unicode-range:U+0600-06FF,U+0750-077F,U+0870-088E,U+0890-0891,U+0897-08E1,U+08E3-08FF,U+200C-200E,U+2010-2011,U+204F,U+2E41,U+FB50-FDFF,U+FE70-FE74,U+FE76-FEFC;}
+@font-face{font-family:'Cairo';font-style:normal;font-display:swap;font-weight:600;src:url(../assets/fonts/cairo-latin-600-normal.woff2) format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;}
+@font-face{font-family:'Cairo';font-style:normal;font-display:swap;font-weight:700;src:url(../assets/fonts/cairo-arabic-700-normal.woff2) format('woff2');unicode-range:U+0600-06FF,U+0750-077F,U+0870-088E,U+0890-0891,U+0897-08E1,U+08E3-08FF,U+200C-200E,U+2010-2011,U+204F,U+2E41,U+FB50-FDFF,U+FE70-FE74,U+FE76-FEFC;}
+@font-face{font-family:'Cairo';font-style:normal;font-display:swap;font-weight:700;src:url(../assets/fonts/cairo-latin-700-normal.woff2) format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;}
 *,
 *::before,
 *::after {
@@ -601,7 +607,6 @@ html {
 .search-input::placeholder {
   color: var(--text);
   font-size: 12px;
-  /* margin-right: 10px !important; */
   font-family: var(--en-font);
 }
 .search-input:placeholder-shown {
@@ -7745,7 +7750,6 @@ body {
 .hero__title h1 {
   color: var(--text);
   font-family: var(--en-font);
-  /* font-size: clamp(20px, 3vw, 26px); */
   font-size: 20px;
   font-weight: 700;
   line-height: 1.7;
@@ -7971,7 +7975,6 @@ body {
 }
 
 .section-header {
-  /* margin-bottom: 0.65rem; */
   margin: 0;
 }
 .section-header h5 {
@@ -8044,7 +8047,6 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  /* gap: 0.5rem; */
   padding: 0.6rem 0;
   border-bottom: 1px solid var(--border);
 }
@@ -8822,14 +8824,12 @@ body.dark-mode .priceList .check-badge button {
 }
 
 
-/* offline.css — شريط "غير متصل بالإنترنت" */
-
 #offline-banner {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
-  z-index: 9999; /* أعلى من كل شي بالموقع، بما فيه auth overlay وشاشة التحميل */
+  z-index: 9999;
 
   display: flex;
   align-items: center;
@@ -8858,7 +8858,6 @@ body.dark-mode .priceList .check-badge button {
   opacity: 1;
 }
 
-/* أيقونة الواي فاي المقطوعة (نفس ستايل أيقونات Lucide المستخدمة بباقي الموقع) */
 #offline-banner .offline-banner-icon {
   flex-shrink: 0;
   width: 18px;
@@ -8870,13 +8869,11 @@ body.dark-mode .priceList .check-badge button {
   line-height: 1.4;
 }
 
-/* نبضة بسيطة على الأيقونة تلفت الانتباه بدون ما تكون مزعجة */
 @keyframes offline-pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.55; }
 }
 
-/* عشان النافبار ما يضل واقف تحت البانر لما يظهر */
 body.offline-active nav.nav-bar {
   margin-top: 44px;
   transition: margin-top 0.35s cubic-bezier(0.22, 1, 0.36, 1);
@@ -8886,7 +8883,6 @@ nav.nav-bar {
   transition: margin-top 0.35s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-/* على الشاشات الصغيرة نخلي النص أصغر شوي حتى يضل بسطر وحد */
 @media (max-width: 480px) {
   #offline-banner {
     font-size: 12.5px;
@@ -8901,12 +8897,6 @@ nav.nav-bar {
 
 
 
-/* ==========================================================
-   Region filter (الكل | منطقتي) animation
-   الصق هذا الكود في آخر css/main.css
-   ========================================================== */
-
-/* ظهور الكروت بعد تغيير الفلتر */
 @keyframes gm-card-in {
   from { opacity: 0; transform: translateY(8px); }
   to   { opacity: 1; transform: none; }
@@ -8917,7 +8907,6 @@ nav.nav-bar {
   animation-delay: calc(var(--i, 0) * 30ms);
 }
 
-/* الخلفية الخضراء المنزلقة بين الزرين */
 .gm-pill-group {
   position: relative;
   isolation: isolate;
@@ -8947,7 +8936,6 @@ nav.nav-bar {
     width .28s cubic-bezier(.4, 0, .2, 1);
 }
 
-/* الزر الفعّال بدون خلفية خاصة فيه، لأن الخلفية تنزلق خلفه */
 .gm-pill-group .filter-btn.is-active {
   background: transparent !important;
   box-shadow: none;
@@ -8958,14 +8946,6 @@ nav.nav-bar {
   .gm-pill-group.is-ready::before { transition: none; }
 }
 
-/* ==========================================================
-   Skeleton loading (shared by every page)
-   - .gm-skel            : shimmering block (set width / height)
-   - .is-loading         : on a container; its [data-skel] children become
-                           shimmering placeholders (layout is preserved)
-   - .gm-skel-timeout    : CSS-only fallback shown if loading takes too long
-   Light / Dark, RTL / LTR and reduced-motion safe.
-   ========================================================== */
 :root {
   --gm-skel-base: var(--border-color);
   --gm-skel-shine: var(--gm-accent-s);
@@ -8981,8 +8961,6 @@ body.dark-mode {
   to   { background-position: -200% 0; }
 }
 
-/* Last resort: JS timeouts handle normal failures; this only fires if the
-   page script never ran at all. */
 @keyframes gm-skel-expire {
   to { visibility: hidden; }
 }
@@ -9051,13 +9029,11 @@ body.dark-mode {
   font-weight: 700;
 }
 
-/* Hero stats */
 .hero__stats.is-loading .stat-box__num {
   display: inline-block;
   min-width: 2.2ch;
 }
 
-/* Hero ticker: overlay on top of the (already measurable) viewport */
 .hero-ticker__skeleton {
   position: absolute;
   inset: 0;
@@ -9085,7 +9061,6 @@ body.dark-mode {
 .hero-ticker__skeleton .gm-skel:nth-child(2n) { width: 64px; }
 .hero-ticker__skeleton .gm-skel:nth-child(3n) { width: 100px; }
 
-/* Points card */
 .points-summary.is-loading .points-summary__name {
   min-width: 90px;
   min-height: 16px;
