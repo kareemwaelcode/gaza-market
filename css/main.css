@@ -275,7 +275,7 @@ body.dark-mode .dropdown-item.area-selected {
   background-color: var(--gm-accent-s);
 }
 body.dark-mode #selectedAreaLabel,
-body.dark-mode .bi-globe-asia-australia-fill {
+body.dark-mode .gm-globe-icon {
   color: inherit;
 }
 body.dark-mode .lang-dropdown {
@@ -778,7 +778,7 @@ body.dark-mode .icon-night {
   color: var(--blue);
   font-family: var(--en-font);
 }
-.bi-globe-asia-australia-fill {
+.gm-globe-icon {
   position: relative;
   top: -2px;
   inset-inline-start: -2px;
@@ -4529,9 +4529,6 @@ body.dark-mode .npw-nav .npw-back-btn[disabled] {
 [dir="rtl"] .gm-back-nav i {
   transform: scaleX(-1);
 }
-[dir="rtl"] .gm-btn i.fa-arrow-right {
-  transform: scaleX(-1);
-}
 
 @media (max-width: 991px) {
   .nav-bar {
@@ -6080,7 +6077,7 @@ input:focus-visible,
 .region-picker.open .region-current {
   border-color: var(--blue);
 }
-.region-current i.bi-geo-alt-fill {
+.region-current .gm-region-pin {
   color: var(--gm-muted);
 }
 #regionCurrentText {
@@ -7801,7 +7798,8 @@ body {
   padding-inline-start: 10px;
   border-inline-start: 1px solid var(--hero-line);
 }
-.hero__datetime i {
+.hero__datetime i,
+.hero__datetime > svg {
   color: var(--hero-teal);
   font-size: 12px;
 }

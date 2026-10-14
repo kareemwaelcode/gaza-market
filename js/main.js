@@ -706,8 +706,15 @@ document.addEventListener("DOMContentLoaded", () => {
     function showOtpError(msg) {
       if (!otpErr) return;
       otpErr.textContent = "";
-      const errIcon = document.createElement("i");
-      errIcon.className = "fas fa-exclamation-circle";
+      const svgNS = "http://www.w3.org/2000/svg";
+      const errIcon = document.createElementNS(svgNS, "svg");
+      errIcon.setAttribute("width", "16");
+      errIcon.setAttribute("height", "16");
+      errIcon.setAttribute("aria-hidden", "true");
+      errIcon.setAttribute("focusable", "false");
+      const errUse = document.createElementNS(svgNS, "use");
+      errUse.setAttribute("href", "#gm-i-circle-alert");
+      errIcon.appendChild(errUse);
       otpErr.appendChild(errIcon);
       otpErr.appendChild(document.createTextNode(" " + (msg || "")));
       otpErr.classList.add("show");

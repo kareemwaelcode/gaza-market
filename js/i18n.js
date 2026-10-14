@@ -243,7 +243,7 @@ const i18n = (() => {
       btn.textContent = productCategoryLabel(btn.getAttribute("data-value"));
     });
 
-    // Directional SVG arrows (replaces the old fa-arrow-left/right swap)
+    // Directional SVG arrows (flipped according to the page direction)
     updateArrowIcons(isRtl);
 
     document.querySelectorAll(".lang-dropdown li[data-lang]").forEach((li) => {
