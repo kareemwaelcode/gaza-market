@@ -1,4 +1,7 @@
-const CACHE_VERSION = 'gm-v2';
+// sw.js — لازم يكون بجذر الموقع (جنب index.html) عشان يغطي كل الصفحات
+// كل مرة بتغير فيها أي ملف من PRECACHE أو بدك تجبر المتصفحات تحدّث الكاش: غيّر رقم CACHE_VERSION
+
+const CACHE_VERSION = 'gm-v3';
 const SCOPE = self.registration.scope;
 
 const PRECACHE = [
@@ -38,10 +41,16 @@ const PRECACHE = [
 
 const NAVIGATION_TIMEOUT = 4000;
 
+// المسارات اللي الـ SW ما بيلمسها أبداً (داشبورد، API، تجارب)
+const BYPASS_PATHS = ['/api/', '/dashboard-users/', '/test/'];
+
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_VERSION).then((cache) =>
-      Promise.allSettled(PRECACHE.map((path) => cache.add(new Request(path, { cache: 'reload' }))))
+      // allSettled: لو ملف واحد فشل ما يوقف تثبيت الباقي
+      Promise.allSettled(
+        PRECACHE.map((path) => cache.add(new Request(new URL(path, SCOPE).href, { cache: 'reload' })))
+      )
     ).then(() => self.skipWaiting())
   );
 });
@@ -56,28 +65,28 @@ self.addEventListener('activate', (event) => {
 
 function isHandled(url) {
   if (url.origin !== self.location.origin) return false;
-  const path = url.pathname;
-  if (path.indexOf('/api/') !== -1) return false;
-  if (path.indexOf('/dashboard-users/') !== -1) return false;
-  if (path.indexOf('/test/') !== -1) return false;
-  return true;
+  return !BYPASS_PATHS.some((part) => url.pathname.indexOf(part) !== -1);
 }
 
 async function store(request, response) {
   if (response && response.ok && response.type === 'basic') {
-    const cache = await caches.open(CACHE_VERSION);
-    await cache.put(request, response.clone());
+    try {
+      const cache = await caches.open(CACHE_VERSION);
+      await cache.put(request, response.clone());
+    } catch (err) {
+      // امتلاء التخزين أو خطأ مؤقت: ما بنكسر الاستجابة الأصلية
+    }
   }
   return response;
 }
 
+// الصفحات: الشبكة أولاً (بمهلة 4 ثواني) وبعدها الكاش، وبآخر شي index.html
 async function handleNavigation(request) {
   const cache = await caches.open(CACHE_VERSION);
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), NAVIGATION_TIMEOUT);
   try {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), NAVIGATION_TIMEOUT);
     const response = await fetch(request, { signal: controller.signal });
-    clearTimeout(timer);
     return await store(request, response);
   } catch (err) {
     const cached = await cache.match(request, { ignoreSearch: true });
@@ -85,17 +94,27 @@ async function handleNavigation(request) {
     const fallback = await cache.match(new URL('index.html', SCOPE).href);
     if (fallback) return fallback;
     return Response.error();
+  } finally {
+    clearTimeout(timer);
   }
 }
 
-async function handleAsset(request) {
+// الملفات (CSS/JS/خطوط/صور): من الكاش فوراً، وبنحدّثها بالخلفية للزيارة الجاية
+async function handleAsset(event) {
+  const request = event.request;
   const cache = await caches.open(CACHE_VERSION);
   const cached = await cache.match(request, { ignoreSearch: true });
-  const network = fetch(request).then((response) => store(request, response)).catch(() => null);
+
+  const network = fetch(request)
+    .then((response) => store(request, response))
+    .catch(() => null);
+
   if (cached) {
-    network.catch(() => null);
+    // waitUntil: يخلي الـ SW شغال لحد ما يخلص تحديث الخلفية
+    event.waitUntil(network);
     return cached;
   }
+
   const response = await network;
   return response || Response.error();
 }
@@ -105,9 +124,10 @@ self.addEventListener('fetch', (event) => {
   if (request.method !== 'GET') return;
   const url = new URL(request.url);
   if (!isHandled(url)) return;
+
   if (request.mode === 'navigate') {
     event.respondWith(handleNavigation(request));
     return;
   }
-  event.respondWith(handleAsset(request));
+  event.respondWith(handleAsset(event));
 });
