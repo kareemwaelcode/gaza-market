@@ -1170,18 +1170,16 @@ USE_MOCK: true,
 API_BASE: '/api',
 TIMEOUT_MS: 15000,
 CREDENTIALS: 'same-origin',
-TOKEN_KEY: 'gm_token',
-getToken: null,
 MOCK_DELAY_MS: 250,
 };
 
 const CONFIG = Object.assign({}, DEFAULTS, window.GM_CONFIG || {});
-const USE_MOCK = !!CONFIG.USE_MOCK;
+const USE_MOCK = window.GM_ENV.isMockAllowed();
 const API_BASE = String(CONFIG.API_BASE).replace(/\/+$/, '');
 
 const CACHE_KEY = 'gm_points_cache_v1';
 const MOCK_POINTS_KEY = 'gm_mock_points_v1';
-const USER_STORAGE_KEY = 'user';
+const USER_STORAGE_KEY = window.GM_STORAGE_KEYS.user;
 const RULE_KEYS = ['addPrice', 'confirmPrice', 'reportPrice', 'addStore', 'postListing'];
 
 function GMPointsError(code, message, status) {
@@ -1296,21 +1294,10 @@ const match = document.cookie.match(/(?:^|;\s*)XSRF-TOKEN=([^;]+)/);
 return match ? decodeURIComponent(match[1]) : null;
 }
 
-function getBearerToken() {
-try {
-    if (typeof CONFIG.getToken === 'function') return CONFIG.getToken() || null;
-    return localStorage.getItem(CONFIG.TOKEN_KEY) || null;
-} catch (err) {
-    return null;
-}
-}
-
 function buildHeaders() {
 const headers = { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' };
 const xsrf = getXsrfToken();
-const token = getBearerToken();
 if (xsrf) headers['X-XSRF-TOKEN'] = xsrf;
-if (token) headers.Authorization = `Bearer ${token}`;
 return headers;
 }
 
@@ -1439,7 +1426,7 @@ function gmLocalUser() {
   if (typeof gmIsLoggedIn !== 'function' || !gmIsLoggedIn()) return null;
 
   try {
-    const stored = JSON.parse(localStorage.getItem('user') || 'null');
+    const stored = JSON.parse(localStorage.getItem(USER_STORAGE_KEY) || 'null');
     if (!stored || !stored.name) return null;
     return { id: String(stored.phone), name: stored.name, points: null, avatarUrl: null };
   } catch (err) {
@@ -1705,7 +1692,7 @@ function initPointsEvents() {
   document.addEventListener('gmPointsChanged', initPointsCard);
 
   window.addEventListener('storage', e => {
-    if (e.key === 'user') resetPointsCard();
+    if (e.key === USER_STORAGE_KEY) resetPointsCard();
   });
 
   window.addEventListener('online', () => {

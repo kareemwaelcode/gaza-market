@@ -29,7 +29,12 @@
     try {
       var raw = window.localStorage.getItem(SESSION_STORAGE_KEY);
       var session = raw ? JSON.parse(raw) : null;
-      return isValidSession(session) ? session : null;
+      if (!isValidSession(session)) return null;
+      if (Object.prototype.hasOwnProperty.call(session, 'token')) {
+        delete session.token;
+        window.localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(session));
+      }
+      return session;
     } catch (err) {
       return null;
     }
@@ -55,7 +60,6 @@
     if (loggingOut) return;
     loggingOut = true;
 
-    var session = readSession();
     clearSession();
 
     if (!window.GMAuthApi || typeof window.GMAuthApi.logout !== 'function') {
@@ -71,7 +75,7 @@
     }
 
     window.setTimeout(finish, LOGOUT_MAX_WAIT_MS);
-    window.GMAuthApi.logout(session ? session.token : null).then(finish, finish);
+    window.GMAuthApi.logout().then(finish, finish);
   }
 
   window.GMAuth = {

@@ -143,8 +143,10 @@
 
   function navItemAttrs(item) {
     var attrs = '';
-    if (item.page) attrs += ' data-page="' + item.page + '"';
-    if (item.action) attrs += ' data-action="' + item.action + '"';
+    var page = safePage(item.page);
+    if (page) attrs += ' data-page="' + page + '"';
+    var action = safeAction(item.action);
+    if (action) attrs += ' data-action="' + action + '"';
     return attrs;
   }
 
@@ -155,10 +157,10 @@
     if (!nav) return;
 
     var html = config.sidebar.map(function (item) {
-      var badge = item.badge ? '<span class="nav-item-badge">' + item.badge + '</span>' : '';
+      var badge = item.badge ? '<span class="nav-item-badge">' + escapeHtml(item.badge) + '</span>' : '';
       return (
-        '<a href="' + escapeHtml(item.href || '#') + '" class="nav-item"' + navItemAttrs(item) + '>' +
-          '<span class="nav-item-icon"><i data-lucide="' + item.icon + '" class="icon"></i></span>' +
+        '<a href="' + escapeHtml(safeHref(item.href)) + '" class="nav-item"' + navItemAttrs(item) + '>' +
+          '<span class="nav-item-icon"><i data-lucide="' + safeIcon(item.icon) + '" class="icon"></i></span>' +
           '<span class="nav-item-text">' +
             '<span class="nav-item-label">' + escapeHtml(item.label) + '</span>' +
             '<span class="label-sub">' + escapeHtml(item.sub) + '</span>' +
@@ -184,8 +186,8 @@
     var itemsHTML = config.mobileNav.map(function (item) {
       var badge = item.badge ? '<span class="mobile-nav-badge"></span>' : '';
       return (
-        '<a href="' + escapeHtml(item.href || '#') + '" class="mobile-nav-item"' + navItemAttrs(item) + '>' +
-          '<i data-lucide="' + item.icon + '" class="icon"></i>' +
+        '<a href="' + escapeHtml(safeHref(item.href)) + '" class="mobile-nav-item"' + navItemAttrs(item) + '>' +
+          '<i data-lucide="' + safeIcon(item.icon) + '" class="icon"></i>' +
           '<span>' + escapeHtml(item.label) + '</span>' +
           badge +
         '</a>'
@@ -217,13 +219,13 @@
 
     var itemsHTML = moreItems.map(function (item) {
       return (
-        '<a href="' + escapeHtml(item.href || '#') + '" class="mobile-more-row"' + navItemAttrs(item) + '>' +
+        '<a href="' + escapeHtml(safeHref(item.href)) + '" class="mobile-more-row"' + navItemAttrs(item) + '>' +
           '<div class="mobile-more-row-icon-wrap">' +
-            '<i data-lucide="' + item.icon + '" class="icon"></i>' +
+            '<i data-lucide="' + safeIcon(item.icon) + '" class="icon"></i>' +
           '</div>' +
           '<div class="mobile-more-row-text">' +
             '<div class="mobile-more-row-title">' + escapeHtml(item.label) + '</div>' +
-            '<div class="mobile-more-row-sub">' + (item.sub || '') + '</div>' +
+            '<div class="mobile-more-row-sub">' + escapeHtml(item.sub) + '</div>' +
           '</div>' +
           '<i data-lucide="chevron-left" class="icon mobile-more-chevron"></i>' +
         '</a>'
@@ -241,15 +243,16 @@
 
     var html = config.dashboardCards.map(function (item) {
       var inner =
-        '<div class="icon-wrap"><i data-lucide="' + item.icon + '" class="icon"></i></div>' +
+        '<div class="icon-wrap"><i data-lucide="' + safeIcon(item.icon) + '" class="icon"></i></div>' +
         '<div>' +
           '<div class="title">' + escapeHtml(item.label) + '</div>' +
           '<div class="sub">' + escapeHtml(item.sub) + '</div>' +
         '</div>';
-      if (item.action) {
-        return '<div class="card quick-card" data-action="' + item.action + '">' + inner + '</div>';
+      var cardAction = safeAction(item.action);
+      if (cardAction) {
+        return '<div class="card quick-card" data-action="' + cardAction + '">' + inner + '</div>';
       }
-      return '<a href="' + escapeHtml(item.href || '#') + '" class="card quick-card">' + inner + '</a>';
+      return '<a href="' + escapeHtml(safeHref(item.href)) + '" class="card quick-card">' + inner + '</a>';
     }).join('');
 
     grid.innerHTML = html;
@@ -2550,7 +2553,7 @@
       var lockedKey = getServiceLockedFeatureKey(svc.id);
       var locked = isServiceLocked(svc.id);
       var iconHtml = svc.icon
-        ? '<div class="sve-row-icon"><i data-lucide="' + escapeHtml(svc.icon) + '" class="icon"></i></div>'
+        ? '<div class="sve-row-icon"><i data-lucide="' + safeIcon(svc.icon) + '" class="icon"></i></div>'
         : '';
       return (
         '<div class="sve-row">' +
@@ -2701,6 +2704,27 @@
     });
   }
 
+  function safeIcon(name, fallback) {
+    var cfg = window.GMStoreTypeConfig;
+    if (cfg && typeof cfg.safeIcon === 'function') return cfg.safeIcon(name, fallback);
+    return 'sparkles';
+  }
+
+  function safePage(page) {
+    var cfg = window.GMStoreTypeConfig;
+    return cfg && typeof cfg.isAllowedPage === 'function' && cfg.isAllowedPage(page) ? page : '';
+  }
+
+  function safeAction(action) {
+    var cfg = window.GMStoreTypeConfig;
+    return cfg && typeof cfg.isAllowedAction === 'function' && cfg.isAllowedAction(action) ? action : '';
+  }
+
+  function safeHref(href) {
+    var cfg = window.GMStoreTypeConfig;
+    return cfg && typeof cfg.safeHref === 'function' ? cfg.safeHref(href) : '#';
+  }
+
   function safeExternalUrl(url) {
     var value = String(url == null ? '' : url).trim();
     if (!/^https?:\/\//i.test(value)) return '';
@@ -2784,7 +2808,7 @@
     var toast = document.createElement('div');
     toast.className = 'gm-toast' + (options.danger ? ' gm-toast--danger' : '');
     toast.innerHTML =
-      '<i data-lucide="' + escapeHtml(options.icon || 'check-circle') + '" class="icon"></i>' +
+      '<i data-lucide="' + safeIcon(options.icon, 'check-circle') + '" class="icon"></i>' +
       '<span>' + escapeHtml(message) + '</span>';
     container.appendChild(toast);
     bootIcons();
@@ -2820,7 +2844,7 @@
       '<div class="gm-confirm-overlay" id="gm-confirm-overlay">' +
         '<div class="gm-confirm-modal" role="alertdialog" aria-modal="true">' +
           '<div class="gm-confirm-icon' + (isDanger ? ' danger' : '') + '">' +
-            '<i data-lucide="' + escapeHtml(opts.icon || 'trash-2') + '" class="icon"></i>' +
+            '<i data-lucide="' + safeIcon(opts.icon, 'trash-2') + '" class="icon"></i>' +
           '</div>' +
           '<div class="gm-confirm-title">' + escapeHtml(opts.title || '') + '</div>' +
           (opts.message ? '<div class="gm-confirm-message">' + opts.message + '</div>' : '') +
@@ -3356,7 +3380,7 @@
     var list = getStoredNotifications();
     list.unshift({
       id: generateNotificationId(),
-      icon: data.icon || 'bell',
+      icon: safeIcon(data.icon, 'bell'),
       title: data.title || '',
       sub: data.sub || '',
       createdAt: Date.now(),
@@ -3396,7 +3420,7 @@
       return (
         '<div class="notif-row' + (n.read ? '' : ' unread') + '">' +
           '<div class="notif-row-icon-wrap">' +
-            '<i data-lucide="' + n.icon + '" class="icon"></i>' +
+            '<i data-lucide="' + safeIcon(n.icon, 'bell') + '" class="icon"></i>' +
           '</div>' +
           '<div class="notif-row-text">' +
             '<div class="notif-row-title">' + escapeHtml(n.title) + '</div>' +
@@ -5573,7 +5597,7 @@
       return (
         '<button type="button" class="card quick-card" data-action="add-service-suggestion" data-name="' + escapeHtml(svc.label) + '"' + lockAttr + ' ' +
           'style="width:100%;text-align:right;font:inherit;color:inherit;">' +
-          '<div class="icon-wrap"><i data-lucide="' + escapeHtml(icon) + '" class="icon"></i></div>' +
+          '<div class="icon-wrap"><i data-lucide="' + safeIcon(icon, 'sparkles') + '" class="icon"></i></div>' +
           '<div><div class="title">' + escapeHtml(svc.label) + '</div><div class="sub">' + (isLocked ? LOCK_OVERLAY_TEXT : 'اضغط للإضافة') + '</div></div>' +
         '</button>'
       );

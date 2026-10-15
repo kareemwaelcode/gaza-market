@@ -7,6 +7,7 @@ const GM_MOCK_RATES = [
 ];
 
 async function gmFetchExchangeRates() {
+  if (!window.GM_ENV.isMockAllowed()) return [];
   return Promise.resolve(GM_MOCK_RATES);
 }
 

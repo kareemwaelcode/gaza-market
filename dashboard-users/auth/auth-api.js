@@ -5,6 +5,7 @@
     USE_MOCK: true,
     ALLOW_MOCK_ON_ANY_HOST: false,
     BASE_URL: '/api/auth',
+    CSRF_URL: '/sanctum/csrf-cookie',
     TIMEOUT_MS: 15000
   };
 
@@ -35,7 +36,7 @@
     var range = max - min + 1;
     var cryptoObj = window.crypto || window.msCrypto;
     if (!cryptoObj || typeof cryptoObj.getRandomValues !== 'function') {
-      return min + Math.floor(Math.random() * range);
+      throw new Error('Secure random generator is unavailable');
     }
     var limit = Math.floor(4294967296 / range) * range;
     var buf = new Uint32Array(1);
@@ -60,22 +61,49 @@
   }
 
   function createLiveDriver() {
-    function post(path, body, token) {
+    var csrfPromise = null;
+
+    function getXsrfToken() {
+      var match = document.cookie.match(/(?:^|;\s*)XSRF-TOKEN=([^;]+)/);
+      return match ? decodeURIComponent(match[1]) : null;
+    }
+
+    function ensureCsrfCookie() {
+      if (getXsrfToken()) return Promise.resolve();
+      if (!csrfPromise) {
+        csrfPromise = fetch(CONFIG.CSRF_URL, {
+          method: 'GET',
+          headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+          credentials: 'same-origin',
+          cache: 'no-store'
+        }).then(function () {}, function () {}).then(function () { csrfPromise = null; });
+      }
+      return csrfPromise;
+    }
+
+    function post(path, body) {
       var controller = typeof AbortController === 'function' ? new AbortController() : null;
       var timer = controller
         ? window.setTimeout(function () { controller.abort(); }, CONFIG.TIMEOUT_MS)
         : null;
 
-      var headers = { 'Content-Type': 'application/json', 'Accept': 'application/json' };
-      if (token) headers.Authorization = 'Bearer ' + token;
+      return ensureCsrfCookie().then(function () {
+        var headers = {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest'
+        };
+        var xsrf = getXsrfToken();
+        if (xsrf) headers['X-XSRF-TOKEN'] = xsrf;
 
-      return fetch(CONFIG.BASE_URL + path, {
-        method: 'POST',
-        headers: headers,
-        body: JSON.stringify(body),
-        credentials: 'same-origin',
-        cache: 'no-store',
-        signal: controller ? controller.signal : undefined
+        return fetch(CONFIG.BASE_URL + path, {
+          method: 'POST',
+          headers: headers,
+          body: JSON.stringify(body),
+          credentials: 'same-origin',
+          cache: 'no-store',
+          signal: controller ? controller.signal : undefined
+        });
       }).then(function (response) {
         return response.json().then(
           function (payload) { return { status: response.status, payload: payload }; },
@@ -110,8 +138,7 @@
         return post('/login', { whatsapp: whatsapp, password: password }).then(function (res) {
           return toResult(res, function (d) {
             return {
-              whatsapp: (d.user && d.user.whatsapp) || whatsapp,
-              token: d.token || null
+              whatsapp: (d.user && d.user.whatsapp) || whatsapp
             };
           });
         });
@@ -151,8 +178,8 @@
         });
       },
 
-      logout: function (token) {
-        return post('/logout', {}, token).then(function (res) {
+      logout: function () {
+        return post('/logout', {}).then(function (res) {
           return toResult(res);
         });
       }
@@ -239,7 +266,13 @@
 
     function later(fn) {
       return new Promise(function (resolve) {
-        window.setTimeout(function () { resolve(fn()); }, DELAY_MS);
+        window.setTimeout(function () {
+          try {
+            resolve(fn());
+          } catch (err) {
+            resolve(fail('SERVER'));
+          }
+        }, DELAY_MS);
       });
     }
 
@@ -271,7 +304,7 @@
           }
 
           remove('localStorage', LOGIN_ATTEMPTS_KEY);
-          return ok({ whatsapp: user.whatsapp, token: null });
+          return ok({ whatsapp: user.whatsapp });
         });
       },
 

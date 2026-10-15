@@ -6,12 +6,11 @@ USE_MOCK: true,
 API_BASE: '/api',
 TIMEOUT_MS: 15000,
 CREDENTIALS: 'same-origin',
-TOKEN_KEY: 'gm_token',
-getToken: null,
+CSRF_URL: '/sanctum/csrf-cookie',
 };
 
 const CONFIG = Object.assign({}, DEFAULTS, window.GM_CONFIG || {});
-const USE_MOCK = !!CONFIG.USE_MOCK;
+const USE_MOCK = window.GM_ENV.isMockAllowed();
 const API_BASE = String(CONFIG.API_BASE).replace(/\/+$/, '');
 
 const CACHE_KEY = 'gm_prices_cache_v1';
@@ -149,15 +148,6 @@ return {
 };
 }
 
-function getAuthToken() {
-try {
-    if (typeof CONFIG.getToken === 'function') return CONFIG.getToken() || null;
-    return localStorage.getItem(CONFIG.TOKEN_KEY) || null;
-} catch (err) {
-    return null;
-}
-}
-
 function getXsrfToken() {
 const match = document.cookie.match(/(?:^|;\s*)XSRF-TOKEN=([^;]+)/);
 return match ? decodeURIComponent(match[1]) : null;
@@ -173,16 +163,28 @@ const lang = document.documentElement.getAttribute('lang');
 if (lang) headers['Accept-Language'] = lang;
 if (hasBody) headers['Content-Type'] = 'application/json';
 
-const token = getAuthToken();
-if (token) headers.Authorization = 'Bearer ' + token;
-
 const xsrf = getXsrfToken();
 if (xsrf) headers['X-XSRF-TOKEN'] = xsrf;
 
 return headers;
 }
 
+let csrfPromise = null;
+
+function ensureCsrfCookie() {
+if (getXsrfToken()) return Promise.resolve();
+if (!csrfPromise) {
+    csrfPromise = fetch(CONFIG.CSRF_URL, {
+    method: 'GET',
+    headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+    credentials: CONFIG.CREDENTIALS,
+    }).then(() => undefined, () => undefined).then(() => { csrfPromise = null; });
+}
+return csrfPromise;
+}
+
 async function request(method, path, body) {
+if (method !== 'GET') await ensureCsrfCookie();
 const controller = typeof AbortController === 'function' ? new AbortController() : null;
 const timer = controller ? setTimeout(() => controller.abort(), CONFIG.TIMEOUT_MS) : null;
 

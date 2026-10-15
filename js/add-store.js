@@ -392,7 +392,7 @@
   }
 
   function initTheme() {
-    document.body.classList.toggle("dark-mode", localStorage.getItem("gm-theme") === "dark");
+    document.body.classList.toggle("dark-mode", localStorage.getItem(window.GM_STORAGE_KEYS.theme) === "dark");
   }
 
   function init() {

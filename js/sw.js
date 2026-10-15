@@ -1,9 +1,5 @@
-// sw.js — لازم يكون بجذر الموقع (جنب index.html) عشان يغطي كل الصفحات
-// كل مرة بتغير فيها أي ملف من PRECACHE (أو أي ملف CSS/JS/صورة/خط بالموقع) غيّر رقم CACHE_VERSION
-// مثال: 'gm-v4' → 'gm-v5'. المتصفح بيلقط التغيير تلقائياً، وبيحمّل النسخة الجديدة ويمسح القديمة.
-
 const CACHE_PREFIX = 'gm-';
-const CACHE_VERSION = 'gm-v6';
+const CACHE_VERSION = 'gm-v8';
 const SCOPE = self.registration.scope;
 
 const PRECACHE = [
@@ -42,11 +38,8 @@ const PRECACHE = [
 
 const NAVIGATION_TIMEOUT = 4000;
 
-// المسارات اللي الـ SW ما بيلمسها أبداً (داشبورد، API، تجارب)
 const BYPASS_PATHS = ['/api/', '/dashboard-users/', '/test/'];
 
-// بعض الاستضافات بتحوّل home.html إلى /home. المتصفح بيرفض يعرض استجابة "redirected"
-// لطلب تنقل، فبنحوّلها لاستجابة عادية قبل ما نخزنها بالكاش
 async function cleanResponse(response) {
   if (!response.redirected) return response;
   const body = await response.blob();
@@ -57,8 +50,6 @@ async function cleanResponse(response) {
   });
 }
 
-// تحميل كل ملفات PRECACHE: إذا فشل أي ملف بيفشل التثبيت كله
-// وبهالحالة النسخة القديمة (والكاش القديم) بتضل شغالة، والمتصفح بيعيد المحاولة لاحقاً
 async function precacheAll() {
   const cache = await caches.open(CACHE_VERSION);
   await Promise.all(
@@ -98,13 +89,11 @@ async function store(request, response) {
       const cache = await caches.open(CACHE_VERSION);
       await cache.put(request, await cleanResponse(response.clone()));
     } catch (err) {
-      // امتلاء التخزين أو خطأ مؤقت: ما بنكسر الاستجابة الأصلية
     }
   }
   return response;
 }
 
-// الصفحات: الشبكة أولاً (بمهلة 4 ثواني) وبعدها الكاش، وبآخر شي index.html
 async function handleNavigation(request) {
   const cache = await caches.open(CACHE_VERSION);
   const controller = new AbortController();
@@ -123,7 +112,6 @@ async function handleNavigation(request) {
   }
 }
 
-// الملفات (CSS/JS/خطوط/صور): من الكاش فوراً، وبنحدّثها بالخلفية للزيارة الجاية
 async function handleAsset(event) {
   const request = event.request;
   const cache = await caches.open(CACHE_VERSION);
@@ -134,7 +122,6 @@ async function handleAsset(event) {
     .catch(() => null);
 
   if (cached) {
-    // waitUntil: يخلي الـ SW شغال لحد ما يخلص تحديث الخلفية
     event.waitUntil(network);
     return cached;
   }

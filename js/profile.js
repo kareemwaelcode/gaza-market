@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
 
-  const AUTH_STORAGE_KEY = 'user';
+  const AUTH_STORAGE_KEY = window.GM_STORAGE_KEYS.user;
 
   function getCurrentUser() {
     try {

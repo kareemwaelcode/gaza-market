@@ -1,7 +1,7 @@
 (function () {
   "use strict";
 
-  const AUTH_STORAGE_KEY = "user";
+  const AUTH_STORAGE_KEY = window.GM_STORAGE_KEYS.user;
   const SLOT_ID = "navAuthSlot";
 
   let slotEl = null;

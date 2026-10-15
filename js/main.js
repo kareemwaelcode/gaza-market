@@ -165,7 +165,7 @@ function gmNormalizeRegionKey(raw) {
 
 function gmSyncUserRegion(rawArea) {
   try {
-    const userRaw = localStorage.getItem("user");
+    const userRaw = localStorage.getItem(window.GM_STORAGE_KEYS.user);
     if (!userRaw) return;
 
     const user = JSON.parse(userRaw);
@@ -173,7 +173,7 @@ function gmSyncUserRegion(rawArea) {
 
     const normalizedRegion = gmNormalizeRegionKey(rawArea);
     user.region = normalizedRegion || rawArea;
-    localStorage.setItem("user", JSON.stringify(user));
+    localStorage.setItem(window.GM_STORAGE_KEYS.user, JSON.stringify(user));
 
     window.AuthUI?.refresh();
   } catch (err) {
@@ -188,7 +188,7 @@ window.gmSyncUserRegion     = gmSyncUserRegion;
 
 function gmIsLoggedIn() {
   try {
-    const raw = localStorage.getItem("user");
+    const raw = localStorage.getItem(window.GM_STORAGE_KEYS.user);
     if (!raw) return false;
     const user = JSON.parse(raw);
     return !!(user && user.phone);
@@ -423,7 +423,7 @@ window.gmRequireAuthThenRun = gmRequireAuthThenRun;
 
 (function initTheme() {
   const themeBtn  = document.querySelector(".theme-btn");
-  const THEME_KEY = "gaza-market-theme";
+  const THEME_KEY = window.GM_STORAGE_KEYS.theme;
 
   if (localStorage.getItem(THEME_KEY) === "dark") {
     document.body.classList.add("dark-mode");
@@ -728,9 +728,22 @@ document.addEventListener("DOMContentLoaded", () => {
       if (dots[idx]) { dots[idx].classList.add("auth-dot--active"); dots[idx].style.width = "22px"; }
     }
 
+    function setPhoneErrKey(key) {
+      const span = phoneErr?.querySelector("[data-i18n]");
+      if (!span) return;
+      span.setAttribute("data-i18n", key);
+      span.textContent = translate(key);
+    }
+
     function handleSendCode() {
       clearErr(phoneErr);
       clearErr(nameErr);
+      setPhoneErrKey("authErrPhone");
+      if (!window.GM_ENV.isMockAllowed()) {
+        setPhoneErrKey("authErrUnavailable");
+        showErr(phoneErr);
+        return;
+      }
       const rawPhone = phoneInput?.value?.replace(/\s/g, "") || "";
       let valid = true;
 
@@ -820,6 +833,7 @@ document.addEventListener("DOMContentLoaded", () => {
     function handleVerify() {
       clearErr(otpErr);
       const entered = [...otpBoxes].map(b => b?.value || "").join("");
+      if (!window.GM_ENV.isMockAllowed()) { showOtpError(translate("authErrUnavailable")); return; }
       if (entered.length < 6) { showOtpError(translate("authErrOtpIncomplete")); return; }
 
       setLoading(verifyBtn, true);
@@ -835,12 +849,12 @@ document.addEventListener("DOMContentLoaded", () => {
             : translate("authSuccessLoginSub");
 
           try {
-            const existingUser     = JSON.parse(localStorage.getItem("user") || "null");
+            const existingUser     = JSON.parse(localStorage.getItem(window.GM_STORAGE_KEYS.user) || "null");
             const rawRegion        = gmGetSelectedArea();
             const normalizedRegion = gmNormalizeRegionKey(rawRegion);
 
             localStorage.setItem(
-              "user",
+              window.GM_STORAGE_KEYS.user,
               JSON.stringify({
                 ...existingUser,
                 name:   nameInput?.value?.trim() || phone,

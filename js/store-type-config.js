@@ -7,6 +7,35 @@ window.GMStoreTypeConfig = (function () {
   var DEFAULT_PLAN = 'free';
   var PLAN_IDS = ['free', 'paid'];
 
+  var ALLOWED_ICON_NAMES = [
+    'activity', 'air-vent', 'alert-circle', 'alert-triangle', 'app-window', 'armchair',
+    'arrow-left', 'arrow-left-right', 'arrow-right', 'baby', 'badge-check', 'ban',
+    'banknote-arrow-up', 'battery', 'battery-charging', 'bed-double', 'bell', 'boxes',
+    'brush', 'calculator', 'calendar-check', 'calendar-clock', 'calendar-days', 'calendar-x',
+    'camera', 'car', 'check', 'check-circle', 'chevron-left', 'circle-alert',
+    'circle-dot', 'clock', 'code', 'copy', 'credit-card', 'credit-card-check',
+    'delete', 'door-open', 'dot', 'download', 'droplets', 'external-link',
+    'eye', 'eye-off', 'file', 'file-text', 'fish', 'flame',
+    'flask-conical', 'flower-2', 'folder', 'folder-plus', 'form', 'gift',
+    'glasses', 'gpu', 'hammer', 'hard-drive', 'heart-pulse', 'home',
+    'house', 'image', 'info', 'key-round', 'laptop', 'layers',
+    'layout-grid', 'lightbulb', 'loader-2', 'locate-fixed', 'lock', 'log-in',
+    'log-out', 'map-pin', 'megaphone', 'menu', 'message-circle', 'moon',
+    'package', 'package-check', 'palette', 'party-popper', 'pencil', 'pencil-ruler',
+    'phone', 'plug-zap', 'plus', 'power', 'printer', 'qr-code',
+    'refresh-cw', 'repeat', 'rotate-ccw', 'ruler', 'save', 'scan',
+    'scissors', 'search', 'search-x', 'send', 'settings', 'share-2',
+    'shield-check', 'shield-plus', 'shirt', 'shopping-bag', 'sidebar', 'siren',
+    'smartphone', 'sparkles', 'star', 'stethoscope', 'store', 'sun',
+    'swatch-book', 'syringe', 'tag', 'text', 'thumbs-up', 'trash-2',
+    'triangle-alert', 'truck', 'upload', 'user-check', 'users', 'utensils',
+    'warehouse', 'wifi', 'wind', 'wrench', 'x', 'x-circle',
+    'zap'
+  ];
+  var ALLOWED_PAGES = ['ads', 'appointments', 'dashboard', 'menu', 'packages', 'prices', 'profile', 'reservations', 'services', 'subscribers', 'subscription-requests', 'tables'];
+  var ALLOWED_ACTIONS = ['open-prices-edit', 'open-services-edit'];
+  var DEFAULT_ICON = 'sparkles';
+
   var FOOD_PLAN_LIMITS = {
     free: { menuItems: 10, menuCategories: 5, ads: 3, tables: 5, reservations: 5 },
     paid: { menuItems: null, menuCategories: null, ads: null, tables: null, reservations: null }
@@ -1859,6 +1888,40 @@ window.GMStoreTypeConfig = (function () {
     };
   }
 
+  function toLookup(list) {
+    var map = Object.create(null);
+    for (var i = 0; i < list.length; i++) map[list[i]] = true;
+    return map;
+  }
+
+  var ICON_LOOKUP = toLookup(ALLOWED_ICON_NAMES);
+  var PAGE_LOOKUP = toLookup(ALLOWED_PAGES);
+  var ACTION_LOOKUP = toLookup(ALLOWED_ACTIONS);
+
+  function isAllowedIcon(name) {
+    return typeof name === 'string' && ICON_LOOKUP[name] === true;
+  }
+
+  function safeIcon(name, fallback) {
+    if (isAllowedIcon(name)) return name;
+    return isAllowedIcon(fallback) ? fallback : DEFAULT_ICON;
+  }
+
+  function isAllowedPage(page) {
+    return typeof page === 'string' && PAGE_LOOKUP[page] === true;
+  }
+
+  function isAllowedAction(action) {
+    return typeof action === 'string' && ACTION_LOOKUP[action] === true;
+  }
+
+  function safeHref(href) {
+    var value = typeof href === 'string' ? href : '';
+    if (value === '' || value === '#') return '#';
+    var match = /^([a-z][a-z-]*)\.html$/.exec(value);
+    return match && PAGE_LOOKUP[match[1]] === true ? value : '#';
+  }
+
   return {
     STORAGE_KEY: STORAGE_KEY,
     PLAN_STORAGE_KEY: PLAN_STORAGE_KEY,
@@ -1874,6 +1937,11 @@ window.GMStoreTypeConfig = (function () {
     setCurrentPlan: setCurrentPlan,
     getLimitStatus: getLimitStatus,
     isFeatureLocked: isFeatureLocked,
-    getConfig: getConfig
+    getConfig: getConfig,
+    isAllowedIcon: isAllowedIcon,
+    safeIcon: safeIcon,
+    isAllowedPage: isAllowedPage,
+    isAllowedAction: isAllowedAction,
+    safeHref: safeHref
   };
 })();
