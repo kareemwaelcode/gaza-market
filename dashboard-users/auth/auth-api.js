@@ -3,13 +3,14 @@
 
   var CONFIG = {
     USE_MOCK: true,
-    ALLOW_MOCK_ON_ANY_HOST: false,
     BASE_URL: '/api/auth',
     CSRF_URL: '/sanctum/csrf-cookie',
     TIMEOUT_MS: 15000
   };
 
   var PASSWORD_MIN_LENGTH = 8;
+  // Mock mode only. In live mode the session lives in the server's HttpOnly cookie and this key is purged.
+  var MOCK_SESSION_KEY = 'gmDashboardSession';
 
   function ok(data) {
     return { ok: true, data: data || {} };
@@ -17,19 +18,6 @@
 
   function fail(code, data) {
     return { ok: false, code: code, data: data || {} };
-  }
-
-  function isLocalDevHost() {
-    var host = window.location.hostname;
-    return host === '' ||
-      host === 'localhost' ||
-      host === '127.0.0.1' ||
-      host === '[::1]' ||
-      /\.localhost$/.test(host) ||
-      /\.local$/.test(host) ||
-      /^192\.168\.\d{1,3}\.\d{1,3}$/.test(host) ||
-      /^10\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(host) ||
-      /^172\.(1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3}$/.test(host);
   }
 
   function secureRandomInt(min, max) {
@@ -63,13 +51,15 @@
   function createLiveDriver() {
     var csrfPromise = null;
 
+    try { window.localStorage.removeItem(MOCK_SESSION_KEY); } catch (err) {}
+
     function getXsrfToken() {
       var match = document.cookie.match(/(?:^|;\s*)XSRF-TOKEN=([^;]+)/);
       return match ? decodeURIComponent(match[1]) : null;
     }
 
-    function ensureCsrfCookie() {
-      if (getXsrfToken()) return Promise.resolve();
+    function ensureCsrfCookie(force) {
+      if (!force && getXsrfToken()) return Promise.resolve();
       if (!csrfPromise) {
         csrfPromise = fetch(CONFIG.CSRF_URL, {
           method: 'GET',
@@ -81,29 +71,31 @@
       return csrfPromise;
     }
 
-    function post(path, body) {
+    function send(method, path, body) {
       var controller = typeof AbortController === 'function' ? new AbortController() : null;
       var timer = controller
         ? window.setTimeout(function () { controller.abort(); }, CONFIG.TIMEOUT_MS)
         : null;
 
-      return ensureCsrfCookie().then(function () {
+      return ensureCsrfCookie(false).then(function () {
         var headers = {
-          'Content-Type': 'application/json',
           'Accept': 'application/json',
           'X-Requested-With': 'XMLHttpRequest'
         };
-        var xsrf = getXsrfToken();
-        if (xsrf) headers['X-XSRF-TOKEN'] = xsrf;
-
-        return fetch(CONFIG.BASE_URL + path, {
-          method: 'POST',
+        var init = {
+          method: method,
           headers: headers,
-          body: JSON.stringify(body),
           credentials: 'same-origin',
           cache: 'no-store',
           signal: controller ? controller.signal : undefined
-        });
+        };
+        if (method !== 'GET') {
+          headers['Content-Type'] = 'application/json';
+          var xsrf = getXsrfToken();
+          if (xsrf) headers['X-XSRF-TOKEN'] = xsrf;
+          init.body = JSON.stringify(body || {});
+        }
+        return fetch(CONFIG.BASE_URL + path, init);
       }).then(function (response) {
         return response.json().then(
           function (payload) { return { status: response.status, payload: payload }; },
@@ -117,6 +109,20 @@
       });
     }
 
+    function request(method, path, body) {
+      return send(method, path, body).then(function (res) {
+        // 419 = Laravel CSRF/session mismatch: refresh the CSRF cookie and retry once.
+        if (res.status === 419 && method !== 'GET') {
+          return ensureCsrfCookie(true).then(function () { return send(method, path, body); });
+        }
+        return res;
+      });
+    }
+
+    function post(path, body) {
+      return request('POST', path, body);
+    }
+
     function toResult(res, mapData) {
       var body = res.payload || {};
 
@@ -128,7 +134,7 @@
 
       var code = body.code;
       if (!code) {
-        code = res.status === 429 ? 'RATE_LIMITED' : 'SERVER';
+        code = res.status === 401 ? 'UNAUTHENTICATED' : (res.status === 429 ? 'RATE_LIMITED' : 'SERVER');
       }
       return fail(code, { attemptsLeft: body.attempts_left, retryAfter: body.retry_after });
     }
@@ -178,8 +184,17 @@
         });
       },
 
+      me: function () {
+        return request('GET', '/me').then(function (res) {
+          return toResult(res, function (d) {
+            return { whatsapp: (d.user && d.user.whatsapp) || '' };
+          });
+        });
+      },
+
       logout: function () {
         return post('/logout', {}).then(function (res) {
+          if (res.status === 401) return ok();
           return toResult(res);
         });
       }
@@ -276,6 +291,19 @@
       });
     }
 
+    var SESSION_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
+    var CLOCK_SKEW_MS = 5 * 60 * 1000;
+
+    function readMockSession() {
+      var s = read('localStorage', MOCK_SESSION_KEY, null);
+      if (!s || typeof s !== 'object' || Array.isArray(s)) return null;
+      if (typeof s.whatsapp !== 'string' || !WHATSAPP_PATTERN.test(s.whatsapp)) return null;
+      if (typeof s.loggedInAt !== 'number' || !isFinite(s.loggedInAt)) return null;
+      var now = Date.now();
+      if (s.loggedInAt > now + CLOCK_SKEW_MS || now - s.loggedInAt > SESSION_MAX_AGE_MS) return null;
+      return s;
+    }
+
     seedDemoUser();
 
     return {
@@ -304,6 +332,7 @@
           }
 
           remove('localStorage', LOGIN_ATTEMPTS_KEY);
+          write('localStorage', MOCK_SESSION_KEY, { whatsapp: user.whatsapp, loggedInAt: Date.now() });
           return ok({ whatsapp: user.whatsapp });
         });
       },
@@ -383,7 +412,13 @@
         });
       },
 
+      me: function () {
+        var s = readMockSession();
+        return Promise.resolve(s ? ok({ whatsapp: s.whatsapp }) : fail('UNAUTHENTICATED'));
+      },
+
       logout: function () {
+        remove('localStorage', MOCK_SESSION_KEY);
         return later(function () {
           return ok();
         });
@@ -400,11 +435,13 @@
       requestResetCode: blocked,
       verifyResetCode: blocked,
       resetPassword: blocked,
+      me: function () { return Promise.resolve(fail('UNAUTHENTICATED')); },
       logout: function () { return Promise.resolve(ok()); }
     };
   }
 
-  var mockBlocked = CONFIG.USE_MOCK && !CONFIG.ALLOW_MOCK_ON_ANY_HOST && !isLocalDevHost();
+  var mockAllowed = !!(window.GM_ENV && window.GM_ENV.isMockAllowed());
+  var mockBlocked = CONFIG.USE_MOCK && !mockAllowed;
   if (mockBlocked && window.console) {
     console.error('[GMAuthApi] Mock auth is disabled on this host. Set USE_MOCK to false once the backend is ready.');
   }
@@ -414,13 +451,14 @@
     : createLiveDriver();
 
   window.GMAuthApi = {
-    mode: CONFIG.USE_MOCK ? 'mock' : 'live',
+    mode: CONFIG.USE_MOCK ? (mockBlocked ? 'blocked' : 'mock') : 'live',
     passwordMinLength: PASSWORD_MIN_LENGTH,
     isValidPassword: isValidPassword,
     login: driver.login,
     requestResetCode: driver.requestResetCode,
     verifyResetCode: driver.verifyResetCode,
     resetPassword: driver.resetPassword,
+    me: driver.me,
     logout: driver.logout
   };
 })();

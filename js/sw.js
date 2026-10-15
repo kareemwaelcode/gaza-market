@@ -1,5 +1,5 @@
 const CACHE_PREFIX = 'gm-';
-const CACHE_VERSION = 'gm-v8';
+const CACHE_VERSION = 'gm-v9';
 const SCOPE = self.registration.scope;
 
 const PRECACHE = [
@@ -12,6 +12,7 @@ const PRECACHE = [
   'css/main.css',
   'css/prices.css',
   'js/vendor/bootstrap.bundle.min.js',
+  'js/gm-core.js',
   'js/boot.js',
   'js/region-guard.js',
   'js/translations.js',

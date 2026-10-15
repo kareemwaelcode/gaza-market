@@ -2,7 +2,6 @@
   'use strict';
 
   var THEME_STORAGE_KEY = 'gaza-market-dashboard-theme';
-  var SESSION_STORAGE_KEY = 'gmDashboardSession';
   var RESET_REQUEST_STORAGE_KEY = 'gmDashboardResetRequest';
   var RESET_TOKEN_STORAGE_KEY = 'gmDashboardResetToken';
 
@@ -58,14 +57,6 @@
     try {
       window[storeName].removeItem(key);
     } catch (err) {}
-  }
-
-  function getSession() {
-    return readJson('localStorage', SESSION_STORAGE_KEY, null);
-  }
-
-  function setSession(session) {
-    writeJson('localStorage', SESSION_STORAGE_KEY, session);
   }
 
   function getResetRequest() {
@@ -309,10 +300,7 @@
           return;
         }
 
-        setSession({
-          whatsapp: res.data.whatsapp,
-          loggedInAt: Date.now()
-        });
+        // The session itself lives in the server's HttpOnly cookie (live) or inside the mock driver; nothing is stored here.
         window.location.replace(DASHBOARD_PAGE_URL);
       });
     });
@@ -788,13 +776,16 @@
     });
   }
 
+  function redirectIfAuthenticated() {
+    if (typeof window.GMAuthApi.me !== 'function') return;
+    window.GMAuthApi.me().then(function (res) {
+      if (res && res.ok) window.location.replace(DASHBOARD_PAGE_URL);
+    });
+  }
+
   function init() {
-    if (getSession()) {
-      window.location.replace(DASHBOARD_PAGE_URL);
-      return;
-    }
     if (!window.GMAuthApi) {
-      console.error('auth-api.js must be loaded before auth.js');
+      console.error('auth-api.js must be loaded before dashboard-auth.js');
       return;
     }
     wireThemeToggle();
@@ -803,6 +794,7 @@
     wireForgotPassword();
     wireResetPassword();
     bootIcons();
+    redirectIfAuthenticated();
   }
 
   if (document.readyState === 'loading') {

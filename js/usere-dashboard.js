@@ -1026,7 +1026,7 @@
   }
 
   function generateSubscriberId() {
-    return 'sub_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+    return window.GM_ID.generate('sub');
   }
 
   function getStoredSubscriptionRequests() {
@@ -1045,7 +1045,7 @@
   }
 
   function generateRequestId() {
-    return 'req_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+    return window.GM_ID.generate('req');
   }
 
   function findSubscriptionRequestById(id) {
@@ -1298,7 +1298,7 @@
   }
 
   function generateTableId() {
-    return 'tbl_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+    return window.GM_ID.generate('tbl');
   }
 
   function findTableById(id) {
@@ -1626,7 +1626,7 @@
   }
 
   function generateReservationId() {
-    return 'res_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+    return window.GM_ID.generate('res');
   }
 
   function findReservationById(id) {
@@ -3354,7 +3354,7 @@
   }
 
   function generateAdId() {
-    return 'ad_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+    return window.GM_ID.generate('ad');
   }
 
   function getStoredNotifications() {
@@ -3373,7 +3373,7 @@
   }
 
   function generateNotificationId() {
-    return 'notif_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+    return window.GM_ID.generate('notif');
   }
 
   function addNotification(data) {
@@ -3880,11 +3880,11 @@
   }
 
   function generateMenuCategoryId() {
-    return 'mc_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+    return window.GM_ID.generate('mc');
   }
 
   function generateMenuItemId() {
-    return 'mi_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+    return window.GM_ID.generate('mi');
   }
 
   function findMenuCategoryById(id) {
@@ -4539,11 +4539,11 @@
   }
 
   function generateProductCategoryId() {
-    return 'pc_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+    return window.GM_ID.generate('pc');
   }
 
   function generateProductItemId() {
-    return 'pi_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+    return window.GM_ID.generate('pi');
   }
 
   function findProductCategoryById(id) {
@@ -5318,11 +5318,11 @@
   }
 
   function generateServiceCategoryId() {
-    return 'svcc_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+    return window.GM_ID.generate('svcc');
   }
 
   function generateServiceItemId() {
-    return 'svci_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+    return window.GM_ID.generate('svci');
   }
 
   function findServiceCategoryById(id) {
@@ -6312,7 +6312,9 @@
   }
 
   async function init() {
-    if (window.GMAuth && typeof window.GMAuth.getSession === 'function' && !window.GMAuth.getSession()) return;
+    if (window.GMAuth && typeof window.GMAuth.whenReady === 'function') {
+      if (!(await window.GMAuth.whenReady())) return;
+    }
     if (!guardPageForStoreType()) return;
     initHeroDynamicInfo();
     ensureMobileNavHost();

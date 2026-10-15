@@ -92,7 +92,7 @@
   }
 
   function generateId() {
-    return 'apt_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+    return window.GM_ID.generate('apt');
   }
 
   function setStatus(id, status) {

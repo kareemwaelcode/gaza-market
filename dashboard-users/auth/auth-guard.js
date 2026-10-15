@@ -1,94 +1,110 @@
 (function () {
   'use strict';
 
-  var SESSION_STORAGE_KEY = 'gmDashboardSession';
   var LOGOUT_MAX_WAIT_MS = 1500;
-  var SESSION_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
-  var SESSION_CHECK_INTERVAL_MS = 60 * 1000;
-  var CLOCK_SKEW_MS = 5 * 60 * 1000;
-  var WHATSAPP_PATTERN = /^(970|972)\d{9}$/;
+  var CHECK_INTERVAL_MS = 60 * 1000;
+  var MIN_RECHECK_GAP_MS = 5 * 1000;
+  // Non-sensitive cross-tab signal ("something changed, re-verify"). It carries no session data.
+  var SIGNAL_KEY = 'gmAuthSignal';
 
   var scriptEl = document.currentScript;
   var LOGIN_PAGE_URL = scriptEl && scriptEl.src
     ? new URL('login.html', scriptEl.src).href
     : 'auth/login.html';
 
+  var root = document.documentElement;
+  var session = null; // last verified session, kept in memory only (never in browser storage)
   var loggingOut = false;
+  var redirecting = false;
+  var checking = null;
+  var lastCheckAt = 0;
 
-  function isValidSession(session) {
-    if (!session || typeof session !== 'object' || Array.isArray(session)) return false;
-    if (typeof session.whatsapp !== 'string' || !WHATSAPP_PATTERN.test(session.whatsapp)) return false;
-    if (typeof session.loggedInAt !== 'number' || !isFinite(session.loggedInAt)) return false;
-    var now = Date.now();
-    if (session.loggedInAt > now + CLOCK_SKEW_MS) return false;
-    if (now - session.loggedInAt > SESSION_MAX_AGE_MS) return false;
-    return true;
-  }
+  // Keep the page hidden until the server confirms the session.
+  root.style.visibility = 'hidden';
 
-  function readSession() {
-    try {
-      var raw = window.localStorage.getItem(SESSION_STORAGE_KEY);
-      var session = raw ? JSON.parse(raw) : null;
-      if (!isValidSession(session)) return null;
-      if (Object.prototype.hasOwnProperty.call(session, 'token')) {
-        delete session.token;
-        window.localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(session));
-      }
-      return session;
-    } catch (err) {
-      return null;
-    }
-  }
-
-  function clearSession() {
-    try {
-      window.localStorage.removeItem(SESSION_STORAGE_KEY);
-    } catch (err) {}
+  function reveal() {
+    root.style.visibility = '';
   }
 
   function redirectToLogin() {
-    document.documentElement.style.display = 'none';
+    if (redirecting) return;
+    redirecting = true;
+    session = null;
+    root.style.visibility = 'hidden';
     window.location.replace(LOGIN_PAGE_URL);
   }
 
-  function endSession() {
-    clearSession();
-    redirectToLogin();
+  function verify() {
+    var api = window.GMAuthApi;
+    if (!api || typeof api.me !== 'function') {
+      return Promise.resolve({ ok: false, code: 'UNAUTHENTICATED' });
+    }
+    return api.me().then(function (res) { return res; }, function () {
+      return { ok: false, code: 'NETWORK' };
+    });
+  }
+
+  function check() {
+    if (redirecting || loggingOut) return Promise.resolve(session);
+    if (checking) return checking;
+    lastCheckAt = Date.now();
+    checking = verify().then(function (res) {
+      checking = null;
+      if (res.ok) {
+        session = { whatsapp: res.data.whatsapp, verified: true };
+        return session;
+      }
+      if (res.code === 'UNAUTHENTICATED') {
+        redirectToLogin();
+        return null;
+      }
+      // Network/server trouble is NOT a logout (connections can be unstable): keep the page usable
+      // and verify again on the next check. Server APIs still enforce the cookie on every request.
+      if (!session) session = { whatsapp: '', verified: false };
+      return session;
+    });
+    return checking;
+  }
+
+  function recheck(force) {
+    if (!force && Date.now() - lastCheckAt < MIN_RECHECK_GAP_MS) return;
+    check();
   }
 
   function logout() {
     if (loggingOut) return;
     loggingOut = true;
-
-    clearSession();
-
-    if (!window.GMAuthApi || typeof window.GMAuthApi.logout !== 'function') {
-      redirectToLogin();
-      return;
-    }
+    session = null;
 
     var finished = false;
     function finish() {
       if (finished) return;
       finished = true;
+      try { window.localStorage.setItem(SIGNAL_KEY, String(Date.now())); } catch (err) {}
       redirectToLogin();
     }
 
     window.setTimeout(finish, LOGOUT_MAX_WAIT_MS);
-    window.GMAuthApi.logout().then(finish, finish);
+
+    var api = window.GMAuthApi;
+    if (!api || typeof api.logout !== 'function') {
+      finish();
+      return;
+    }
+    api.logout().then(finish, finish);
   }
 
-  window.GMAuth = {
-    getSession: readSession,
+  var ready = check().then(function (s) {
+    if (s) reveal();
+    return s;
+  });
+
+  window.GMAuth = Object.freeze({
+    whenReady: function () { return ready; },
+    getSession: function () { return session; },
     logout: logout,
-    endSession: endSession
-  };
-
-  if (!readSession()) {
-
-    endSession();
-    return;
-  }
+    endSession: redirectToLogin
+  });
 
   document.addEventListener('click', function (e) {
     var btn = e.target.closest && e.target.closest('[data-action="logout"]');
@@ -98,18 +114,19 @@
   });
 
   window.addEventListener('pageshow', function (e) {
-    if (e.persisted && !readSession()) redirectToLogin();
+    if (e.persisted) recheck(true);
   });
 
   window.addEventListener('storage', function (e) {
-    if (e.key === SESSION_STORAGE_KEY && !readSession()) redirectToLogin();
+    if (e.key === SIGNAL_KEY) recheck(true);
   });
 
   document.addEventListener('visibilitychange', function () {
-    if (!document.hidden && !readSession()) endSession();
+    if (!document.hidden) recheck(false);
   });
 
+  // Hidden tabs are skipped to keep /me traffic low.
   window.setInterval(function () {
-    if (!readSession()) endSession();
-  }, SESSION_CHECK_INTERVAL_MS);
+    if (!document.hidden) recheck(false);
+  }, CHECK_INTERVAL_MS);
 })();

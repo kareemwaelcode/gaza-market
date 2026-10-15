@@ -7,26 +7,13 @@
     user: 'user'
   });
 
-  function isLocalDevHost() {
-    var host = window.location.hostname;
-    return host === '' ||
-      host === 'localhost' ||
-      host === '127.0.0.1' ||
-      host === '[::1]' ||
-      /\.localhost$/.test(host) ||
-      /\.local$/.test(host) ||
-      /^192\.168\.\d{1,3}\.\d{1,3}$/.test(host) ||
-      /^10\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(host) ||
-      /^172\.(1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3}$/.test(host);
+  if (!window.GM_ENV) {
+    if (window.console) console.error('[GM] gm-core.js is missing; mock mode is disabled.');
+    window.GM_ENV = Object.freeze({
+      isLocalDevHost: function () { return false; },
+      isMockAllowed: function () { return false; }
+    });
   }
-
-  window.GM_ENV = Object.freeze({
-    isLocalDevHost: isLocalDevHost,
-    isMockAllowed: function () {
-      var cfg = window.GM_CONFIG || {};
-      return cfg.USE_MOCK !== false && (isLocalDevHost() || cfg.ALLOW_MOCK_ON_ANY_HOST === true);
-    }
-  });
 
   try {
     localStorage.removeItem('gm_token');
