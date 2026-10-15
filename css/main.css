@@ -8011,6 +8011,11 @@ body {
   line-height: 1.6;
   font-weight: 500;
 }
+@media (max-width: 480px) {
+  .section-header p {
+    font-size: 12px;
+  }
+}
 .filter-row {
   display: flex;
   justify-content: end;

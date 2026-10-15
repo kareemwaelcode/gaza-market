@@ -20,7 +20,7 @@ const files = [];
   for (const f of fs.readdirSync(d)) {
     const p = path.join(d, f), st = fs.statSync(p);
     if (st.isDirectory()) { if (['.git', 'test', 'vendor', 'node_modules', 'tools'].includes(f)) continue; walk(p); }
-    else if (/\.(html|js)$/.test(f) && /dashboard-users|usere-dashboard|store-type-config|clinic-appointments/.test(p)) files.push(p);
+    else if (/\.(html|js)$/.test(f) && /dashboard-users|usere-dashboard|js[\\/]dashboard[\\/]|store-type-config|clinic-appointments/.test(p)) files.push(p);
   }
 })(root);
 
