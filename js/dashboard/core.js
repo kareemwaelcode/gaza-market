@@ -29,6 +29,8 @@
   var PARTIAL_CACHE_PREFIX = 'gmPartial:';
   var iconsQueued = false;
   var GAZA_TZ = 'Asia/Gaza';
+  var GAZA_LAT = 31.5;
+  var GAZA_LNG = 34.45;
   var IMAGE_MAX_FILE_BYTES = 10 * 1024 * 1024;
   var IMAGE_ALLOWED_TYPES = /^image\/(png|jpe?g|webp|gif)$/i;
   var storageErrorShownAt = 0;
@@ -463,6 +465,8 @@
   GM.getFallbackName = getFallbackName;
   GM.bootIcons = bootIcons;
   GM.GAZA_TZ = GAZA_TZ;
+  GM.GAZA_LAT = GAZA_LAT;
+  GM.GAZA_LNG = GAZA_LNG;
   GM.encodeCompressedCanvas = encodeCompressedCanvas;
   GM.compressImageFile = compressImageFile;
   GM.getStoredProfile = getStoredProfile;
