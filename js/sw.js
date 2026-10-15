@@ -3,7 +3,7 @@
 // مثال: 'gm-v4' → 'gm-v5'. المتصفح بيلقط التغيير تلقائياً، وبيحمّل النسخة الجديدة ويمسح القديمة.
 
 const CACHE_PREFIX = 'gm-';
-const CACHE_VERSION = 'gm-v4';
+const CACHE_VERSION = 'gm-v6';
 const SCOPE = self.registration.scope;
 
 const PRECACHE = [
@@ -13,11 +13,10 @@ const PRECACHE = [
   'add-store.html',
   'guide.html',
   'css/vendor/bootstrap.min.css',
-  'css/frameworkG.css',
   'css/main.css',
   'css/prices.css',
   'js/vendor/bootstrap.bundle.min.js',
-  'js/vendor/lucide.min.js',
+  'js/boot.js',
   'js/region-guard.js',
   'js/translations.js',
   'js/i18n.js',

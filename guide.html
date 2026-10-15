@@ -2,7 +2,8 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8" />
-<script>try{var l=localStorage.getItem("gm_lang")==="en"?"en":"ar",d=document.documentElement;d.lang=l;d.dir=l==="ar"?"rtl":"ltr";if(d.hasAttribute("data-lang"))d.setAttribute("data-lang",l)}catch(e){}</script>
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: blob: https:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'" />
+<script src="js/boot.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>دليل الاستخدام | سوق غزة</title>
 <meta name="description" content="تعلّم كيف تضيف سعراً جديداً، وتؤكد الأسعار أو تبلّغ عنها، وتقترح منتجاً جديداً، وتستخدم السوق والإعلانات، وتدير حسابك على سوق غزة." />
@@ -27,13 +28,10 @@
 <link rel="icon" href="assets/img/logo.gazamarket.png" />
 <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"Organization","@id":"https://gazaprice.com/#org","name":"سوق غزة","alternateName":"Gaza Market","url":"https://gazaprice.com/","logo":{"@type":"ImageObject","url":"https://gazaprice.com/assets/img/logo.gazamarket.png","width":501,"height":498}},{"@type":"WebSite","@id":"https://gazaprice.com/#website","url":"https://gazaprice.com/","name":"سوق غزة","alternateName":"Gaza Market","inLanguage":["ar","en"],"publisher":{"@id":"https://gazaprice.com/#org"}},{"@type":"WebPage","@id":"https://gazaprice.com/guide.html#webpage","url":"https://gazaprice.com/guide.html","name":"دليل الاستخدام | سوق غزة","description":"تعلّم كيف تضيف سعراً جديداً، وتؤكد الأسعار أو تبلّغ عنها، وتقترح منتجاً جديداً، وتستخدم السوق والإعلانات، وتدير حسابك على سوق غزة.","inLanguage":"ar","isPartOf":{"@id":"https://gazaprice.com/#website"},"publisher":{"@id":"https://gazaprice.com/#org"}}]}</script>
   <link href="css/vendor/bootstrap.min.css" rel="stylesheet" />
-  <link rel="stylesheet" href="css/frameworkG.css" />
   <link rel="stylesheet" href="css/main.css" />
-  <script src="js/vendor/lucide.min.js" defer></script>
 </head>
 <body>
 <svg xmlns="http://www.w3.org/2000/svg" width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><symbol id="gm-i-circle-alert" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="stroke-width:var(--gm-sw,2)" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></symbol><symbol id="gm-i-layout-grid" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="stroke-width:var(--gm-sw,2)" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></symbol><symbol id="gm-i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="stroke-width:var(--gm-sw,2)" stroke-linecap="round" stroke-linejoin="round"><path d="M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401"/></symbol><symbol id="gm-i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="stroke-width:var(--gm-sw,2)" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></symbol></svg>
-<script>try{if(localStorage.getItem("gaza-market-theme")==="dark")document.body.classList.add("dark-mode")}catch(e){}</script>
 <div id="offline-banner" class="hidden">
 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-wifi-off"><path d="M12 20h.01"/><path d="M8.5 16.429a5 5 0 0 1 7 0"/><path d="M5 12.859a10 10 0 0 1 5.17-2.69"/><path d="M19 12.859a10 10 0 0 0-2.007-1.523"/><path d="M2 8.82a15 15 0 0 1 4.177-2.643"/><path d="M22 8.82a15 15 0 0 0-11.288-3.764"/><path d="m2 2 20 20"/></svg>
   <span class="offline-banner-text">أنت غير متصل بالإنترنت — تعرض بيانات محفوظة</span>
@@ -41,7 +39,7 @@
 <header class="guide-topbar">
   <div class="guide-topbar-inner">
     <a class="guide-logo" href="home.html">
-      <img src="assets/img/logo.gazamarket.png" alt="Gaza Market" onerror="this.style.display='none'" />
+      <img src="assets/img/logo.gazamarket.png" alt="Gaza Market" data-hide-on-error />
     </a>
 
     <div class="guide-topbar-actions">
