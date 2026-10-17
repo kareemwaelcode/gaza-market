@@ -116,7 +116,25 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  function renderUserStats(user) {
+    const pointsEl = document.getElementById('userPoints');
+    const contributionsEl = document.getElementById('userContributions');
+    const joinDateEl = document.getElementById('userJoinDate');
+
+    const toCount = value => (Number.isFinite(Number(value)) && Number(value) > 0 ? Math.floor(Number(value)) : 0);
+
+    if (pointsEl) pointsEl.textContent = String(toCount(user.points));
+    if (contributionsEl) contributionsEl.textContent = String(toCount(user.contributions));
+
+    if (joinDateEl) {
+      const created = new Date(user.createdAt);
+      const year = Number.isNaN(created.getTime()) ? new Date().getFullYear() : created.getFullYear();
+      joinDateEl.textContent = String(year);
+    }
+  }
+
   renderUserData(currentUser);
+  renderUserStats(currentUser);
 
   function setRegionValue(value) {
     modalRegionInput.value = value || '';

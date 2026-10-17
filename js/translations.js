@@ -399,7 +399,7 @@ const translations = {
     "sidebar.delivery": "Delivery",
     "sidebar.profile":  "Profile",
     "sidebar.soon":     "soon",
-    "bottomNav.delivery": "Delivery service",
+    "bottomNav.delivery": "Delivery",
 
     "points.title":            "Contributors Points",
     "points.guest":             "Guest",
@@ -922,7 +922,7 @@ const translations = {
     "sidebar.delivery": "توصيل",
     "sidebar.profile":  "الملف الشخصي",
     "sidebar.soon":     "قريباً",
-    "bottomNav.delivery": "خدمة التوصيل",
+    "bottomNav.delivery": "التوصيل",
 
     "points.title":            "نقاط المساهمين",
     "points.guest":             "زائر",

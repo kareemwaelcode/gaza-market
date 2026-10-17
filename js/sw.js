@@ -1,5 +1,5 @@
 const CACHE_PREFIX = 'gm-';
-const CACHE_VERSION = 'gm-v9';
+const CACHE_VERSION = 'gm-v10';
 const SCOPE = self.registration.scope;
 
 const PRECACHE = [
@@ -39,7 +39,75 @@ const PRECACHE = [
 
 const NAVIGATION_TIMEOUT = 4000;
 
-const BYPASS_PATHS = ['/api/', '/dashboard-users/', '/test/'];
+const BYPASS_PATHS = ['/api/', '/test/'];
+
+const NETWORK_FIRST_PATHS = [
+  '/dashboard-users/',
+  '/js/dashboard/',
+  '/css/user-dashboard.css',
+  '/js/store-type-config.js',
+  '/js/clinic-appointments.js'
+];
+
+const DASHBOARD_PRECACHE = [
+  'dashboard-users/dashboard.html',
+  'dashboard-users/ads.html',
+  'dashboard-users/appointments.html',
+  'dashboard-users/menu.html',
+  'dashboard-users/packages.html',
+  'dashboard-users/prices.html',
+  'dashboard-users/profile.html',
+  'dashboard-users/reservations.html',
+  'dashboard-users/services.html',
+  'dashboard-users/subscribers.html',
+  'dashboard-users/subscription-requests.html',
+  'dashboard-users/tables.html',
+  'dashboard-users/auth/auth-api.js',
+  'dashboard-users/auth/auth-guard.js',
+  'dashboard-users/partials/ad-edit-panel.html',
+  'dashboard-users/partials/apt-hours-edit-panel.html',
+  'dashboard-users/partials/drawer.html',
+  'dashboard-users/partials/menu-category-panel.html',
+  'dashboard-users/partials/menu-item-edit-panel.html',
+  'dashboard-users/partials/mobile-nav.html',
+  'dashboard-users/partials/orders.html',
+  'dashboard-users/partials/prices-hours-edit-panel.html',
+  'dashboard-users/partials/product-category-panel.html',
+  'dashboard-users/partials/product-item-edit-panel.html',
+  'dashboard-users/partials/profile-edit-panel.html',
+  'dashboard-users/partials/reviews.html',
+  'dashboard-users/partials/service-category-panel.html',
+  'dashboard-users/partials/service-item-edit-panel.html',
+  'dashboard-users/partials/services-edit-panel.html',
+  'dashboard-users/partials/settings.html',
+  'dashboard-users/partials/sidebar.html',
+  'dashboard-users/partials/subscriber-add-panel.html',
+  'dashboard-users/partials/table-edit-panel.html',
+  'dashboard-users/partials/topbar.html',
+  'dashboard-users/partials/topnav.html',
+  'css/user-dashboard.css',
+  'js/gm-core.js',
+  'js/store-type-config.js',
+  'js/clinic-appointments.js',
+  'js/vendor/lucide.min.js',
+  'js/vendor/qrcode.js',
+  'js/dashboard/core.js',
+  'js/dashboard/shell.js',
+  'js/dashboard/page-runner.js',
+  'js/dashboard/common.js',
+  'js/dashboard/pages/ads.js',
+  'js/dashboard/pages/dashboard.js',
+  'js/dashboard/pages/extra-fields.js',
+  'js/dashboard/pages/menu.js',
+  'js/dashboard/pages/packages.js',
+  'js/dashboard/pages/prices.js',
+  'js/dashboard/pages/reservations.js',
+  'js/dashboard/pages/services.js',
+  'js/dashboard/pages/subscribers.js',
+  'js/dashboard/pages/tables.js',
+  'assets/img/logo.gazamarket.png',
+  'assets/img/logo.gazamarket.dark.png'
+];
 
 async function cleanResponse(response) {
   if (!response.redirected) return response;
@@ -105,6 +173,10 @@ async function handleNavigation(request) {
   } catch (err) {
     const cached = await cache.match(request, { ignoreSearch: true });
     if (cached) return cached;
+    if (isNetworkFirst(new URL(request.url))) {
+      const dashboard = await cache.match(new URL('dashboard-users/dashboard.html', SCOPE).href);
+      if (dashboard) return dashboard;
+    }
     const fallback = await cache.match(new URL('index.html', SCOPE).href);
     if (fallback) return fallback;
     return Response.error();
@@ -112,6 +184,46 @@ async function handleNavigation(request) {
     clearTimeout(timer);
   }
 }
+
+function isNetworkFirst(url) {
+  return NETWORK_FIRST_PATHS.some((part) => url.pathname.indexOf(part) !== -1);
+}
+
+async function handleNetworkFirst(request) {
+  const cache = await caches.open(CACHE_VERSION);
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), NAVIGATION_TIMEOUT);
+  try {
+    const response = await fetch(request, { signal: controller.signal });
+    return await store(request, response);
+  } catch (err) {
+    const cached = await cache.match(request, { ignoreSearch: true });
+    return cached || Response.error();
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function precacheDashboard() {
+  const cache = await caches.open(CACHE_VERSION);
+  await Promise.all(
+    DASHBOARD_PRECACHE.map(async (path) => {
+      try {
+        const url = new URL(path, SCOPE).href;
+        if (await cache.match(url)) return;
+        const response = await fetch(new Request(url, { cache: 'reload' }));
+        if (response.ok) await cache.put(url, await cleanResponse(response));
+      } catch (err) {
+      }
+    })
+  );
+}
+
+self.addEventListener('message', (event) => {
+  const data = event.data;
+  if (!data || data.type !== 'gm-precache-dashboard') return;
+  event.waitUntil(precacheDashboard());
+});
 
 async function handleAsset(event) {
   const request = event.request;
@@ -139,6 +251,10 @@ self.addEventListener('fetch', (event) => {
 
   if (request.mode === 'navigate') {
     event.respondWith(handleNavigation(request));
+    return;
+  }
+  if (isNetworkFirst(url)) {
+    event.respondWith(handleNetworkFirst(request));
     return;
   }
   event.respondWith(handleAsset(event));

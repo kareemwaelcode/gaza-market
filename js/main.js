@@ -860,6 +860,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 name:   nameInput?.value?.trim() || phone,
                 phone:  phone,
                 region: normalizedRegion || existingUser?.region || "",
+                createdAt: existingUser?.createdAt || new Date().toISOString(),
               })
             );
             window.AuthUI?.refresh();

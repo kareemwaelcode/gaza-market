@@ -1,4 +1,3 @@
-/* من frameworkG.css (المستعمل فقط) */
 .w-sp{white-space:nowrap}
 .fs-10{font-size:10px}
 .fs-12{font-size:12px}
@@ -8069,6 +8068,13 @@ body {
   align-items: center;
   padding: 0.6rem 0;
   border-bottom: 1px solid var(--border);
+  color: inherit;
+  text-decoration: none;
+  transition: var(--transition);
+}
+a.store-row:hover {
+  background: var(--bg-hover);
+  color: inherit;
 }
 .store-row:last-child {
   border-bottom: none;
@@ -8755,13 +8761,19 @@ body.dark-mode .priceList .check-badge button {
   }
   .priceList .info-price {
     order: 1;
-    align-items: flex-end;
+    align-items: flex-start;
+    text-align: start;
     flex-basis: auto;
     width: 100%;
     padding: 14px 14px 4px;
   }
+  .priceList .info-price .info-main {
+    width: 100%;
+    text-align: start;
+  }
   .priceList .info-price h3 {
     font-size: 16px;
+    text-align: start;
   }
   .priceList .price-acsas {
     order: 2;
@@ -8774,7 +8786,7 @@ body.dark-mode .priceList .check-badge button {
   .priceList .price-acsas .price-value {
     order: 1;
     width: 100%;
-    justify-content: space-between;
+    justify-content: flex-start;
     background: var(--gm-accent-s);
     padding: 10px 14px;
     margin-top: 6px;
@@ -8844,9 +8856,6 @@ body.dark-mode .priceList .check-badge button {
 }
 
 
-/* Offline banner: sits in normal flow at the top of the page, so it pushes
-   whatever header comes after it (.nav-bar, .guide-topbar, ...) down instead
-   of covering it. Collapsed to zero height while hidden. */
 #offline-banner {
   position: sticky;
   top: 0;

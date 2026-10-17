@@ -1,16 +1,9 @@
-/*
- * Gaza Market - dashboard shell (shared by every dashboard page).
- * Sidebar / mobile nav / top bar, theme, drawer, notifications, plan limits and locks,
- * store identity, nav badges, page guard, and GMDash.boot() which starts the page.
- * Moved verbatim from the former js/usere-dashboard.js. Requires js/dashboard/core.js.
- */
 (function () {
   'use strict';
 
   var GM = window.GMDash;
   if (!GM) { console.error('GMDash is missing: load js/dashboard/core.js first.'); return; }
 
-  // ---- from core.js ----
   var LOGO_URL = GM.LOGO_URL;
   var PROFILE_PAGE_URL = GM.PROFILE_PAGE_URL;
   var PACKAGES_PAGE_URL = GM.PACKAGES_PAGE_URL;
@@ -1029,10 +1022,6 @@
     ['#mobile-nav-slot', 'mobile-nav.html']
   ];
 
-  // Starts the shared part of a dashboard page. Returns false when the page must not continue
-  // (not signed in, or the page is not allowed for the current store type).
-  // opts.beforePartials / opts.afterNavRender / opts.afterNotifications are small hooks that keep
-  // the exact original start-up order for page-specific steps; opts.partials = [[selector, file], ...].
   async function boot(opts) {
     opts = opts || {};
     if (window.GMAuth && typeof window.GMAuth.whenReady === 'function') {
@@ -1067,7 +1056,64 @@
     return true;
   }
 
-  // ---- exports ----
+  var OFFLINE_MESSAGE = 'أنت غير متصل بالإنترنت — تعرض بيانات محفوظة';
+
+  function initOfflineBanner() {
+    if (document.getElementById('gm-offline-banner')) return;
+
+    var banner = document.createElement('div');
+    banner.id = 'gm-offline-banner';
+    banner.className = 'offline-toast';
+    banner.setAttribute('role', 'status');
+    banner.setAttribute('aria-live', 'polite');
+
+    var icon = document.createElement('i');
+    icon.setAttribute('data-lucide', 'wifi-off');
+    icon.className = 'icon';
+
+    var text = document.createElement('span');
+    text.textContent = OFFLINE_MESSAGE;
+
+    banner.appendChild(icon);
+    banner.appendChild(text);
+    document.body.appendChild(banner);
+    bootIcons();
+
+    function sync() {
+      banner.classList.toggle('is-visible', !navigator.onLine);
+    }
+
+    window.addEventListener('offline', sync);
+    window.addEventListener('online', sync);
+    sync();
+  }
+
+  function registerServiceWorker() {
+    if (!('serviceWorker' in navigator) || !GM.SW_URL) return;
+    var host = window.location.hostname;
+    if (window.location.protocol !== 'https:' && host !== 'localhost' && host !== '127.0.0.1') return;
+
+    function register() {
+      navigator.serviceWorker
+        .register(GM.SW_URL, { scope: GM.SW_SCOPE, updateViaCache: 'none' })
+        .then(function () { return navigator.serviceWorker.ready; })
+        .then(function (registration) {
+          if (navigator.onLine && registration.active) {
+            registration.active.postMessage({ type: 'gm-precache-dashboard' });
+          }
+        })
+        .catch(function (err) {
+          console.warn('Service Worker registration failed:', err);
+        });
+    }
+
+    if (document.readyState === 'complete') register();
+    else window.addEventListener('load', register);
+  }
+
+  initOfflineBanner();
+  registerServiceWorker();
+
   GM.THEME_STORAGE_KEY = THEME_STORAGE_KEY;
   GM.OPEN_STORAGE_KEY = OPEN_STORAGE_KEY;
   GM.NOTIFICATIONS_STORAGE_KEY = NOTIFICATIONS_STORAGE_KEY;

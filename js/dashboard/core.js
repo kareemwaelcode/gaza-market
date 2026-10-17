@@ -1,8 +1,3 @@
-/*
- * Gaza Market - dashboard core (shared by every dashboard page).
- * Constants, storage helpers, partial loader, safe-HTML/URL helpers, toast and confirm modal, icons.
- * Everything is exposed on window.GMDash. Moved verbatim from the former js/usere-dashboard.js.
- */
 (function () {
   'use strict';
 
@@ -20,6 +15,12 @@
   var LOGO_URL = CURRENT_SCRIPT_URL
     ? new URL('../../assets/img/logo.gazamarket.2.png', CURRENT_SCRIPT_URL).href
     : '../../assets/img/logo.gazamarket.2.png';
+  var SW_URL = CURRENT_SCRIPT_URL
+    ? new URL('../../sw.js', CURRENT_SCRIPT_URL).href
+    : null;
+  var SW_SCOPE = CURRENT_SCRIPT_URL
+    ? new URL('../../', CURRENT_SCRIPT_URL).href
+    : null;
   var PROFILE_PAGE_URL = DASHBOARD_USERS_BASE_URL
     ? new URL('profile.html', DASHBOARD_USERS_BASE_URL).href
     : 'profile.html';
@@ -447,13 +448,14 @@
     return baseKey + ':' + getStorageScope();
   }
 
-  // ---- exports ----
   GM.PROFILE_STORAGE_KEY = PROFILE_STORAGE_KEY;
   GM.PUBLIC_BASE_URL = PUBLIC_BASE_URL;
   GM.CURRENT_SCRIPT_URL = CURRENT_SCRIPT_URL;
   GM.PARTIALS_BASE_URL = PARTIALS_BASE_URL;
   GM.DASHBOARD_USERS_BASE_URL = DASHBOARD_USERS_BASE_URL;
   GM.LOGO_URL = LOGO_URL;
+  GM.SW_URL = SW_URL;
+  GM.SW_SCOPE = SW_SCOPE;
   GM.PROFILE_PAGE_URL = PROFILE_PAGE_URL;
   GM.PACKAGES_PAGE_URL = PACKAGES_PAGE_URL;
   GM.PARTIAL_CACHE_PREFIX = PARTIAL_CACHE_PREFIX;

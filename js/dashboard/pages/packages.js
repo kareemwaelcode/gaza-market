@@ -121,7 +121,7 @@
         '<div class="pkg-price">' +
           '<span class="pkg-price-amount pkg-price-amount--accent">' + paid.price + '</span>' +
           '<span class="pkg-price-currency">₪</span>' +
-          '<span class="pkg-price-period">/ شهر</span>' +
+          '<span class="pkg-price-period">/ شهرين</span>' +
         '</div>' +
         '<ul class="pkg-features">' + paidFeaturesHTML + '</ul>' +
         paidActionHTML +
