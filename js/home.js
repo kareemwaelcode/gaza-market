@@ -54,7 +54,7 @@ const GM_API = {
   hero: '/api/hero',
 };
 
-const PRICE_PAGE_SIZE = 10;
+const PRICE_PAGE_SIZE = 5;
 const PRICE_LOAD_TIMEOUT_MS = 15000;
 const POINTS_LOAD_TIMEOUT_MS = 15000;
 const HERO_LOAD_TIMEOUT_MS = 8000;
@@ -65,6 +65,9 @@ const priceState = {
   items: [],
   nextCursor: null,
   hasMore: false,
+  pageIndex: 0,
+  total: null,
+  totalPages: 1,
   loading: false,
   requestId: 0,
   fromCache: false,
@@ -241,13 +244,116 @@ function formatSavedTime(timestamp) {
   return timestamp ? formatRelativeTime(new Date(timestamp)) : '';
 }
 
+function createPageItem({ pageIndex, label, ariaLabel, active = false, disabled = false }) {
+  const item = document.createElement('li');
+  item.className = 'page-item' + (active ? ' active' : '') + (disabled ? ' disabled' : '');
+
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'page-link';
+  button.dataset.pageIndex = String(pageIndex);
+  button.setAttribute('aria-label', ariaLabel);
+  button.disabled = disabled || priceState.loading;
+
+  if (active) item.setAttribute('aria-current', 'page');
+
+  button.textContent = label;
+
+  item.appendChild(button);
+  return item;
+}
+
+function getPricePageList(current, total) {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i);
+
+  const set = new Set([0, total - 1, current - 1, current, current + 1]);
+  if (current <= 2) [1, 2, 3].forEach(i => set.add(i));
+  if (current >= total - 3) [total - 2, total - 3, total - 4].forEach(i => set.add(i));
+
+  const pages = [...set].filter(i => i >= 0 && i < total).sort((a, b) => a - b);
+  const out = [];
+
+  pages.forEach((page, i) => {
+    if (i > 0) {
+      const gap = page - pages[i - 1];
+      if (gap === 2) out.push(page - 1);
+      else if (gap > 2) out.push('gap');
+    }
+    out.push(page);
+  });
+
+  return out;
+}
+
+function createPageGap() {
+  const item = document.createElement('li');
+  item.className = 'page-item disabled';
+  item.setAttribute('aria-hidden', 'true');
+
+  const gap = document.createElement('span');
+  gap.className = 'page-link';
+  gap.textContent = '\u2026';
+
+  item.appendChild(gap);
+  return item;
+}
+
+function renderPricePagination() {
+  const list = priceEl('pricePaginationList');
+  const nav = priceEl('pricePagination');
+  if (!list || !nav) return;
+
+  const current = priceState.pageIndex;
+  const pageLabel = n => tr('prices.pageLabel', 'Page {page}').replace('{page}', String(n));
+
+  nav.setAttribute('aria-label', tr('prices.pagination', 'Prices pagination'));
+  list.replaceChildren();
+
+  list.appendChild(createPageItem({
+    pageIndex: current - 1,
+    label: tr('prices.prev', 'Previous'),
+    ariaLabel: tr('prices.prevPage', 'Previous page'),
+    disabled: current <= 0,
+  }));
+
+  getPricePageList(current, priceState.totalPages).forEach(entry => {
+    if (entry === 'gap') {
+      list.appendChild(createPageGap());
+      return;
+    }
+
+    list.appendChild(createPageItem({
+      pageIndex: entry,
+      label: String(entry + 1),
+      ariaLabel: pageLabel(entry + 1),
+      active: entry === current,
+    }));
+  });
+
+  list.appendChild(createPageItem({
+    pageIndex: current + 1,
+    label: tr('prices.next', 'Next'),
+    ariaLabel: tr('prices.nextPage', 'Next page'),
+    disabled: current + 1 >= priceState.totalPages,
+  }));
+}
+
 function updatePriceControls() {
-  const more = priceEl('priceMoreBtn');
-  if (more) {
-    const canLoadMore = priceState.view === 'list' && priceState.hasMore && !priceState.fromCache && navigator.onLine !== false;
-    more.hidden = !canLoadMore;
-    more.disabled = priceState.loading;
-    more.classList.toggle('is-loading', priceState.loading);
+  const nav = priceEl('pricePagination');
+  if (nav) {
+    const canPaginate = priceState.view === 'list'
+      && !priceState.fromCache
+      && navigator.onLine !== false
+      && priceState.totalPages > 1;
+
+    nav.hidden = !canPaginate;
+    nav.classList.toggle('is-loading', priceState.loading);
+    if (canPaginate) renderPricePagination();
+  }
+
+  const priceListEl = priceEl('priceList');
+  if (priceListEl) {
+    priceListEl.classList.toggle('is-page-loading', priceState.loading && priceState.view === 'list');
   }
 
   const note = priceEl('priceOfflineNote');
@@ -339,6 +445,7 @@ function renderPriceItems(items, { append = false, animate = false } = {}) {
 
 function persistPriceCache() {
   if (typeof GMPrices === 'undefined') return;
+  if (priceState.pageIndex !== 0) return;
   GMPrices.writeCache(priceQueryKey(getPriceQuery()), priceState.items);
 }
 
@@ -349,6 +456,9 @@ async function loadPrices() {
   priceState.items = [];
   priceState.nextCursor = null;
   priceState.hasMore = false;
+  priceState.pageIndex = 0;
+  priceState.total = null;
+  priceState.totalPages = 1;
   priceState.fromCache = false;
   priceState.savedAt = null;
   priceState.loading = true;
@@ -371,7 +481,7 @@ async function loadPrices() {
 
   try {
     page = await withTimeout(
-      GMPrices.fetchPage({ region: query.region, category: query.category, cursor: null, limit: PRICE_PAGE_SIZE }),
+      GMPrices.fetchPage({ region: query.region, category: query.category, page: 1, cursor: null, limit: PRICE_PAGE_SIZE }),
       PRICE_LOAD_TIMEOUT_MS
     );
   } catch (err) {
@@ -397,8 +507,7 @@ async function loadPrices() {
 
   priceState.loading = false;
   priceState.items = page.items;
-  priceState.nextCursor = page.nextCursor;
-  priceState.hasMore = page.hasMore;
+  applyPriceMeta(page, 0);
   GMPrices.writeCache(priceQueryKey(query), page.items);
 
   if (!page.items.length) {
@@ -410,8 +519,33 @@ async function loadPrices() {
   setPriceView('list');
 }
 
-async function loadMorePrices() {
-  if (priceState.loading || !priceState.hasMore || !priceState.nextCursor) return;
+function scrollToPriceTop() {
+  const anchor = document.querySelector('.filter-row');
+  if (!anchor || typeof anchor.scrollIntoView !== 'function') return;
+
+  const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  anchor.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
+}
+
+function applyPriceMeta(page, index) {
+  priceState.pageIndex = index;
+  priceState.nextCursor = page.nextCursor;
+
+  if (Number.isFinite(page.total)) {
+    priceState.total = page.total;
+    priceState.totalPages = Math.max(1, Math.ceil(page.total / PRICE_PAGE_SIZE));
+  } else {
+    priceState.total = null;
+    priceState.totalPages = page.hasMore ? Math.max(priceState.totalPages, index + 2) : index + 1;
+  }
+
+  priceState.hasMore = index + 1 < priceState.totalPages;
+}
+
+async function goToPricePage(index) {
+  if (priceState.loading || priceState.fromCache) return;
+  if (!Number.isInteger(index) || index < 0 || index >= priceState.totalPages) return;
+  if (index === priceState.pageIndex) return;
 
   const query = getPriceQuery();
   const requestId = priceState.requestId;
@@ -420,27 +554,35 @@ async function loadMorePrices() {
   updatePriceControls();
 
   try {
-    const page = await GMPrices.fetchPage({
-      region: query.region,
-      category: query.category,
-      cursor: priceState.nextCursor,
-      limit: PRICE_PAGE_SIZE,
-    });
+    const page = await withTimeout(
+      GMPrices.fetchPage({
+        region: query.region,
+        category: query.category,
+        page: index + 1,
+        cursor: null,
+        limit: PRICE_PAGE_SIZE,
+      }),
+      PRICE_LOAD_TIMEOUT_MS
+    );
 
     if (requestId !== priceState.requestId) return;
 
-    const known = new Set(priceState.items.map(item => item.price_id));
-    const fresh = page.items.filter(item => !known.has(item.price_id));
+    if (!page.items.length) {
+      priceState.totalPages = Math.max(1, index);
+      priceState.hasMore = priceState.pageIndex + 1 < priceState.totalPages;
+      announcePrice(tr('prices.loadMoreFailed', 'Could not load more prices. Please try again.'));
+      return;
+    }
 
-    priceState.items = priceState.items.concat(fresh);
-    priceState.nextCursor = page.nextCursor;
-    priceState.hasMore = page.hasMore;
+    priceState.items = page.items;
+    applyPriceMeta(page, index);
 
-    renderPriceItems(fresh, { append: true, animate: true });
-    persistPriceCache();
+    renderPriceItems(page.items, { animate: true });
+    announcePrice(tr('prices.pageAnnounce', 'Showing page {page}').replace('{page}', String(index + 1)));
+    scrollToPriceTop();
   } catch (err) {
     if (requestId === priceState.requestId) {
-      console.error('loadMorePrices failed:', err);
+      console.error('goToPricePage failed:', err);
       announcePrice(tr('prices.loadMoreFailed', 'Could not load more prices. Please try again.'));
     }
   } finally {
@@ -475,12 +617,20 @@ function removePriceItem(priceId) {
   const card = priceEl(`price-${priceId}`);
   if (card) card.remove();
 
+  if (priceState.total !== null) {
+    priceState.total = Math.max(0, priceState.total - 1);
+    priceState.totalPages = Math.max(1, Math.ceil(priceState.total / PRICE_PAGE_SIZE));
+    priceState.hasMore = priceState.pageIndex + 1 < priceState.totalPages;
+  }
+
   if (!priceState.items.length) {
-    if (priceState.hasMore) loadPrices();
+    if (priceState.pageIndex > 0) goToPricePage(priceState.pageIndex - 1);
+    else if (priceState.hasMore) loadPrices();
     else showPriceEmpty(getPriceQuery());
     return;
   }
 
+  updatePriceControls();
   persistPriceCache();
 }
 
@@ -591,8 +741,14 @@ function initPriceListEvents() {
     handlePriceVote(priceId, confirmBtn ? 'confirm' : 'report');
   });
 
-  const moreBtn = priceEl('priceMoreBtn');
-  if (moreBtn) moreBtn.addEventListener('click', loadMorePrices);
+  const pagination = priceEl('pricePaginationList');
+  if (pagination) {
+    pagination.addEventListener('click', e => {
+      const button = e.target.closest('.page-link');
+      if (!button || button.disabled) return;
+      goToPricePage(Number(button.dataset.pageIndex));
+    });
+  }
 
   const retryBtn = priceEl('priceRetryBtn');
   if (retryBtn) retryBtn.addEventListener('click', loadPrices);

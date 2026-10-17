@@ -125,11 +125,14 @@ if (!json || !Array.isArray(json.data)) {
 const meta = json.meta && typeof json.meta === 'object' ? json.meta : {};
 const nextCursor = json.next_cursor || meta.next_cursor || null;
 const hasMoreFlag = json.has_more !== undefined ? json.has_more : meta.has_more;
+const rawTotal = json.total !== undefined ? json.total : meta.total;
+const total = rawTotal === undefined || rawTotal === null || rawTotal === '' ? NaN : Number(rawTotal);
 
 return {
     items: json.data.map(normalizeItem).filter(Boolean),
     nextCursor: nextCursor,
     hasMore: (hasMoreFlag === undefined ? true : !!hasMoreFlag) && !!nextCursor,
+    total: isFinite(total) && total >= 0 ? Math.floor(total) : null,
 };
 }
 
@@ -224,6 +227,7 @@ function apiFetchPage(params) {
 const query = new URLSearchParams();
 if (params.region) query.set('region', params.region);
 if (params.category) query.set('category', params.category);
+if (params.page) query.set('page', String(params.page));
 if (params.cursor) query.set('cursor', params.cursor);
 query.set('limit', String(params.limit));
 
@@ -293,7 +297,7 @@ async function mockFetchPage(params) {
 const mode = getTestMode();
 await delay(mode === 'slow' ? 3000 : 300);
 if (navigator.onLine === false || mode === 'error') throw GMPricesError('network', 'mock network error');
-if (mode === 'empty') return { data: [], next_cursor: null, has_more: false };
+if (mode === 'empty') return { data: [], next_cursor: null, has_more: false, total: 0 };
 
 const votes = readJson(MOCK_VOTES_KEY, {});
 const removed = readJson(MOCK_REMOVED_KEY, []);
@@ -303,19 +307,29 @@ if (params.region) rows = rows.filter((row) => row.region === params.region);
 if (params.category) rows = rows.filter((row) => row.category === params.category);
 rows.sort(compareNewestFirst);
 
-const cursor = params.cursor ? decodeCursor(params.cursor) : null;
-if (cursor) {
-    rows = rows.filter((row) => row.created_at < cursor.created_at ||
-    (row.created_at === cursor.created_at && row.price_id < cursor.price_id));
-}
+const total = rows.length;
+let pageRows;
+let hasMore;
 
-const pageRows = rows.slice(0, params.limit);
-const hasMore = rows.length > params.limit;
+if (params.page) {
+    const offset = (Math.max(1, Number(params.page)) - 1) * params.limit;
+    pageRows = rows.slice(offset, offset + params.limit);
+    hasMore = offset + params.limit < total;
+} else {
+    const cursor = params.cursor ? decodeCursor(params.cursor) : null;
+    if (cursor) {
+        rows = rows.filter((row) => row.created_at < cursor.created_at ||
+        (row.created_at === cursor.created_at && row.price_id < cursor.price_id));
+    }
+    pageRows = rows.slice(0, params.limit);
+    hasMore = rows.length > params.limit;
+}
 
 return {
     data: pageRows.map((row) => withMockVote(row, votes)),
     next_cursor: hasMore ? encodeCursor(pageRows[pageRows.length - 1]) : null,
     has_more: hasMore,
+    total: total,
 };
 }
 

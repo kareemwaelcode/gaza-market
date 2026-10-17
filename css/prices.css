@@ -127,3 +127,113 @@
   opacity: 0.6;
   cursor: progress;
 }
+
+.price-list {
+  transition: opacity 0.2s ease;
+}
+
+.price-list.is-page-loading {
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.filter-row {
+  scroll-margin-top: 130px;
+}
+
+.price-pagination {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  margin: 20px 0 24px;
+}
+
+.price-pagination .pagination {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: stretch;
+  justify-content: center;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.price-pagination .page-item {
+  display: block;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.price-pagination .page-item .page-link {
+  display: block;
+  min-width: 40px;
+  padding: 8px 14px;
+  margin: 0;
+  margin-inline-start: -1px;
+  border: 1px solid var(--border);
+  border-radius: 0;
+  background: var(--bg-card, transparent);
+  color: var(--blue);
+  font-family: var(--en-font);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.4;
+  text-align: center;
+  white-space: nowrap;
+  box-shadow: none;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.price-pagination .page-item:first-child .page-link {
+  margin-inline-start: 0;
+  border-start-start-radius: 8px;
+  border-end-start-radius: 8px;
+}
+
+.price-pagination .page-item:last-child .page-link {
+  border-start-end-radius: 8px;
+  border-end-end-radius: 8px;
+}
+
+.price-pagination .page-item:not(.active):not(.disabled) .page-link:hover {
+  position: relative;
+  z-index: 1;
+  background: var(--bg-hover);
+  border-color: var(--gm-border-h);
+}
+
+.price-pagination .page-item.active .page-link {
+  position: relative;
+  z-index: 2;
+  background: var(--blue);
+  border-color: var(--blue);
+  color: #fff;
+}
+
+.price-pagination .page-item.disabled .page-link {
+  color: var(--text);
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.price-pagination .page-link:focus-visible {
+  position: relative;
+  z-index: 3;
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+}
+
+.price-pagination.is-loading .page-link {
+  cursor: progress;
+}
+
+@media (max-width: 480px) {
+  .price-pagination .page-item .page-link {
+    min-width: 34px;
+    padding: 8px 9px;
+    font-size: 13px;
+  }
+}
