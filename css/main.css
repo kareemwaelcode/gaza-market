@@ -2135,6 +2135,21 @@ text-align: justify;
 .gm-phone-row:focus-within .gm-phone-prefix--wa {
   border-color: var(--blue);
 }
+.gm-input--intl {
+  direction: ltr;
+  text-align: left;
+  letter-spacing: 1.5px;
+}
+.gm-input--intl::placeholder {
+  letter-spacing: 0;
+}
+.gm-hint {
+  margin: 6px 0 0;
+  font-size: 12px;
+  line-height: 1.7;
+  font-weight: 500;
+  color: var(--gm-muted);
+}
 .gm-info-box {
   display: flex;
   align-items: flex-start;

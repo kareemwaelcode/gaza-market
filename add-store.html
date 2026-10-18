@@ -1444,10 +1444,8 @@
             <span data-i18n="labelPhone">Phone number</span>
             <span class="gm-req">*</span>
           </label>
-          <div class="gm-phone-row">
-            <span class="gm-phone-prefix">🇵🇸 +970</span>
-            <input class="gm-input gm-input--phone" id="f3Phone" type="tel" placeholder="5X-XXX-XXXX" />
-          </div>
+          <input class="gm-input gm-input--intl" id="f3Phone" type="tel" inputmode="numeric" maxlength="12" placeholder="972597******" autocomplete="tel" />
+          <p class="gm-hint" data-i18n="authPhoneHint">Enter the number starting with the country code (972 or 970) without the + sign, e.g. 972597******</p>
           <p class="gm-ferr" id="e3Phone" data-i18n="errPhone">Please enter a valid phone number</p>
         </div>
 
@@ -1456,12 +1454,8 @@
             <span data-i18n="labelWa">WhatsApp number</span>
             <span class="gm-req">*</span>
           </label>
-          <div class="gm-phone-row">
-            <span class="gm-phone-prefix gm-phone-prefix--wa">
-              <svg width="16" height="16" aria-hidden="true" focusable="false"><use href="#gm-i-whatsapp"/></svg>+970
-            </span>
-            <input class="gm-input gm-input--phone" id="f3Wa" type="tel" placeholder="5X-XXX-XXXX" />
-          </div>
+          <input class="gm-input gm-input--intl" id="f3Wa" type="tel" inputmode="numeric" maxlength="12" placeholder="972597******" autocomplete="tel" />
+          <p class="gm-hint" data-i18n="authPhoneHint">Enter the number starting with the country code (972 or 970) without the + sign, e.g. 972597******</p>
           <p class="gm-ferr" id="e3Wa" data-i18n="errWa">Please enter a valid WhatsApp number</p>
         </div>
       </div>

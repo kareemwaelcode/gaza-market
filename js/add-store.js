@@ -17,7 +17,8 @@
     },
   };
 
-  const PHONE_RE = /^[0-9]{8,12}$/;
+  const PHONE_RE = /^(972|970)[0-9]{8,9}$/;
+  const WA_RE    = /^(972|970)5[0-9]{8}$/;
   const state = {
     step: 1,
     type: null,
@@ -272,19 +273,29 @@
       const waEl    = $("#f3Wa");
       let valid = true;
 
-      const checkPhone = (el, errId) => {
-        const bad = !PHONE_RE.test(el?.value.trim() ?? "");
+      [phoneEl, waEl].forEach((el) => {
+        if (el) el.value = el.value.replace(/\D/g, "");
+      });
+
+      const checkPhone = (el, errId, re) => {
+        const bad = !re.test(el?.value.trim() ?? "");
         setInvalid(el, bad);
         showError(errId, bad);
         if (bad) valid = false;
       };
 
-      checkPhone(phoneEl, "e3Phone");
-      checkPhone(waEl,    "e3Wa");
+      checkPhone(phoneEl, "e3Phone", PHONE_RE);
+      checkPhone(waEl,    "e3Wa",    WA_RE);
 
       if (!valid) { shakeBtn(this); return; }
       populateReview();
       goToStep(4);
+    });
+
+    [$("#f3Phone"), $("#f3Wa")].forEach((el) => {
+      el?.addEventListener("input", () => {
+        el.value = el.value.replace(/\D/g, "");
+      });
     });
 
     $("#gmBack3")?.addEventListener("click", () => goToStep(2));
@@ -294,8 +305,8 @@
     const name    = $("#f2Name")?.value.trim()    || "—";
     const region  = $("#f2Region")?.value.trim()  || "—";
     const address = $("#f2Address")?.value.trim() || "—";
-    const phone   = "+970 " + ($("#f3Phone")?.value.trim() || "");
-    const wa      = "+970 " + ($("#f3Wa")?.value.trim()    || "");
+    const phone   = $("#f3Phone")?.value.trim() || "—";
+    const wa      = $("#f3Wa")?.value.trim()    || "—";
 
     const lang   = getLang();
     const labels = TYPE_LABELS[lang] || TYPE_LABELS.ar;
