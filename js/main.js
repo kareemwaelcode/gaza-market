@@ -617,10 +617,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function isValidPhone(p) {
-      return (
-        /^(059|056|057|058|055|054|053|052|0[5-9])\d{7}$/.test(p) ||
-        /^\d{9,11}$/.test(p)
-      );
+      return /^(972|970)5\d{8}$/.test(p);
     }
 
     function maskPhone(p) {
@@ -783,7 +780,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (phoneInput) {
       phoneInput.addEventListener("keydown", e => { if (e.key === "Enter") handleSendCode(); });
-      phoneInput.addEventListener("input",   () => { clearErr(phoneErr); phoneRow?.classList.remove("invalid"); });
+      phoneInput.addEventListener("input",   () => { phoneInput.value = phoneInput.value.replace(/\D/g, ""); clearErr(phoneErr); phoneRow?.classList.remove("invalid"); });
     }
 
     if (nameInput) {
@@ -1469,8 +1466,15 @@ document.addEventListener("DOMContentLoaded", () => {
       };
 
       if (action === "add-store") {
-        hideModal("additionModal");
-        window.location.href = option.dataset.link || "add-store.html";
+        const goToAddStore = () => {
+          hideModal("additionModal");
+          window.location.href = option.dataset.link || "add-store.html";
+        };
+        if (typeof window.gmRequireAuthThenRun === "function") {
+          window.gmRequireAuthThenRun(goToAddStore, "additionModal");
+        } else {
+          goToAddStore();
+        }
         return;
       }
       if (routes[action]) {

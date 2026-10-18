@@ -2612,6 +2612,14 @@ text-align: justify;
   text-align: left;
   letter-spacing: 1.5px;
 }
+.auth-hint {
+  display: block;
+  margin-top: 6px;
+  font-size: 12px;
+  line-height: 1.7;
+  font-weight: 500;
+  color: var(--gm-muted);
+}
 .auth-input::placeholder {
   color: var(--gm-faint);
   font-weight: 400;

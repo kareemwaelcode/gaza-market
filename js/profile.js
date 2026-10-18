@@ -399,7 +399,7 @@ function bindConfirmRow(rowId, onConfirm) {
       message:     row.dataset.confirmMessage || '',
       actionLabel: row.dataset.confirmAction  || '',
       onConfirm
-    });
+    }); 
   });
 }
 
