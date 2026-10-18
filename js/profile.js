@@ -18,10 +18,12 @@ document.addEventListener('DOMContentLoaded', () => {
   function saveCurrentUser(user) {
     try {
       localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(user));
-      window.AuthUI?.refresh();
     } catch (err) {
       console.warn('profile.js: فشل حفظ بيانات المستخدم', err);
+      return false;
     }
+    window.AuthUI?.refresh();
+    return true;
   }
 
   const currentUser = getCurrentUser();
@@ -49,6 +51,32 @@ document.addEventListener('DOMContentLoaded', () => {
     TalHawa: "Tal Al-Hawa",
     Jabalia: "Jabalia"
   };
+
+  function t(key, fallback) {
+    try {
+      const lang = localStorage.getItem('gm_lang') === 'en' ? 'en' : 'ar';
+      const v = typeof translations !== 'undefined' && translations[lang] && translations[lang][key];
+      return v || fallback || key;
+    } catch (err) {
+      return fallback || key;
+    }
+  }
+
+  function regionLabel(key) {
+    return key ? t(key, regionLabels[key] || key) : '';
+  }
+
+  function makeKeyboardClickable(node) {
+    if (!node) return;
+    node.setAttribute('role', 'button');
+    node.tabIndex = 0;
+    node.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        node.click();
+      }
+    });
+  }
 
   const ids = [
     'avatarWrap', 'avatar', 'uploadStatus',
@@ -87,6 +115,7 @@ document.addEventListener('DOMContentLoaded', () => {
   } = el;
 
   let pendingAvatarDataUrl = null;
+  let lastFocusEl = null;
 
   function setAvatarImage(el, src) {
     el.textContent = '';
@@ -98,6 +127,18 @@ document.addEventListener('DOMContentLoaded', () => {
     return true;
   }
 
+  const modalStatusEl = document.getElementById('modalStatus') || statusEl;
+
+  function showRegionTile(key) {
+    userRegionEl.dataset.value = key || '';
+    if (key && regionLabels[key]) userRegionEl.setAttribute('data-i18n', key);
+    else userRegionEl.removeAttribute('data-i18n');
+    userRegionEl.textContent = key ? regionLabel(key) : '\u2014';
+  }
+
+  makeKeyboardClickable(avatarWrap);
+  makeKeyboardClickable(modalAvatarWrap);
+
   function renderUserData(user) {
     userNameEl.textContent = user.name || '';
     userPhoneEl.textContent = user.phone || '';
@@ -107,13 +148,7 @@ document.addEventListener('DOMContentLoaded', () => {
       avatarEl.textContent = (user.name || '').trim().charAt(0).toUpperCase() || '؟';
     }
 
-    if (user.region) {
-      userRegionEl.dataset.value = user.region;
-      userRegionEl.textContent = regionLabels[user.region] || user.region;
-    } else {
-      userRegionEl.dataset.value = '';
-      userRegionEl.textContent = '—';
-    }
+    showRegionTile(user.region);
   }
 
   function renderUserStats(user) {
@@ -138,7 +173,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function setRegionValue(value) {
     modalRegionInput.value = value || '';
-    regionCurrentText.textContent = regionLabels[value] || 'اختر منطقتك';
+    const knownKey = regionLabels[value] ? value : '';
+    regionCurrentText.setAttribute('data-i18n', knownKey || 'editModal.regionPlaceholder');
+    regionCurrentText.textContent = knownKey ? regionLabel(knownKey) : t('editModal.regionPlaceholder', 'اختر منطقتك');
     regionCurrentText.classList.toggle('placeholder', !value);
 
     document.querySelectorAll('.region-option').forEach(opt => {
@@ -174,6 +211,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   function openEditModal() {
+    lastFocusEl = document.activeElement;
     modalNameInput.value = userNameEl.textContent.trim();
     modalPhoneInput.value = userPhoneEl.textContent.trim();
     setRegionValue(userRegionEl.dataset.value || '');
@@ -182,6 +220,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     statusEl.textContent = '';
     statusEl.className = 'upload-status';
+    modalStatusEl.textContent = '';
+    modalStatusEl.className = 'upload-status';
 
     const currentImg = avatarEl.querySelector('img');
     if (!(currentImg && setAvatarImage(modalAvatarEl, currentImg.src))) {
@@ -189,11 +229,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     editModal.classList.add('open');
+    modalNameInput.focus();
   }
 
   function closeEditModal() {
     editModal.classList.remove('open');
     closeRegionPicker();
+    if (lastFocusEl && typeof lastFocusEl.focus === 'function') lastFocusEl.focus();
   }
 
   editProfileBtn.addEventListener('click', openEditModal);
@@ -220,6 +262,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const file = modalAvatarInput.files[0];
     if (!file) return;
 
+    if (!/^image\/(png|jpeg|webp)$/.test(file.type) || file.size > 5 * 1024 * 1024) {
+      modalAvatarInput.value = '';
+      modalStatusEl.textContent = t('editModal.avatarInvalid', 'Please choose a PNG, JPG or WebP image up to 5MB.');
+      modalStatusEl.className = 'upload-status error';
+      return;
+    }
+    modalStatusEl.textContent = '';
+
     const reader = new FileReader();
     reader.onload = e => {
       pendingAvatarDataUrl = e.target.result;
@@ -241,8 +291,7 @@ document.addEventListener('DOMContentLoaded', () => {
     userNameEl.textContent = newName;
     userPhoneEl.textContent = newPhone;
 
-    userRegionEl.dataset.value = newRegion;
-    userRegionEl.textContent = regionLabels[newRegion] || newRegion || '—';
+    showRegionTile(newRegion);
 
     if (pendingAvatarDataUrl && setAvatarImage(avatarEl, pendingAvatarDataUrl)) {
     } else if (!avatarEl.querySelector('img')) {
@@ -256,7 +305,12 @@ document.addEventListener('DOMContentLoaded', () => {
       region: newRegion,
       ...(pendingAvatarDataUrl ? { avatar: pendingAvatarDataUrl } : {})
     };
-    saveCurrentUser(updatedUser);
+    if (!saveCurrentUser(updatedUser)) {
+      renderUserData(currentUser);
+      modalStatusEl.textContent = t('editModal.saveFailed', 'Could not save your changes. Please try again.');
+      modalStatusEl.className = 'upload-status error';
+      return;
+    }
 
     if (newRegion && typeof window.gmSaveSelectedArea === 'function') {
       window.gmSaveSelectedArea(newRegion, regionLabels[newRegion] || newRegion, '');
@@ -266,7 +320,7 @@ document.addEventListener('DOMContentLoaded', () => {
       detail: { region: newRegion }
     }));
 
-    statusEl.textContent = 'تم حفظ التغييرات بنجاح';
+    statusEl.textContent = t('editModal.saved', 'تم حفظ التغييرات بنجاح');
     statusEl.className = 'upload-status success';
     closeEditModal();
   });
@@ -274,12 +328,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const SOUNDS_STORAGE_KEY = 'appSoundsEnabled';
 
-  const savedSoundsSetting = localStorage.getItem(SOUNDS_STORAGE_KEY);
+  let savedSoundsSetting = null;
+  try { savedSoundsSetting = localStorage.getItem(SOUNDS_STORAGE_KEY); } catch (err) { /* storage unavailable */ }
   settingsSoundsToggle.checked = savedSoundsSetting !== 'false';
 
   settingsSoundsToggle.addEventListener('change', () => {
     const isEnabled = settingsSoundsToggle.checked;
-    localStorage.setItem(SOUNDS_STORAGE_KEY, isEnabled ? 'true' : 'false');
+    try { localStorage.setItem(SOUNDS_STORAGE_KEY, isEnabled ? 'true' : 'false'); } catch (err) { /* storage unavailable */ }
 
     if (isEnabled) {
       console.log('App Sounds: ON');
@@ -296,18 +351,22 @@ const confirmCancelBtn  = document.getElementById('confirmCancelBtn');
 const confirmCloseBtn   = document.getElementById('confirmCloseBtn');
 
 let pendingConfirmAction = null;
+let confirmOpener = null;
 
 function openConfirmModal({ title, message, actionLabel, onConfirm }) {
+  confirmOpener = document.activeElement;
   confirmTitle.textContent = title;
   confirmMessage.textContent = message;
   confirmActionBtn.textContent = actionLabel;
   pendingConfirmAction = onConfirm;
   confirmModal.classList.add('open');
+  confirmCancelBtn.focus();
 }
 
 function closeConfirmModal() {
   confirmModal.classList.remove('open');
   pendingConfirmAction = null;
+  if (confirmOpener && typeof confirmOpener.focus === 'function') confirmOpener.focus();
 }
 
 confirmActionBtn.addEventListener('click', () => {
@@ -332,6 +391,7 @@ document.addEventListener('keydown', e => {
 function bindConfirmRow(rowId, onConfirm) {
   const row = document.getElementById(rowId);
   if (!row) return;
+  makeKeyboardClickable(row);
 
   row.addEventListener('click', () => {
     openConfirmModal({

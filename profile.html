@@ -42,18 +42,18 @@
         <form class="search-form" role="search">
           <div class="position-relative">
             <input class="form-control search-input" type="search"
-              data-i18n-ph="Search" placeholder="Search for a product..."
+              data-i18n-placeholder="Search" placeholder="Search for a product..."
               autocomplete="off" />
         <svg class="search-icon" width="16" height="16" aria-hidden="true" focusable="false"><use href="#gm-i-search"/></svg>
           </div>
         </form>
         <ul class="navbar-nav">
           <li class="nav-item dropdown">
-          <p class="nav-link dropdown-toggle mb-0" role="button" data-bs-toggle="dropdown" aria-expanded="false" id="selectedAreaLabel">
+          <button type="button" class="nav-link dropdown-toggle btn btn-link p-0 border-0" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true" id="selectedAreaLabel">
             <svg class="one" width="16" height="16" aria-hidden="true" focusable="false"><use href="#gm-i-map-pin"/></svg>
             <span id="areaLabelText" data-i18n="navSelectArea">Select Region</span>
             <svg class="area-arrow" width="14" height="14" aria-hidden="true" focusable="false"><use href="#gm-i-chevron-down"/></svg>
-          </p>
+          </button>
             <ul class="dropdown-menu p-2" style="width:260px" data-bs-auto-close="outside">
               <li>
                 <p class="dropdown-header">
@@ -63,10 +63,10 @@
               </li>
               <li><hr class="dropdown-divider" /></li>
               <li>
-                <span class="dropdown-item d-flex justify-content-between align-items-center region-toggle " style="cursor:pointer;">
+                <button type="button" class="dropdown-item d-flex justify-content-between align-items-center region-toggle ">
                   <span data-i18n="CentralGaza">Central Gaza</span>
                   <svg class="arrow" width="1em" height="1em" aria-hidden="true" focusable="false"><use href="#gm-i-chevron-right"/></svg>
-                </span>
+                </button>
                 <div class="sub-menu ps-3" style="display:none">
                   <a class="dropdown-item" href="#" data-area="Nuseirat"      data-i18n="Nuseirat">Nuseirat</a>
                   <a class="dropdown-item" href="#" data-area="Breij"         data-i18n="Breij">Breij</a>
@@ -76,10 +76,10 @@
                 </div>
               </li>
               <li>
-                <span class="dropdown-item d-flex justify-content-between align-items-center region-toggle" style="cursor:pointer;">
+                <button type="button" class="dropdown-item d-flex justify-content-between align-items-center region-toggle">
                   <span data-i18n="SouthGaza">South Gaza</span>
                   <svg class="arrow" width="1em" height="1em" aria-hidden="true" focusable="false"><use href="#gm-i-chevron-right"/></svg>
-                </span>
+                </button>
                 <div class="sub-menu ps-3" style="display:none">
                   <a class="dropdown-item" href="#" data-area="Khan Yunis"         data-i18n="KhanYunis">Khan Yunis</a>
                   <a class="dropdown-item" href="#" data-area="Rafah"              data-i18n="Rafah">Rafah</a>
@@ -88,10 +88,10 @@
                 </div>
               </li>
               <li>
-                <span class="dropdown-item d-flex justify-content-between align-items-center region-toggle" style="cursor:pointer;">
+                <button type="button" class="dropdown-item d-flex justify-content-between align-items-center region-toggle">
                   <span data-i18n="NorthGaza">North Gaza</span>
                   <svg class="arrow" width="1em" height="1em" aria-hidden="true" focusable="false"><use href="#gm-i-chevron-right"/></svg>
-                </span>
+                </button>
                 <div class="sub-menu ps-3" style="display:none">
                   <a class="dropdown-item" href="#" data-area="Alrimal"       data-i18n="Alrimal">Al-Rimal</a>
                   <a class="dropdown-item" href="#" data-area="Alshaati"      data-i18n="Alshaati">Al-Shaati</a>
@@ -878,10 +878,10 @@
                   <div class="npw-custom-select-option" role="option" data-value="g" data-i18n="npw.unitGram">gram</div>
                   <div class="npw-custom-select-option" role="option" data-value="kg" data-i18n="npw.unitKg">kg</div>
                   <div class="npw-custom-select-option" role="option" data-value="l" data-i18n="npw.unitLiter">Liter</div>
-                  <div class="npw-custom-select-option" role="option" data-value="ml" data-i18n="npw.unitMilli">Milli</div>
+                  <div class="npw-custom-select-option" role="option" data-value="ml" data-i18n="npw.unitMilli">Milliliter</div>
                   <div class="npw-custom-select-option" role="option" data-value="piece" data-i18n="npw.unitPiece">piece</div>
-                  <div class="npw-custom-select-option" role="option" data-value="pack" data-i18n="npw.unitPack">Packet</div>
-                  <div class="npw-custom-select-option" role="option" data-value="box" data-i18n="npw.unitBox">cartoon</div>
+                  <div class="npw-custom-select-option" role="option" data-value="pack" data-i18n="npw.unitPack">Pack</div>
+                  <div class="npw-custom-select-option" role="option" data-value="box" data-i18n="npw.unitBox">Box</div>
                   <div class="npw-custom-select-option" role="option" data-value="sack" data-i18n="npw.unitSack">sack</div>
                 </div>
 
@@ -1275,18 +1275,18 @@
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.62 13.8A2.25 2.25 0 1 1 12 10.836a2.25 2.25 0 1 1 3.38 2.966l-2.626 2.856a.998.998 0 0 1-1.507 0z"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
             <span data-i18n="sidebar.home">Home</span>
           </a>
-          <a href="#" class="sidebar-nav__link sidebar-nav__link--shops">
+          <a href="#" class="sidebar-nav__link sidebar-nav__link--shops" aria-disabled="true">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 21v-5a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v5"/><path d="M17.774 10.31a1.12 1.12 0 0 0-1.549 0 2.5 2.5 0 0 1-3.451 0 1.12 1.12 0 0 0-1.548 0 2.5 2.5 0 0 1-3.452 0 1.12 1.12 0 0 0-1.549 0 2.5 2.5 0 0 1-3.77-3.248l2.889-4.184A2 2 0 0 1 7 2h10a2 2 0 0 1 1.653.873l2.895 4.192a2.5 2.5 0 0 1-3.774 3.244"/><path d="M4 10.95V19a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8.05"/></svg>
             <span data-i18n="sidebar.shops">Shops</span>
           </a>
-          <a href="#" class="sidebar-nav__link sidebar-nav__link--market">
+          <a href="#" class="sidebar-nav__link sidebar-nav__link--market" aria-disabled="true">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>
             <span data-i18n="sidebar.market">Market</span>
           </a>
-          <a href="#" class="sidebar-nav__link sidebar-nav__link--messages">
+          <a href="#" class="sidebar-nav__link sidebar-nav__link--messages" aria-disabled="true">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-bike-icon lucide-bike"><circle cx="18.5" cy="17.5" r="3.5"/><circle cx="5.5" cy="17.5" r="3.5"/><circle cx="15" cy="5" r="1"/><path d="M12 17.5V14l-3-3 4-3 2 3h2"/></svg>       
               <span data-i18n="bottomNav.delivery">Delivery</span>
-            <span class="sidebar-nav__badge" aria-label="3 Delivery service">soon</span>
+            <span class="sidebar-nav__badge" aria-label="Delivery service, coming soon" data-i18n="sidebar.soon">soon</span>
           </a>
         </nav>
       </div>
@@ -1325,13 +1325,13 @@
         <div class="profile-card__body">
           <div class="pf-identity">
             <div class="avatar-wrap" id="avatarWrap">
-              <div class="avatar" id="avatar">K</div>
+              <div class="avatar" id="avatar"></div>
               <div class="avatar-edit-btn">
                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13.997 4a2 2 0 0 1 1.76 1.05l.486.9A2 2 0 0 0 18.003 7H20a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h1.997a2 2 0 0 0 1.759-1.048l.489-.904A2 2 0 0 1 10.004 4z"/><circle cx="12" cy="13" r="3"/></svg>
               </div>
             </div>
             <div class="upload-status" id="uploadStatus"></div>
-            <h1 class="user-name" id="userName">Kareem</h1>
+            <h1 class="user-name" id="userName"></h1>
             <div class="user-phone">
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="phone-coll"><path d="M13.832 16.568a1 1 0 0 0 1.213-.303l.355-.465A2 2 0 0 1 17 15h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2A18 18 0 0 1 2 4a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v3a2 2 0 0 1-.8 1.6l-.468.351a1 1 0 0 0-.292 1.233 14 14 0 0 0 6.392 6.384"/></svg>
               <span id="userPhone"></span>
@@ -1345,7 +1345,7 @@
                   <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-map-pin-icon lucide-map-pin"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/></svg>
                 </div>
                 <div>
-                  <div class="stat-tile__value" id="userRegion" data-value="Nuseirat">Nuseirat</div>
+                  <div class="stat-tile__value" id="userRegion" data-value="">—</div>
                   <div class="stat-tile__label" data-i18n="stats.region">Region</div>
                 </div>
               </div>
@@ -1375,7 +1375,7 @@
                   <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-calendar-heart-icon lucide-calendar-heart"><path d="M12.127 22H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v5.125"/><path d="M14.62 18.8A2.25 2.25 0 1 1 18 15.836a2.25 2.25 0 1 1 3.38 2.966l-2.626 2.856a.998.998 0 0 1-1.507 0z"/><path d="M16 2v4"/><path d="M3 10h18"/><path d="M8 2v4"/></svg>
                 </div>
                 <div>
-                  <div class="stat-tile__value" id="userJoinDate">2026</div>
+                  <div class="stat-tile__value" id="userJoinDate">—</div>
                   <div class="stat-tile__label" data-i18n="stats.memberSince">Member Since</div>
                 </div>
               </div>
@@ -1396,11 +1396,11 @@
 
                 <div class="pf-settings-row pf-settings-static" id="settingsSoundsRow">
                   <div class="pf-settings-label">
-                    <span data-i18n="settings.appSounds">App Sounds</span>
+                    <span id="settingsSoundsLabel" data-i18n="settings.appSounds">App Sounds</span>
                   </div>
                   <div class="pf-settings-value">
                     <label class="pf-settings-toggle">
-                      <input type="checkbox" id="settingsSoundsToggle" name="settingsSoundsToggle" role="switch" />
+                      <input type="checkbox" id="settingsSoundsToggle" name="settingsSoundsToggle" role="switch" aria-labelledby="settingsSoundsLabel" />
                       <span class="pf-settings-toggle-slider"></span>
                     </label>
                   </div>
@@ -1452,7 +1452,7 @@
     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.62 13.8A2.25 2.25 0 1 1 12 10.836a2.25 2.25 0 1 1 3.38 2.966l-2.626 2.856a.998.998 0 0 1-1.507 0z"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
     <span data-i18n="sidebar.home">Home</span>
   </a>
-  <a href="#" class="bottom-nav__link bottom-nav__link--shops">
+  <a href="#" class="bottom-nav__link bottom-nav__link--shops" aria-disabled="true">
     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 21v-5a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v5"/><path d="M17.774 10.31a1.12 1.12 0 0 0-1.549 0 2.5 2.5 0 0 1-3.451 0 1.12 1.12 0 0 0-1.548 0 2.5 2.5 0 0 1-3.452 0 1.12 1.12 0 0 0-1.549 0 2.5 2.5 0 0 1-3.77-3.248l2.889-4.184A2 2 0 0 1 7 2h10a2 2 0 0 1 1.653.873l2.895 4.192a2.5 2.5 0 0 1-3.774 3.244"/><path d="M4 10.95V19a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8.05"/></svg>
     <span data-i18n="sidebar.shops">Shops</span>
   </a>
@@ -1461,7 +1461,7 @@
     <svg width="22" height="22" aria-hidden="true" focusable="false"><use href="#gm-i-plus"/></svg>
   </button>
 
-  <a href="#" class="bottom-nav__link bottom-nav__link--market">
+  <a href="#" class="bottom-nav__link bottom-nav__link--market" aria-disabled="true">
     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>
     <span data-i18n="sidebar.market">Market</span>
   </a>
@@ -1471,12 +1471,12 @@
   </a>
 </nav>
 
-<div class="modal-overlay" id="editModal">
+<div class="modal-overlay" id="editModal" role="dialog" aria-modal="true" aria-labelledby="editModalTitle">
   <div class="modal-box">
 
     <div class="modal-header">
-      <h2 class="modal-title" data-i18n="editModal.title">Edit Profile</h2>
-      <button class="modal-close" id="modalCloseBtn" type="button">
+      <h2 class="modal-title" id="editModalTitle" data-i18n="editModal.title">Edit Profile</h2>
+      <button class="modal-close" id="modalCloseBtn" type="button" aria-label="Close">
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
       </button>
     </div>
@@ -1484,12 +1484,13 @@
     <div class="modal-body">
 
       <div class="modal-avatar-wrap" id="modalAvatarWrap">
-        <div class="avatar" id="modalAvatar">K</div>
+        <div class="avatar" id="modalAvatar"></div>
         <div class="avatar-edit-btn">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13.997 4a2 2 0 0 1 1.76 1.05l.486.9A2 2 0 0 0 18.003 7H20a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h1.997a2 2 0 0 0 1.759-1.048l.489-.904A2 2 0 0 1 10.004 4z"/><circle cx="12" cy="13" r="3"/></svg>
         </div>
       </div>
       <input type="file" id="modalAvatarInput" accept="image/png, image/jpeg, image/webp" style="display:none;">
+      <p class="upload-status" id="modalStatus" role="alert" aria-live="polite"></p>
 
       <div class="modal-form-group">
         <label class="modal-label" for="modalName" data-i18n="editModal.fullName">Full Name</label>
@@ -1498,7 +1499,7 @@
 
       <div class="modal-form-group">
         <label class="modal-label" for="modalPhone" data-i18n="editModal.phone">Phone Number</label>
-        <input class="modal-input" type="tel" id="modalPhone" dir="ltr" placeholder="+962 79 000 0000">
+        <input class="modal-input" type="tel" id="modalPhone" dir="ltr" placeholder="05XX XXX XXX" data-i18n-placeholder="addListing.phonePlaceholder">
       </div>
 
       <div class="modal-form-group">
@@ -1568,11 +1569,11 @@
   </div>
 </div>
 
-<div class="modal-overlay" id="confirmModal">
+<div class="modal-overlay" id="confirmModal" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
   <div class="modal-box confirm-box">
     <div class="modal-header">
       <h2 class="modal-title" id="confirmTitle"></h2>
-      <button class="modal-close" id="confirmCloseBtn" type="button">
+      <button class="modal-close" id="confirmCloseBtn" type="button" aria-label="Close">
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
       </button>
     </div>
