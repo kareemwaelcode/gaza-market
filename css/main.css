@@ -9135,3 +9135,328 @@ body.dark-mode {
     animation-duration: 0s;
   }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* ==========================================================================
+   Shops page (shops.html) - every class starts with shops-
+   Paste at the END of css/main.css. Colors come from the existing variables,
+   so Dark Mode (body.dark-mode) and RTL/LTR (logical properties) work without extra rules.
+   ========================================================================== */
+.shops-page {
+  padding: 1rem;
+}
+
+.shops-head {
+  margin-bottom: 0.9rem;
+}
+
+.shops-title {
+  margin: 0 0 0.15rem;
+  font-family: var(--en-font);
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--gm-text);
+}
+
+.shops-subtitle {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--gm-muted);
+}
+
+.shops-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  margin-bottom: 1rem;
+}
+
+.shops-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.shops-region {
+  position: relative;
+}
+
+.shops-region__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.shops-icon {
+  flex-shrink: 0;
+}
+
+.shops-region-menu {
+  min-width: 220px;
+  max-height: 320px;
+  overflow-y: auto;
+  padding: 0.4rem;
+  background: var(--region-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  text-align: start;
+}
+
+.shops-region-menu .dropdown-header {
+  padding: 0.35rem 0.6rem 0.15rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--gm-muted);
+}
+
+.shops-region-menu .dropdown-item {
+  padding: 0.4rem 0.6rem;
+  border-radius: 8px;
+  font-size: 0.88rem;
+  text-align: start;
+  color: var(--text);
+}
+
+.shops-region-menu .dropdown-item:hover,
+.shops-region-menu .dropdown-item:focus {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+
+.shops-region-menu .dropdown-item.is-active {
+  background: var(--sel-bg);
+  color: var(--blue);
+  font-weight: 700;
+}
+
+.shops-region-menu .dropdown-divider {
+  margin: 0.3rem 0;
+  border-color: var(--border-color);
+}
+
+.shops-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 0.9rem;
+}
+
+.shops-grid[hidden] {
+  display: none;
+}
+
+.shops-card {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  color: inherit;
+  text-decoration: none;
+  transition:
+    transform var(--transition),
+    box-shadow var(--transition),
+    border-color var(--transition);
+}
+
+a.shops-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--gm-border-h);
+  box-shadow: var(--gm-shadow);
+  color: inherit;
+}
+
+a.shops-card:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+}
+
+.shops-card__media {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  background: var(--gm-surface-2);
+}
+
+.shops-card__ph {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--gm-faint);
+}
+
+.shops-card__img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.shops-card__status {
+  position: absolute;
+  top: 0.55rem;
+  inset-inline-start: 0.55rem;
+  padding: 0.15rem 0.6rem;
+  border-radius: 100px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.shops-card__status.is-open {
+  background: #4a7c59;
+}
+
+.shops-card__status.is-closed {
+  background: var(--gm-red);
+}
+
+.shops-card__body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  min-width: 0;
+  padding: 0.7rem 0.8rem 0.8rem;
+}
+
+.shops-card__type {
+  align-self: flex-start;
+  padding: 0.05rem 0.5rem;
+  border-radius: 100px;
+  background: var(--gm-surface);
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--gm-muted);
+}
+
+.shops-card__name {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--gm-text);
+  overflow-wrap: anywhere;
+}
+
+.shops-card__where {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.3rem;
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--gm-muted);
+}
+
+.shops-card__where svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.shops-card.is-skeleton {
+  pointer-events: none;
+}
+
+.shops-card.is-skeleton .shops-card__media {
+  border-radius: 0;
+}
+
+.shops-skel-line {
+  height: 12px;
+}
+
+.shops-skel-line--short {
+  width: 60%;
+}
+
+.shops-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 2.5rem 1rem;
+  text-align: center;
+  color: var(--gm-muted);
+}
+
+.shops-state[hidden],
+.shops-more[hidden] {
+  display: none;
+}
+
+.shops-state__title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--gm-text);
+}
+
+.shops-state__sub {
+  margin: 0 0 0.4rem;
+  font-size: 0.85rem;
+}
+
+.shops-more {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 1.1rem;
+}
+
+.shops-more__error {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--gm-red);
+}
+
+@media (max-width: 575.98px) {
+  .shops-page {
+    padding: 0.75rem;
+  }
+
+  .shops-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.65rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shops-card {
+    transition: none;
+  }
+
+  a.shops-card:hover {
+    transform: none;
+  }
+}

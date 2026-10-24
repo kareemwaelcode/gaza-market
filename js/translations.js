@@ -532,6 +532,26 @@ const translations = {
     "editModal.saved":              "Changes saved successfully",
     "editModal.saveFailed":         "Could not save your changes. Please try again.",
     "editModal.avatarInvalid":      "Please choose a PNG, JPG or WebP image up to 5MB.",
+
+
+
+
+
+    "shops.title":             "Shops",
+    "shops.subtitle":          "Restaurants, cafes and more around Gaza",
+    "shops.filterAll":         "All",
+    "shops.filterRestaurants": "Restaurants",
+    "shops.filterCafes":       "Cafes",
+    "shops.filterOpen":        "Open only",
+    "shops.regionBtn":         "Region",
+    "shops.empty":             "No shops match these filters yet",
+    "shops.emptySub":          "Be the first to add a shop in this category and area.",
+    "shops.emptyBtn":          "Add a shop",
+    "shops.errorTitle":        "Could not load shops.",
+    "shops.retry":             "Try again",
+    "shops.loadMore":          "Show more shops",
+    "shops.loadMoreFailed":    "Could not load more shops. Please try again.",
+ 
   },
 
   ar: {
@@ -1066,5 +1086,25 @@ const translations = {
     "editModal.saved":              "تم حفظ التغييرات بنجاح",
     "editModal.saveFailed":         "تعذّر حفظ التغييرات، حاول مرة ثانية.",
     "editModal.avatarInvalid":      "اختر صورة PNG أو JPG أو WebP بحجم أقصاه 5MB.",
+
+
+
+    "shops.title":             "المحلات",
+    "shops.subtitle":          "مطاعم وكافيهات وأكثر في أنحاء غزة",
+    "shops.filterAll":         "الكل",
+    "shops.filterRestaurants": "مطاعم",
+    "shops.filterCafes":       "كافيهات",
+    "shops.filterOpen":        "المفتوحة فقط",
+    "shops.regionBtn":         "المنطقة",
+    "shops.empty":             "ما في محلات بهالفلاتر لسا",
+    "shops.emptySub":          "كن أول من يضيف محل بهالتصنيف والمنطقة.",
+    "shops.emptyBtn":          "إضافة محل",
+    "shops.errorTitle":        "ما قدرنا نحمّل المحلات.",
+    "shops.retry":             "حاول مرة ثانية",
+    "shops.loadMore":          "عرض المزيد",
+    "shops.loadMoreFailed":    "ما قدرنا نحمّل محلات أكثر، جرّب مرة ثانية.",
+ 
   },
 };
+
+
