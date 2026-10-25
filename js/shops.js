@@ -1,31 +1,32 @@
 'use strict';
 
 (function () {
-  var list = document.getElementById('shopsGrid');
+  const list = document.getElementById('shopsGrid');
   if (!list) return;
 
-  var cards = Array.prototype.slice.call(list.querySelectorAll('[data-shop]'));
-  var skeleton = document.getElementById('shopsSkeleton');
-  var stateBox = document.getElementById('shopsState');
-  var stateTitle = document.getElementById('shopsStateTitle');
-  var stateSub = document.getElementById('shopsStateSub');
-  var resetBtn = document.getElementById('shopsReset');
-  var addBtn = document.getElementById('shopsAdd');
-  var countEl = document.getElementById('shopsCount');
-  var typeBtn = document.getElementById('shopsTypeBtn');
-  var typeLabel = document.getElementById('shopsTypeLabel');
-  var regionBtn = document.getElementById('shopsRegionBtn');
-  var regionLabel = document.getElementById('shopsRegionLabel');
-  var allChip = document.querySelector('[data-shops-all]');
-  var openChip = document.querySelector('[data-shops-open]');
-  var moreWrap = document.getElementById('shopsMore');
-  var moreBtn = document.getElementById('shopsMoreBtn');
-  var moreLabel = document.getElementById('shopsMoreLabel');
-  var clearChip = document.getElementById('shopsClear');
-  var typeItems = Array.prototype.slice.call(document.querySelectorAll('[data-shops-type]'));
-  var regionItems = Array.prototype.slice.call(document.querySelectorAll('[data-shops-region]'));
+  const api = window.GMShops;
+  const skeleton = document.getElementById('shopsSkeleton');
+  const stateBox = document.getElementById('shopsState');
+  const stateTitle = document.getElementById('shopsStateTitle');
+  const stateSub = document.getElementById('shopsStateSub');
+  const resetBtn = document.getElementById('shopsReset');
+  const retryBtn = document.getElementById('shopsRetry');
+  const addBtn = document.getElementById('shopsAdd');
+  const countEl = document.getElementById('shopsCount');
+  const typeBtn = document.getElementById('shopsTypeBtn');
+  const typeLabel = document.getElementById('shopsTypeLabel');
+  const regionBtn = document.getElementById('shopsRegionBtn');
+  const regionLabel = document.getElementById('shopsRegionLabel');
+  const allChip = document.querySelector('[data-shops-all]');
+  const openChip = document.querySelector('[data-shops-open]');
+  const moreWrap = document.getElementById('shopsMore');
+  const moreBtn = document.getElementById('shopsMoreBtn');
+  const moreLabel = document.getElementById('shopsMoreLabel');
+  const clearChip = document.getElementById('shopsClear');
+  const typeItems = Array.from(document.querySelectorAll('[data-shops-type]'));
+  const regionItems = Array.from(document.querySelectorAll('[data-shops-region]'));
 
-  var TYPE_FILTERS = {
+  const TYPE_FILTERS = {
     'restaurant': 'shops.filterRestaurants',
     'cafe': 'shops.filterCafes',
     'restaurant-cafe': 'typeRestCafe',
@@ -35,18 +36,43 @@
     'misc': 'shops.filterMisc'
   };
 
-  var FAV_KEY = 'gm_shops_favs_v1';
-  var FALLBACK_IMG = 'assets/img/shop-placeholder.svg';
-  var EAGER_COUNT = 4;
-  var PAGE_SIZE = 20;
-  var LOAD_TIMEOUT_MS = 1500;
-  var STAGGER_MS = 60;
-  var STAGGER_MAX = 8;
+  const TYPE_LABELS = {
+    'restaurant': 'typeRestaurant',
+    'cafe': 'typeCafe',
+    'restaurant-cafe': 'typeRestCafe',
+    'workspace': 'typeCowork',
+    'supermarket': 'typeSupermarket',
+    'pharmacy': 'shops.filterPharmacy'
+  };
 
-  var state = { type: 'all', region: 'all', open: false };
-  var visibleCount = cards.length;
-  var limit = PAGE_SIZE;
-  var reduceMotion = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : { matches: false };
+  const ICONS = {
+    heart: '<svg class="shops-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M2 9.5a5.5 5.5 0 0 1 9.591-3.676.56.56 0 0 0 .818 0A5.49 5.49 0 0 1 22 9.5c0 2.29-1.5 4-3 5.5l-5.492 5.313a2 2 0 0 1-3 .019L5 15c-1.5-1.5-3-3.2-3-5.5"/></svg>',
+    pin: '<svg class="shops-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/></svg>',
+    wa: '<svg class="shops-icon" width="16" height="16" aria-hidden="true" focusable="false"><use href="#gm-i-whatsapp"/></svg>',
+    book: '<svg class="shops-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/></svg>',
+    tag: '<svg class="shops-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r=".5" fill="currentColor"/></svg>'
+  };
+
+  const FAV_KEY = 'gm_shops_favs_v1';
+  const EAGER_COUNT = 4;
+  const STAGGER_MS = 60;
+  const STAGGER_MAX = 8;
+  const PAGE_SIZE = api && api.defaultLimit ? api.defaultLimit : 12;
+
+  const state = { type: 'all', region: 'all', open: false };
+  const view = { nextCursor: null, hasMore: false, total: null };
+  const placeOf = new WeakMap();
+  const rendered = new Set();
+  const reduceMotion = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : { matches: false };
+  const iconTpl = document.createElement('template');
+  const iconCache = {};
+
+  let items = [];
+  let seq = 0;
+  let controller = null;
+  let busyMore = false;
+  let moreFailed = false;
+  let panel = null;
 
   function t(key) {
     return typeof i18n !== 'undefined' && i18n.t ? i18n.t(key) : key;
@@ -54,6 +80,20 @@
 
   function currentLang() {
     return document.documentElement.getAttribute('lang') === 'en' ? 'en' : 'ar';
+  }
+
+  function el(tag, className) {
+    const node = document.createElement(tag);
+    if (className) node.className = className;
+    return node;
+  }
+
+  function icon(name) {
+    if (!iconCache[name]) {
+      iconTpl.innerHTML = ICONS[name];
+      iconCache[name] = iconTpl.content.firstElementChild;
+    }
+    return iconCache[name].cloneNode(true);
   }
 
   function isTypeFilter(type) {
@@ -66,12 +106,12 @@
 
   function toRegionCode(raw) {
     if (!raw) return null;
-    var code = typeof window.gmNormalizeRegionKey === 'function' ? window.gmNormalizeRegionKey(raw) : raw;
+    const code = typeof window.gmNormalizeRegionKey === 'function' ? window.gmNormalizeRegionKey(raw) : raw;
     return isRegionCode(code) ? code : null;
   }
 
   function savedRegion() {
-    var raw = '';
+    let raw = '';
     try {
       raw = typeof window.gmGetSelectedArea === 'function'
         ? window.gmGetSelectedArea()
@@ -87,18 +127,18 @@
   }
 
   function readUrl() {
-    var saved = savedRegion();
+    const saved = savedRegion();
     if (saved) state.region = saved;
 
-    var params;
+    let params;
     try {
       params = new URLSearchParams(window.location.search);
     } catch (err) {
       return;
     }
-    var type = params.get('type');
-    var region = params.get('region');
-    var areaCode = toRegionCode(params.get('area'));
+    const type = params.get('type');
+    const region = params.get('region');
+    const areaCode = toRegionCode(params.get('area'));
     if (type && isTypeFilter(type)) state.type = type;
     if (areaCode) state.region = areaCode;
     else if (region === 'all') state.region = 'all';
@@ -107,12 +147,12 @@
   }
 
   function writeUrl() {
-    var params = new URLSearchParams();
+    const params = new URLSearchParams();
     if (state.type !== 'all') params.set('type', state.type);
     if (state.region !== 'all') params.set('region', state.region);
     else if (savedRegion()) params.set('region', 'all');
     if (state.open) params.set('open', '1');
-    var query = params.toString();
+    const query = params.toString();
     try {
       history.replaceState(null, '', window.location.pathname + (query ? '?' + query : ''));
     } catch (err) {
@@ -122,7 +162,7 @@
 
   function readFavs() {
     try {
-      var raw = JSON.parse(localStorage.getItem(FAV_KEY) || '[]');
+      const raw = JSON.parse(localStorage.getItem(FAV_KEY) || '[]');
       return new Set(Array.isArray(raw) ? raw.map(String) : []);
     } catch (err) {
       return new Set();
@@ -137,7 +177,7 @@
     }
   }
 
-  var favs = readFavs();
+  const favs = readFavs();
 
   function paintFav(btn, on) {
     btn.classList.toggle('is-on', on);
@@ -145,104 +185,370 @@
     btn.setAttribute('aria-label', t(on ? 'shops.favRemove' : 'shops.favAdd'));
   }
 
-  function paintFavs() {
-    cards.forEach(function (card) {
-      var btn = card.querySelector('[data-role="fav"]');
-      if (btn) paintFav(btn, favs.has(card.dataset.id));
+  function placeName(place) {
+    return currentLang() === 'ar' ? place.name_ar || place.name_en : place.name_en || place.name_ar;
+  }
+
+  function placeAddress(place) {
+    return currentLang() === 'ar' ? place.address_ar : place.address_en;
+  }
+
+  function paintTexts(root) {
+    root.querySelectorAll('[data-t]').forEach(function (node) {
+      node.textContent = t(node.dataset.t);
     });
   }
 
-  function typeMatches(cardType) {
-    if (state.type === 'misc') return true;
-    if (cardType === state.type) return true;
-    return cardType === 'restaurant-cafe' && (state.type === 'restaurant' || state.type === 'cafe');
+  function paintCard(col) {
+    const place = placeOf.get(col);
+    if (!place) return;
+
+    col.querySelector('.shops-card__link').textContent = placeName(place);
+    paintTexts(col);
+
+    const regionText = place.region ? t(place.region) : '';
+    const address = placeAddress(place);
+    const sep = currentLang() === 'ar' ? '، ' : ', ';
+    col.querySelector('.shops-card__region').textContent = regionText;
+    col.querySelector('.shops-card__addr').textContent = address ? (regionText ? sep : '') + address : '';
+
+    const where = col.querySelector('.shops-card__where');
+    where.hidden = !regionText && !address;
+    where.title = [regionText, address].filter(Boolean).join(sep);
+
+    paintFav(col.querySelector('[data-role="fav"]'), favs.has(place.id));
   }
 
-  function matches(card) {
-    if (state.type !== 'all' && !typeMatches(card.dataset.type)) return false;
-    if (state.region !== 'all' && card.dataset.region !== state.region) return false;
-    if (state.open && card.dataset.open !== '1') return false;
-    return true;
+  function createImage(src, media, index) {
+    const img = document.createElement('img');
+    img.className = 'shops-card__img';
+    img.alt = '';
+    img.width = 400;
+    img.height = 250;
+    img.decoding = 'async';
+    img.loading = index < EAGER_COUNT ? 'eager' : 'lazy';
+    if (index === 0) img.setAttribute('fetchpriority', 'high');
+
+    media.classList.add('is-loading');
+    img.addEventListener('load', function () {
+      media.classList.remove('is-loading');
+    }, { once: true });
+    img.addEventListener('error', function () {
+      media.classList.remove('is-loading');
+      img.remove();
+    }, { once: true });
+    img.src = src;
+    return img;
   }
 
-  function paintCount() {
-    if (!countEl) return;
-    countEl.textContent = t('shops.count').replace('{n}', String(visibleCount));
-  }
-
-  function categoryHasShops() {
-    return cards.some(function (card) { return typeMatches(card.dataset.type); });
-  }
-
-  function showEmpty(show) {
-    if (!show) {
-      stateBox.hidden = true;
-      return;
+  function actionLink(className, href, iconName, key, external) {
+    const link = el('a', 'shops-btn ' + className);
+    link.href = href;
+    if (external) {
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
     }
-    var categoryEmpty = state.type !== 'all' && !categoryHasShops();
+    link.appendChild(icon(iconName));
+    const label = document.createElement('span');
+    label.dataset.t = key;
+    link.appendChild(label);
+    return link;
+  }
+
+  function createCard(place, index) {
+    const col = el('div', 'col-12 col-sm-6 col-lg-4 col-xxl-3');
+    col.setAttribute('data-shop', '');
+    col.dataset.id = place.id;
+    col.dataset.slug = place.slug || '';
+    col.dataset.type = place.type;
+    col.dataset.region = place.region;
+    col.dataset.open = place.is_open ? '1' : '0';
+    placeOf.set(col, place);
+
+    const article = el('article', 'shops-card');
+
+    const media = el('div', 'shops-card__media');
+    const src = place.image_thumb || place.image_url;
+    if (src) media.appendChild(createImage(src, media, index));
+
+    const status = el('span', 'shops-card__status ' + (place.is_open ? 'is-open' : 'is-closed'));
+    status.dataset.t = place.is_open ? 'stores.open' : 'stores.closed';
+    media.appendChild(status);
+
+    const fav = el('button', 'shops-card__fav');
+    fav.type = 'button';
+    fav.setAttribute('data-role', 'fav');
+    fav.appendChild(icon('heart'));
+    media.appendChild(fav);
+
+    const body = el('div', 'shops-card__body');
+
+    const type = el('span', 'shops-card__type');
+    type.dataset.t = TYPE_LABELS[place.type] || 'shops.filterMisc';
+
+    const ref = encodeURIComponent(place.slug || place.id);
+    const row = el('div', 'shops-card__row');
+    const heading = el('h2', 'shops-card__name');
+    const link = el('a', 'shops-card__link');
+    link.href = 'menu.html?id=' + ref;
+    heading.appendChild(link);
+
+    const where = el('p', 'shops-card__where');
+    where.appendChild(icon('pin'));
+    const whereText = el('span', 'shops-card__where-text');
+    whereText.appendChild(el('span', 'shops-card__region'));
+    whereText.appendChild(el('span', 'shops-card__addr'));
+    where.appendChild(whereText);
+
+    row.appendChild(heading);
+    row.appendChild(where);
+
+    const actions = el('div', 'shops-card__actions');
+    if (place.whatsapp) {
+      actions.appendChild(actionLink('shops-btn--wa', 'https://wa.me/' + place.whatsapp, 'wa', 'shops.whatsapp', true));
+    }
+    if (place.has_menu) {
+      actions.appendChild(actionLink('shops-btn--menu', 'menu.html?id=' + ref + '#menu', 'book', 'shops.menu', false));
+    } else {
+      actions.appendChild(actionLink('shops-btn--menu', 'menu.html?id=' + ref + '#prices', 'tag', 'shops.prices', false));
+    }
+
+    body.appendChild(type);
+    body.appendChild(row);
+    body.appendChild(actions);
+    article.appendChild(media);
+    article.appendChild(body);
+    col.appendChild(article);
+
+    paintCard(col);
+    return col;
+  }
+
+  function setLoading(on) {
+    if (on) list.setAttribute('aria-busy', 'true');
+    else list.removeAttribute('aria-busy');
+    if (skeleton) skeleton.hidden = !on;
+  }
+
+  function hidePanel() {
+    panel = null;
+    stateBox.hidden = true;
+  }
+
+  function showEmpty() {
+    panel = 'empty';
+    const categoryEmpty = state.type !== 'all' && state.region === 'all' && !state.open;
     stateTitle.textContent = t(categoryEmpty ? 'shops.emptyCategory' : 'shops.empty');
     stateSub.textContent = t(categoryEmpty ? 'shops.emptyCategorySub' : 'shops.emptySub');
+    stateSub.hidden = false;
     if (resetBtn) resetBtn.hidden = !hasActiveFilters();
+    if (retryBtn) retryBtn.hidden = true;
     if (addBtn) addBtn.hidden = false;
     stateBox.hidden = false;
   }
 
-  function playEnter(shown) {
-    if (reduceMotion.matches) return;
-    shown.forEach(function (card, index) {
-      card.classList.remove('is-entering');
-      card.style.setProperty('--enter-delay', Math.min(index, STAGGER_MAX) * STAGGER_MS + 'ms');
-    });
-    void list.offsetWidth;
-    shown.forEach(function (card) { card.classList.add('is-entering'); });
+  function showError() {
+    panel = 'error';
+    stateTitle.textContent = t('shops.errorTitle');
+    stateSub.textContent = '';
+    stateSub.hidden = true;
+    if (resetBtn) resetBtn.hidden = true;
+    if (addBtn) addBtn.hidden = true;
+    if (retryBtn) retryBtn.hidden = false;
+    stateBox.hidden = false;
+    countEl.textContent = '';
+    if (moreWrap) moreWrap.hidden = true;
+  }
+
+  function repaintPanel() {
+    if (panel === 'empty') showEmpty();
+    else if (panel === 'error') showError();
+  }
+
+  function paintCount() {
+    if (!countEl) return;
+    const n = view.total !== null ? String(view.total) : items.length + (view.hasMore ? '+' : '');
+    countEl.textContent = t('shops.count').replace('{n}', n);
   }
 
   function paintMore() {
     if (!moreWrap) return;
-    var remaining = Math.max(0, visibleCount - limit);
-    moreWrap.hidden = remaining === 0;
-    if (moreLabel) moreLabel.textContent = t('shops.showMore').replace('{n}', String(remaining));
+    moreWrap.hidden = !view.hasMore || panel === 'error';
+    if (moreWrap.hidden) return;
+    if (moreFailed) {
+      moreLabel.textContent = t('shops.loadMoreFailed');
+      return;
+    }
+    const remaining = view.total !== null ? Math.max(0, view.total - items.length) : 0;
+    moreLabel.textContent = remaining > 0 ? t('shops.showMore').replace('{n}', String(remaining)) : t('shops.loadMore');
   }
 
-  function renderCards(animate) {
-    var shown = [];
-    var total = 0;
-    cards.forEach(function (card) {
-      var ok = matches(card);
-      if (ok) total += 1;
-      var show = ok && shown.length < limit;
-      card.hidden = !show;
-      if (show) shown.push(card);
+  function playEnter(cols) {
+    if (reduceMotion.matches || !cols.length) return;
+    cols.forEach(function (col, index) {
+      col.classList.remove('is-entering');
+      col.style.setProperty('--enter-delay', Math.min(index, STAGGER_MAX) * STAGGER_MS + 'ms');
     });
-    visibleCount = total;
+    void list.offsetWidth;
+    cols.forEach(function (col) { col.classList.add('is-entering'); });
+  }
+
+  function clearGrid() {
+    list.replaceChildren();
+    items = [];
+    rendered.clear();
+  }
+
+  function appendItems(places) {
+    const frag = document.createDocumentFragment();
+    const fresh = [];
+    places.forEach(function (place) {
+      if (rendered.has(place.id)) return;
+      rendered.add(place.id);
+      items.push(place);
+      const col = createCard(place, items.length - 1);
+      frag.appendChild(col);
+      fresh.push(col);
+    });
+    list.appendChild(frag);
+    return fresh;
+  }
+
+  function updateView(page) {
+    view.nextCursor = page.nextCursor;
+    view.hasMore = page.hasMore;
+    view.total = page.total;
+    moreFailed = false;
+    if (items.length === 0) showEmpty();
+    else hidePanel();
     paintCount();
     paintMore();
-    showEmpty(total === 0);
-    if (animate) playEnter(shown);
+  }
+
+  function replaceItems(page, animate) {
+    clearGrid();
+    const fresh = appendItems(page.items);
+    updateView(page);
+    if (animate) playEnter(fresh);
+  }
+
+  function signature(places) {
+    return places.map(function (p) {
+      return [p.id, p.type, p.region, p.name_ar, p.name_en, p.address_ar, p.address_en,
+        p.image_thumb, p.image_url, p.is_open, p.whatsapp, p.has_menu].join('~');
+    }).join('|');
+  }
+
+  function queryFor(cursor) {
+    return {
+      type: state.type === 'all' || state.type === 'misc' ? null : state.type,
+      region: state.region === 'all' ? null : state.region,
+      open: state.open,
+      cursor: cursor || null,
+      limit: PAGE_SIZE
+    };
+  }
+
+  function newController() {
+    controller = typeof AbortController === 'function' ? new AbortController() : null;
+    return controller;
+  }
+
+  function cancelPending() {
+    if (controller) controller.abort();
+    controller = null;
+    busyMore = false;
+    moreFailed = false;
+    if (moreBtn) moreBtn.disabled = false;
+  }
+
+  function isAborted(err) {
+    return !!err && err.code === 'aborted';
+  }
+
+  function revalidate(query, mine) {
+    api.fetchPage(query, { refresh: true }).then(function (page) {
+      if (mine !== seq) return;
+      if (items.length > page.items.length) return;
+      if (items.length === page.items.length && signature(items) === signature(page.items)) {
+        updateView(page);
+        return;
+      }
+      replaceItems(page, false);
+    }).catch(function () {});
+  }
+
+  function reload() {
+    seq += 1;
+    const mine = seq;
+    cancelPending();
+    hidePanel();
+
+    if (!api) {
+      clearGrid();
+      setLoading(false);
+      showError();
+      return;
+    }
+
+    const query = queryFor(null);
+    const hit = api.peekPage(query);
+    if (hit) {
+      setLoading(false);
+      replaceItems(hit.page, true);
+      if (!hit.fresh) revalidate(query, mine);
+      return;
+    }
+
+    clearGrid();
+    view.nextCursor = null;
+    view.hasMore = false;
+    view.total = null;
+    countEl.textContent = '';
+    if (moreWrap) moreWrap.hidden = true;
+    setLoading(true);
+
+    const ctl = newController();
+    api.fetchPage(query, { signal: ctl ? ctl.signal : undefined }).then(function (page) {
+      if (mine !== seq) return;
+      setLoading(false);
+      replaceItems(page, true);
+    }).catch(function (err) {
+      if (mine !== seq || isAborted(err)) return;
+      setLoading(false);
+      showError();
+    });
   }
 
   function loadMore() {
-    var previous = limit;
-    limit += PAGE_SIZE;
-    renderCards(false);
-    var fresh = cards.filter(function (card) { return !card.hidden; }).slice(previous);
-    playEnter(fresh);
-    var link = fresh.length ? fresh[0].querySelector('.shops-card__link') : null;
-    if (link) link.focus();
-  }
+    if (busyMore || !view.hasMore || !api) return;
+    busyMore = true;
+    moreFailed = false;
+    moreBtn.disabled = true;
+    paintMore();
 
-  function paintNames() {
-    var lang = currentLang();
-    cards.forEach(function (card) {
-      var link = card.querySelector('[data-name-ar]');
-      if (!link) return;
-      var name = lang === 'ar' ? link.dataset.nameAr || link.dataset.nameEn : link.dataset.nameEn || link.dataset.nameAr;
-      link.textContent = name;
+    const mine = seq;
+    const ctl = newController();
+    api.fetchPage(queryFor(view.nextCursor), { signal: ctl ? ctl.signal : undefined }).then(function (page) {
+      if (mine !== seq) return;
+      const fresh = appendItems(page.items);
+      updateView(page);
+      playEnter(fresh);
+      const link = fresh.length ? fresh[0].querySelector('.shops-card__link') : null;
+      if (link) link.focus({ preventScroll: true });
+    }).catch(function (err) {
+      if (mine !== seq || isAborted(err)) return;
+      moreFailed = true;
+      paintMore();
+    }).then(function () {
+      if (mine !== seq) return;
+      busyMore = false;
+      moreBtn.disabled = false;
     });
   }
 
   function syncFilterUI() {
-    var isAll = !hasActiveFilters();
+    const isAll = !hasActiveFilters();
     allChip.classList.toggle('is-active', isAll);
     allChip.setAttribute('aria-pressed', isAll ? 'true' : 'false');
 
@@ -252,30 +558,30 @@
     openChip.setAttribute('aria-pressed', state.open ? 'true' : 'false');
 
     typeItems.forEach(function (item) {
-      var on = item.dataset.shopsType === state.type;
+      const on = item.dataset.shopsType === state.type;
       item.classList.toggle('is-active', on);
       if (on) item.setAttribute('aria-current', 'true');
       else item.removeAttribute('aria-current');
     });
 
     regionItems.forEach(function (item) {
-      var on = item.dataset.shopsRegion === state.region;
+      const on = item.dataset.shopsRegion === state.region;
       item.classList.toggle('is-active', on);
       if (on) item.setAttribute('aria-current', 'true');
       else item.removeAttribute('aria-current');
     });
 
-    var typeActive = state.type !== 'all';
+    const typeActive = state.type !== 'all';
     typeBtn.classList.toggle('is-active', typeActive);
     typeLabel.textContent = typeActive ? t(TYPE_FILTERS[state.type]) : t('shops.filterCategory');
 
-    var regionActive = state.region !== 'all';
+    const regionActive = state.region !== 'all';
     regionBtn.classList.toggle('is-active', regionActive);
     regionLabel.textContent = regionActive ? t(state.region) : t('AllRegions');
   }
 
   function apply(patch) {
-    var changed = false;
+    let changed = false;
     Object.keys(patch).forEach(function (key) {
       if (state[key] !== patch[key]) {
         state[key] = patch[key];
@@ -283,39 +589,39 @@
       }
     });
     if (!changed) return;
-    limit = PAGE_SIZE;
     syncFilterUI();
-    renderCards(true);
+    reload();
     writeUrl();
   }
 
   document.addEventListener('click', function (e) {
-    var el = e.target.closest('[data-shops-all],[data-shops-type],[data-shops-open],[data-shops-region]');
-    if (!el) return;
+    const target = e.target.closest('[data-shops-all],[data-shops-type],[data-shops-open],[data-shops-region]');
+    if (!target) return;
 
-    if (el.hasAttribute('data-shops-all')) {
+    if (target.hasAttribute('data-shops-all')) {
       apply({ type: 'all', region: 'all', open: false });
-    } else if (el.hasAttribute('data-shops-open')) {
+    } else if (target.hasAttribute('data-shops-open')) {
       apply({ open: !state.open });
-    } else if (el.hasAttribute('data-shops-type')) {
-      var type = el.dataset.shopsType;
+    } else if (target.hasAttribute('data-shops-type')) {
+      const type = target.dataset.shopsType;
       if (type !== 'all' && !isTypeFilter(type)) return;
-      var toggle = el.classList.contains('shops-popular__item') && type === state.type;
+      const toggle = target.classList.contains('shops-popular__item') && type === state.type;
       apply({ type: toggle ? 'all' : type });
     } else {
-      var region = el.dataset.shopsRegion;
+      const region = target.dataset.shopsRegion;
       if (region !== 'all' && !isRegionCode(region)) return;
       apply({ region: region });
     }
   });
 
   if (moreBtn) moreBtn.addEventListener('click', loadMore);
+  if (retryBtn) retryBtn.addEventListener('click', reload);
 
   list.addEventListener('click', function (e) {
-    var btn = e.target.closest('[data-role="fav"]');
+    const btn = e.target.closest('[data-role="fav"]');
     if (!btn) return;
-    var id = btn.closest('[data-shop]').dataset.id;
-    var on = !favs.has(id);
+    const id = btn.closest('[data-shop]').dataset.id;
+    const on = !favs.has(id);
     if (on) favs.add(id);
     else favs.delete(id);
     saveFavs();
@@ -328,100 +634,24 @@
     }
   });
 
-  function watchImage(img) {
-    var media = img.closest('.shops-card__media');
-    if (!media) return;
-
-    function settle() {
-      media.classList.remove('is-loading');
-    }
-
-    function fallback() {
-      if (img.getAttribute('src') !== FALLBACK_IMG) {
-        img.src = FALLBACK_IMG;
-      } else {
-        settle();
-      }
-    }
-
-    img.addEventListener('load', settle);
-    img.addEventListener('error', fallback);
-
-    if (!img.complete) {
-      media.classList.add('is-loading');
-    } else if (img.naturalWidth === 0) {
-      fallback();
-    }
-  }
-
-  function setLoading(on) {
-    if (on) list.setAttribute('aria-busy', 'true');
-    else list.removeAttribute('aria-busy');
-    if (skeleton) skeleton.hidden = !on;
-  }
-
-  function whenFirstImagesSettle(done) {
-    var pending = cards.slice(0, EAGER_COUNT)
-      .map(function (card) { return card.querySelector('.shops-card__img'); })
-      .filter(function (img) { return img && !img.complete; });
-
-    var finished = false;
-    var left = pending.length;
-
-    function finish() {
-      if (finished) return;
-      finished = true;
-      done();
-    }
-
-    function step() {
-      left -= 1;
-      if (left <= 0) finish();
-    }
-
-    if (!left) {
-      finish();
-      return;
-    }
-
-    pending.forEach(function (img) {
-      img.addEventListener('load', step, { once: true });
-      img.addEventListener('error', step, { once: true });
-    });
-    window.setTimeout(finish, LOAD_TIMEOUT_MS);
-  }
-
-  var lastLang = currentLang();
+  let lastLang = currentLang();
   new MutationObserver(function () {
-    var lang = currentLang();
+    const lang = currentLang();
     if (lang === lastLang) return;
     lastLang = lang;
-    paintNames();
-    paintFavs();
+    Array.prototype.forEach.call(list.children, paintCard);
     syncFilterUI();
     paintCount();
     paintMore();
-    if (!stateBox.hidden) showEmpty(true);
+    repaintPanel();
   }).observe(document.documentElement, { attributes: true, attributeFilter: ['lang'] });
 
   window.GMShopsUI = { setLoading: setLoading };
 
   function boot() {
     readUrl();
-    paintNames();
-    paintFavs();
     syncFilterUI();
-    renderCards(false);
-
-    cards.forEach(function (card) {
-      var img = card.querySelector('.shops-card__img');
-      if (img) watchImage(img);
-    });
-
-    whenFirstImagesSettle(function () {
-      setLoading(false);
-      renderCards(true);
-    });
+    reload();
   }
 
   if (document.readyState === 'complete') boot();

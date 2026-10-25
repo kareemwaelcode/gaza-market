@@ -1,10 +1,12 @@
 const CACHE_PREFIX = 'gm-';
-const CACHE_VERSION = 'gm-v10';
+const CACHE_VERSION = 'gm-v11';
 const SCOPE = self.registration.scope;
 
 const PRECACHE = [
   'index.html',
   'home.html',
+  'shops.html',
+  'menu.html',
   'profile.html',
   'add-store.html',
   'guide.html',
@@ -21,6 +23,9 @@ const PRECACHE = [
   'js/auth.js',
   'js/offline.js',
   'js/home.js',
+  'js/shops.js',
+  'js/shops-api.js',
+  'js/menu.js',
   'js/exchange-rates.js',
   'js/prices-api.js',
   'js/profile.js',
@@ -33,6 +38,7 @@ const PRECACHE = [
   'assets/fonts/cairo-latin-600-normal.woff2',
   'assets/fonts/cairo-latin-700-normal.woff2',
   'assets/img/logo.gazamarket.png',
+  'assets/img/shop-placeholder.svg.webp',
   'assets/img/ps.svg',
   'assets/img/us.svg'
 ];

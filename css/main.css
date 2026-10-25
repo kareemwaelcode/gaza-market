@@ -9368,7 +9368,7 @@ body.dark-mode .shops-page {
   flex-shrink: 0;
   aspect-ratio: 16 / 10;
   overflow: hidden;
-  background: var(--gm-surface-2);
+  background: var(--gm-surface-2) url("../assets/img/shop-placeholder.svg.webp") center / cover no-repeat;
 }
 
 .shops-card__media::after {
@@ -9474,9 +9474,10 @@ body.dark-mode .shops-page {
 
 .shops-card__row {
   display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 0.6rem;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.2rem;
+  min-width: 0;
 }
 
 .shops-card__name {
@@ -9511,13 +9512,38 @@ body.dark-mode .shops-page {
 }
 
 .shops-card__where {
-  display: inline-flex;
-  align-items: center;
-  flex-shrink: 0;
-  gap: 0.25rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.3rem;
+  min-width: 0;
+  max-width: 100%;
   margin: 0;
   font-size: 0.8rem;
   color: var(--gm-muted);
+}
+
+.shops-card__where[hidden] {
+  display: none;
+}
+
+.shops-card__where > .shops-icon {
+  flex-shrink: 0;
+  margin-top: 0.15rem;
+}
+
+.shops-card__where-text {
+  display: -webkit-box;
+  min-width: 0;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+
+.shops-card__region {
+  font-weight: 600;
+  color: var(--gm-text);
 }
 
 .shops-card__actions {
@@ -10341,7 +10367,7 @@ body.dark-mode .shop-item__price {
 }
 
 .shop-discover__title {
-  margin: 0 0 0.75rem;
+  margin: 0 0 1.76rem;
   font-size: 1rem;
   font-weight: 800;
   color: var(--text);

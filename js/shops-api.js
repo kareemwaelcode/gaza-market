@@ -6,16 +6,24 @@ USE_MOCK: true,
 API_BASE: '/api',
 TIMEOUT_MS: 15000,
 CREDENTIALS: 'same-origin',
+RETRY: 1,
 };
 
 const CONFIG = Object.assign({}, DEFAULTS, window.GM_CONFIG || {});
 const USE_MOCK = window.GM_ENV.isMockAllowed();
 const API_BASE = String(CONFIG.API_BASE).replace(/\/+$/, '');
 
-const CACHE_KEY = 'gm_shops_cache_v2';
+const CACHE_KEY = 'gm_shops_cache_v3';
+const LEGACY_CACHE_KEYS = ['gm_shops_cache_v2'];
 const CACHE_MAX_KEYS = 12;
 const CACHE_MAX_ITEMS = 24;
+const FRESH_MS = 60 * 1000;
+const STALE_MS = 15 * 60 * 1000;
+const MEMORY_MAX = 60;
+const DETAIL_TTL_MS = 60 * 1000;
+const DETAIL_MAX = 80;
 const DEFAULT_LIMIT = 12;
+const MAX_LIMIT = 24;
 
 const REGIONS = [
 { code: 'Nuseirat', value: 'Nuseirat' },
@@ -37,7 +45,8 @@ const REGIONS = [
 { code: 'Jabalia', value: 'Jabalia' },
 ];
 
-const PLACE_TYPES = ['restaurant', 'cafe', 'restaurant-cafe', 'workspace', 'supermarket'];
+const PLACE_TYPES = ['restaurant', 'cafe', 'restaurant-cafe', 'workspace', 'supermarket', 'pharmacy'];
+const FILTER_TYPES = PLACE_TYPES.slice();
 
 const regionLookup = (function () {
 const squash = (s) => String(s).toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -128,6 +137,11 @@ if (!nameAr && !nameEn) return null;
 const type = typeof raw.type === 'string' ? raw.type.trim().toLowerCase() : '';
 if (PLACE_TYPES.indexOf(type) === -1) return null;
 
+const text = (v) => (typeof v === 'string' ? v.trim() : '');
+const address = text(raw.address) || text(raw.address_ar) || text(raw.address_en);
+const addressAr = text(raw.address_ar);
+const addressEn = text(raw.address_en);
+
 return {
     id: String(raw.id),
     slug: typeof raw.slug === 'string' && raw.slug.trim() ? raw.slug.trim() : null,
@@ -135,8 +149,11 @@ return {
     name_en: nameEn,
     type,
     region: normalizeRegion(raw.region) || '',
-    address: typeof raw.address === 'string' ? raw.address.trim() : '',
+    address: address,
+    address_ar: addressAr || address || addressEn,
+    address_en: addressEn || address || addressAr,
     image_url: safeImageUrl(raw.image_url),
+    image_thumb: safeImageUrl(raw.image_thumb_url),
     is_open: raw.is_open === true || raw.is_open === 1 || raw.is_open === '1',
     whatsapp: normalizePhone(raw.whatsapp),
     phone: normalizePhone(raw.phone),
@@ -182,7 +199,8 @@ return headers;
 
 async function request(path) {
 const controller = typeof AbortController === 'function' ? new AbortController() : null;
-const timer = controller ? setTimeout(() => controller.abort(), CONFIG.TIMEOUT_MS) : null;
+let timedOut = false;
+const timer = controller ? setTimeout(() => { timedOut = true; controller.abort(); }, CONFIG.TIMEOUT_MS) : null;
 
 let res;
 try {
@@ -193,7 +211,7 @@ try {
     signal: controller ? controller.signal : undefined,
     });
 } catch (err) {
-    if (err && err.name === 'AbortError') throw GMShopsError('timeout', 'Request timed out');
+    if (timedOut) throw GMShopsError('timeout', 'Request timed out');
     throw GMShopsError('network', 'Network error');
 } finally {
     if (timer) clearTimeout(timer);
@@ -215,6 +233,23 @@ if (json === null) throw GMShopsError('invalid_response', 'Empty or invalid JSON
 return json;
 }
 
+function isRetryable(err) {
+return err.code === 'network' || err.code === 'timeout' || (err.code === 'server' && err.status >= 500);
+}
+
+async function requestWithRetry(path) {
+let attempt = 0;
+for (;;) {
+    try {
+    return await request(path);
+    } catch (err) {
+    if (attempt >= CONFIG.RETRY || !isRetryable(err)) throw err;
+    attempt += 1;
+    await delay(300 + Math.random() * 500 * attempt);
+    }
+}
+}
+
 function apiFetchPage(params) {
 const query = new URLSearchParams();
 if (params.type) query.set('type', params.type);
@@ -222,26 +257,26 @@ if (params.region) query.set('region', params.region);
 if (params.open) query.set('open', '1');
 if (params.cursor) query.set('cursor', params.cursor);
 query.set('limit', String(params.limit));
-return request('/places?' + query.toString());
+return requestWithRetry('/places?' + query.toString());
 }
 
 const MOCK_PLACES = [
-{ id: 1, slug: 'batikha', name_ar: 'بطيخة', name_en: 'Batikha', type: 'restaurant', region: 'Nuseirat', address: 'شارع الشهداء', image_url: 'assets/img/demo/demo.webp', is_open: true, whatsapp: '972590000001', has_menu: true },
-{ id: 2, slug: 'al-asema', name_ar: 'العاصمة', name_en: 'Al Asema', type: 'cafe', region: 'Nuseirat', address: 'بجانب مجمع الرازي الطبي', image_url: 'assets/img/demo/demo.webp', is_open: true, whatsapp: '972590000002', has_menu: true },
-{ id: 3, slug: 'roof-cafe', name_ar: 'الرووف', name_en: 'Roof Cafe', type: 'restaurant', region: 'Nuseirat', address: 'الشارع الرئيسي', image_url: 'assets/img/demo/demo.webp', is_open: false, whatsapp: '972590000003', has_menu: true },
-{ id: 4, slug: 'jeneen', name_ar: 'جنين', name_en: 'Jeneen', type: 'restaurant', region: 'DeirBalah', address: 'وسط المدينة', image_url: 'assets/img/demo/demo.webp', is_open: true, whatsapp: '972590000004', has_menu: true },
-{ id: 5, slug: 'sama-cafe', name_ar: 'سما كافيه', name_en: 'Sama Cafe', type: 'cafe', region: 'DeirBalah', address: 'قرب الكورنيش', image_url: 'assets/img/demo/demo.webp', is_open: false, whatsapp: '972590000005', has_menu: true },
-{ id: 6, slug: 'saada-shafout', name_ar: 'السعادة شفاعوط', name_en: "Al-Sa'ada Shaf'out", type: 'restaurant-cafe', region: 'Nuseirat', address: 'مفرق النصيرات', image_url: 'assets/img/demo/demo.webp', is_open: true, whatsapp: '972590000006', has_menu: true },
-{ id: 7, slug: 'bahr-restaurant', name_ar: 'مطعم البحر', name_en: 'Al Bahr Restaurant', type: 'restaurant', region: 'Alrimal', address: 'شارع الوحدة', image_url: 'assets/img/demo/demo.webp', is_open: true, whatsapp: '972590000007', has_menu: true },
-{ id: 8, slug: 'qahwa-w-kteb', name_ar: 'قهوة وكتاب', name_en: 'Coffee & Books', type: 'cafe', region: 'Alrimal', address: 'قرب الجامعة', image_url: 'assets/img/demo/demo.webp', is_open: true, whatsapp: '972590000008', has_menu: true },
-{ id: 9, slug: 'tal-hawa-grill', name_ar: 'مشويات تل الهوا', name_en: 'Tal Al-Hawa Grill', type: 'restaurant', region: 'TalHawa', address: 'الشارع العام', image_url: 'assets/img/demo/demo.webp', is_open: false, whatsapp: '972590000009', has_menu: false },
-{ id: 10, slug: 'khan-yunis-mandi', name_ar: 'مندي خان يونس', name_en: 'Khan Yunis Mandi', type: 'restaurant', region: 'KhanYunis', address: 'قرب دوار الأمم', image_url: 'assets/img/demo/demo.webp', is_open: true, whatsapp: '972590000010', has_menu: true },
-{ id: 11, slug: 'rafah-sweets', name_ar: 'حلويات رفح', name_en: 'Rafah Sweets', type: 'cafe', region: 'Rafah', address: 'السوق القديم', image_url: 'assets/img/demo/demo.webp', is_open: true, whatsapp: '972590000011', has_menu: true },
-{ id: 12, slug: 'mawasi-kitchen', name_ar: 'مطبخ المواصي', name_en: 'Mawasi Kitchen', type: 'restaurant-cafe', region: 'MawasiKhanYunis', address: 'شارع البحر', image_url: 'assets/img/demo/demo.webp', is_open: true, whatsapp: '972590000012', has_menu: true },
-{ id: 13, slug: 'jabalia-shawarma', name_ar: 'شاورما جباليا', name_en: 'Jabalia Shawarma', type: 'restaurant', region: 'Jabalia', address: 'دوار الصفطاوي', image_url: 'assets/img/demo/demo.webp', is_open: false, whatsapp: '972590000013', has_menu: false },
-{ id: 14, slug: 'beit-lahia-cafe', name_ar: 'كافيه بيت لاهيا', name_en: 'Beit Lahia Cafe', type: 'cafe', region: 'BeitLahia', address: 'الشارع الرئيسي', image_url: 'assets/img/demo/demo.webp', is_open: true, whatsapp: '972590000014', has_menu: true },
-{ id: 15, slug: 'work-corner', name_ar: 'ركن العمل', name_en: 'Work Corner', type: 'workspace', region: 'Alrimal', address: 'قرب الجامعة', image_url: 'assets/img/demo/demo.webp', is_open: true, whatsapp: '972590000015', has_menu: false },
-{ id: 16, slug: 'al-amal-market', name_ar: 'سوبرماركت الأمل', name_en: 'Al Amal Supermarket', type: 'supermarket', region: 'Nuseirat', address: 'الشارع الرئيسي', image_url: 'assets/img/demo/demo.webp', is_open: false, whatsapp: '972590000016', has_menu: false },
+{ id: 1, slug: 'batikha', name_ar: 'بطيخة', name_en: 'Batikha', type: 'restaurant', region: 'Nuseirat', address_ar: 'مفترق ابو صرار', address_en: 'Abu Sarar Junction', image_url: 'assets/img/demo.webp', is_open: true, whatsapp: '972590000001', has_menu: true },
+{ id: 2, slug: 'al-asema', name_ar: 'العاصمة', name_en: 'Al Asema', type: 'cafe', region: 'Nuseirat', address_ar: 'بجانب مجمع الرازي الطبي', address_en: 'Next to Al-Razi Medical Complex', image_url: 'assets/img/demo.webp', is_open: true, whatsapp: '972590000002', has_menu: true },
+{ id: 3, slug: 'roof-cafe', name_ar: 'الرووف', name_en: 'Roof Cafe', type: 'restaurant', region: 'Nuseirat', address: 'الشارع الرئيسي', image_url: null, is_open: false, whatsapp: '972590000003', has_menu: true },
+{ id: 4, slug: 'jeneen', name_ar: 'جنين', name_en: 'Jeneen', type: 'restaurant', region: 'DeirBalah', address: 'وسط المدينة', image_url: 'assets/img/demo.webp', is_open: true, whatsapp: '972590000004', has_menu: true },
+{ id: 5, slug: 'sama-cafe', name_ar: 'سما كافيه', name_en: 'Sama Cafe', type: 'cafe', region: 'DeirBalah', address: 'قرب الكورنيش', image_url: null, is_open: false, whatsapp: '972590000005', has_menu: true },
+{ id: 6, slug: 'saada-shafout', name_ar: 'السعادة شفاعوط', name_en: "Al-Sa'ada Shaf'out", type: 'restaurant-cafe', region: 'Nuseirat', address: 'مفترق النصيرات', image_url: 'assets/img/demo.webp', is_open: true, whatsapp: '972590000006', has_menu: true },
+{ id: 7, slug: 'bahr-restaurant', name_ar: 'مطعم البحر', name_en: 'Al Bahr Restaurant', type: 'restaurant', region: 'Alrimal', address: 'شارع الوحدة', image_url: 'assets/img/demo.webp', is_open: true, whatsapp: '972590000007', has_menu: true },
+{ id: 8, slug: 'qahwa-w-kteb', name_ar: 'قهوة وكتاب', name_en: 'Coffee & Books', type: 'cafe', region: 'Alrimal', address: 'قرب الجامعة', image_url: 'assets/img/demo.webp', is_open: true, whatsapp: '972590000008', has_menu: true },
+{ id: 9, slug: 'tal-hawa-grill', name_ar: 'مشويات تل الهوا', name_en: 'Tal Al-Hawa Grill', type: 'restaurant', region: 'TalHawa', address: 'الشارع العام', image_url: null, is_open: false, whatsapp: '972590000009', has_menu: false },
+{ id: 10, slug: 'khan-yunis-mandi', name_ar: 'مندي خان يونس', name_en: 'Khan Yunis Mandi', type: 'restaurant', region: 'KhanYunis', address: 'قرب دوار الأمم', image_url: 'assets/img/demo.webp', is_open: true, whatsapp: '972590000010', has_menu: true },
+{ id: 11, slug: 'rafah-sweets', name_ar: 'حلويات رفح', name_en: 'Rafah Sweets', type: 'cafe', region: 'Rafah', address: 'السوق القديم', image_url: 'assets/img/demo.webp', is_open: true, whatsapp: '972590000011', has_menu: true },
+{ id: 12, slug: 'mawasi-kitchen', name_ar: 'مطبخ المواصي', name_en: 'Mawasi Kitchen', type: 'restaurant-cafe', region: 'MawasiKhanYunis', address: 'شارع البحر', image_url: 'assets/img/demo.webp', is_open: true, whatsapp: '972590000012', has_menu: true },
+{ id: 13, slug: 'jabalia-shawarma', name_ar: 'شاورما جباليا', name_en: 'Jabalia Shawarma', type: 'restaurant', region: 'Jabalia', address: 'دوار الصفطاوي', image_url: null, is_open: false, whatsapp: '972590000013', has_menu: false },
+{ id: 14, slug: 'beit-lahia-cafe', name_ar: 'كافيه بيت لاهيا', name_en: 'Beit Lahia Cafe', type: 'cafe', region: 'BeitLahia', address: 'الشارع الرئيسي', image_url: 'assets/img/demo.webp', is_open: true, whatsapp: '972590000014', has_menu: true },
+{ id: 15, slug: 'work-corner', name_ar: 'ركن العمل', name_en: 'Work Corner', type: 'workspace', region: 'Alrimal', address: 'قرب الجامعة', image_url: 'assets/img/demo.webp', is_open: true, whatsapp: '972590000015', has_menu: false },
+{ id: 16, slug: 'al-amal-market', name_ar: 'سوبرماركت الأمل', name_en: 'Al Amal Supermarket', type: 'supermarket', region: 'Nuseirat', address: 'الشارع الرئيسي', image_url: 'assets/img/demo.webp', is_open: false, whatsapp: '972590000016', has_menu: false },
 ];
 
 const MENU_FREE_LIMITS = { categories: 5, items: 10 };
@@ -341,27 +376,55 @@ const items = data.items
 return { categories, items };
 }
 
+const detailCache = new Map();
+const detailInflight = new Map();
+
+function memoDetail(key, loader) {
+if (USE_MOCK && getTestMode()) return loader();
+
+const hit = detailCache.get(key);
+if (hit && Date.now() - hit.savedAt < DETAIL_TTL_MS) return Promise.resolve(hit.json);
+
+let pending = detailInflight.get(key);
+if (!pending) {
+    pending = loader()
+    .then((json) => {
+        detailCache.set(key, { savedAt: Date.now(), json: json });
+        while (detailCache.size > DETAIL_MAX) detailCache.delete(detailCache.keys().next().value);
+        return json;
+    })
+    .finally(() => { detailInflight.delete(key); });
+    detailInflight.set(key, pending);
+}
+return pending;
+}
+
+function safeSlug(slug) {
+return typeof slug === 'string' && /^[a-z0-9-]{1,80}$/i.test(slug) ? slug : '';
+}
+
 async function getPlace(slug) {
-const safeSlug = typeof slug === 'string' && /^[a-z0-9-]{1,80}$/i.test(slug) ? slug : '';
-if (!safeSlug) throw GMShopsError('not_found', 'Place not found', 404);
-const json = USE_MOCK ? await mockGetPlace(safeSlug) : await request('/places/' + encodeURIComponent(safeSlug));
+const clean = safeSlug(slug);
+if (!clean) throw GMShopsError('not_found', 'Place not found', 404);
+const json = await memoDetail('place:' + clean, () => (USE_MOCK ? mockGetPlace(clean) : requestWithRetry('/places/' + encodeURIComponent(clean))));
 const place = normalizePlace(json && json.data);
 if (!place) throw GMShopsError('invalid_response', 'Invalid place response');
 return place;
 }
 
 async function getMenu(slug) {
-const safeSlug = typeof slug === 'string' && /^[a-z0-9-]{1,80}$/i.test(slug) ? slug : '';
-if (!safeSlug) throw GMShopsError('not_found', 'Place not found', 404);
-const json = USE_MOCK ? await mockGetMenu(safeSlug) : await request('/places/' + encodeURIComponent(safeSlug) + '/menu');
+const clean = safeSlug(slug);
+if (!clean) throw GMShopsError('not_found', 'Place not found', 404);
+const json = await memoDetail('menu:' + clean, () => (USE_MOCK ? mockGetMenu(clean) : requestWithRetry('/places/' + encodeURIComponent(clean) + '/menu')));
 return normalizeMenu(json);
 }
 
 function mockMatches(place, params) {
-if (params.type === 'restaurant' && place.type !== 'restaurant' && place.type !== 'restaurant-cafe') return false;
-if (params.type === 'cafe' && place.type !== 'cafe' && place.type !== 'restaurant-cafe') return false;
-if (params.type === 'workspace' && place.type !== 'workspace') return false;
-if (params.type === 'supermarket' && place.type !== 'supermarket') return false;
+if (params.type) {
+    const t = params.type;
+    const ok = t === place.type || (place.type === 'restaurant-cafe' && (t === 'restaurant' || t === 'cafe'));
+    if (!ok) return false;
+}
 if (params.region && place.region !== params.region) return false;
 if (params.open && !place.is_open) return false;
 return true;
@@ -386,31 +449,48 @@ return {
 };
 }
 
-async function fetchPage(params) {
-const clean = {
-    type: params && PLACE_TYPES.indexOf(params.type) !== -1 && params.type !== 'restaurant-cafe' ? params.type : null,
-    region: params && params.region ? normalizeRegion(params.region) : null,
-    open: !!(params && params.open),
-    cursor: params && params.cursor ? String(params.cursor) : null,
-    limit: Math.max(1, Math.min(Number(params && params.limit) || DEFAULT_LIMIT, 24)),
+const memory = new Map();
+const inflight = new Map();
+
+function cleanParams(params) {
+const p = params || {};
+return {
+    type: FILTER_TYPES.indexOf(p.type) !== -1 ? p.type : null,
+    region: p.region ? normalizeRegion(p.region) : null,
+    open: !!p.open,
+    cursor: p.cursor ? String(p.cursor) : null,
+    limit: Math.max(1, Math.min(Number(p.limit) || DEFAULT_LIMIT, MAX_LIMIT)),
 };
-const json = USE_MOCK ? await mockFetchPage(clean) : await apiFetchPage(clean);
-return normalizePage(json);
 }
 
-function readCache(key) {
+function pageKey(c) {
+return [c.type || '', c.region || '', c.open ? 1 : 0, c.cursor || '', c.limit].join('|');
+}
+
+function readPersisted(key) {
 const cache = readJson(CACHE_KEY, {});
 const entry = cache && cache[key];
 if (!entry || !Array.isArray(entry.items)) return null;
 return {
+    savedAt: Number(entry.savedAt) || 0,
+    page: {
     items: entry.items.map(normalizePlace).filter(Boolean),
-    savedAt: Number(entry.savedAt) || null,
+    nextCursor: entry.nextCursor || null,
+    hasMore: !!entry.hasMore && !!entry.nextCursor,
+    total: typeof entry.total === 'number' ? entry.total : null,
+    },
 };
 }
 
-function writeCache(key, items) {
+function writePersisted(key, page) {
 const cache = readJson(CACHE_KEY, {});
-cache[key] = { savedAt: Date.now(), items: items.slice(0, CACHE_MAX_ITEMS) };
+cache[key] = {
+    savedAt: Date.now(),
+    items: page.items.slice(0, CACHE_MAX_ITEMS),
+    nextCursor: page.nextCursor,
+    hasMore: page.hasMore,
+    total: page.total,
+};
 
 const keys = Object.keys(cache);
 if (keys.length > CACHE_MAX_KEYS) {
@@ -423,14 +503,112 @@ if (keys.length > CACHE_MAX_KEYS) {
 writeJson(CACHE_KEY, cache);
 }
 
+function lookup(key, firstPage) {
+const hit = memory.get(key);
+if (hit) {
+    memory.delete(key);
+    memory.set(key, hit);
+    return hit;
+}
+if (!firstPage) return null;
+const stored = readPersisted(key);
+if (stored) memory.set(key, stored);
+return stored;
+}
+
+function remember(key, page, firstPage) {
+memory.set(key, { savedAt: Date.now(), page: page });
+while (memory.size > MEMORY_MAX) memory.delete(memory.keys().next().value);
+if (firstPage) writePersisted(key, page);
+}
+
+function peekPage(params) {
+if (USE_MOCK && getTestMode()) return null;
+const clean = cleanParams(params);
+const hit = lookup(pageKey(clean), !clean.cursor);
+if (!hit || Date.now() - hit.savedAt > STALE_MS) return null;
+return { page: hit.page, fresh: Date.now() - hit.savedAt < FRESH_MS };
+}
+
+function withSignal(promise, signal) {
+if (!signal) return promise;
+return new Promise((resolve, reject) => {
+    if (signal.aborted) {
+    reject(GMShopsError('aborted', 'Request aborted'));
+    return;
+    }
+    const onAbort = () => reject(GMShopsError('aborted', 'Request aborted'));
+    signal.addEventListener('abort', onAbort, { once: true });
+    promise.then(
+    (value) => { signal.removeEventListener('abort', onAbort); resolve(value); },
+    (err) => { signal.removeEventListener('abort', onAbort); reject(err); }
+    );
+});
+}
+
+async function fetchPage(params, options) {
+const opts = options || {};
+const clean = cleanParams(params);
+const key = pageKey(clean);
+const firstPage = !clean.cursor;
+const bypass = USE_MOCK && !!getTestMode();
+
+if (!bypass && !opts.refresh) {
+    const hit = lookup(key, firstPage);
+    if (hit && Date.now() - hit.savedAt < FRESH_MS) return hit.page;
+}
+
+let pending = bypass ? null : inflight.get(key);
+if (!pending) {
+    pending = (USE_MOCK ? mockFetchPage(clean) : apiFetchPage(clean)).then((json) => {
+    const page = normalizePage(json);
+    if (!bypass) remember(key, page, firstPage);
+    return page;
+    });
+    if (!bypass) {
+    inflight.set(key, pending);
+    const done = () => { inflight.delete(key); };
+    pending.then(done, done);
+    }
+}
+
+try {
+    return await withSignal(pending, opts.signal);
+} catch (err) {
+    if (err && err.code !== 'aborted' && !bypass) {
+    const stale = lookup(key, firstPage);
+    if (stale && Date.now() - stale.savedAt <= STALE_MS) return Object.assign({}, stale.page, { stale: true });
+    }
+    throw err;
+}
+}
+
+function clearCache() {
+memory.clear();
+detailCache.clear();
+try {
+    localStorage.removeItem(CACHE_KEY);
+} catch (err) {
+    console.error('shops cache clear failed:', err);
+}
+}
+
+LEGACY_CACHE_KEYS.forEach((key) => {
+try {
+    localStorage.removeItem(key);
+} catch (err) {
+}
+});
+
 window.GMShops = {
 isMock: USE_MOCK,
 defaultLimit: DEFAULT_LIMIT,
+filterTypes: FILTER_TYPES,
 normalizeRegion,
 fetchPage,
+peekPage,
+clearCache,
 getPlace,
 getMenu,
-readCache,
-writeCache,
 };
 })();
