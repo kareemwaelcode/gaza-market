@@ -1,27 +1,17 @@
 'use strict';
 
-/*
- * Gaza Market - shops page (shops.html)
- *
- * The cards are plain HTML (one Bootstrap column per shop, marked with data-shop + data-* fields).
- * This script only adds behaviour on top of them: filters, favourites and the AR/EN shop names.
- *
- * Filters (combinable): type (all / restaurant / cafe) + region + "open only". The "All" chip resets everything.
- * The filter state lives in the URL with the same query names the backend will use:
- *   shops.html?type=cafe&region=Nuseirat&open=1
- * Later Laravel reads the same query string and renders only the matching cards; this script then just
- * keeps the controls in sync (the card data-* fields stay the same).
- *
- * Load order: translations.js, i18n.js, shops.js, main.js ...
- */
 (function () {
   var list = document.getElementById('shopsGrid');
   if (!list) return;
 
   var cards = Array.prototype.slice.call(list.querySelectorAll('[data-shop]'));
+  var skeleton = document.getElementById('shopsSkeleton');
   var stateBox = document.getElementById('shopsState');
   var stateTitle = document.getElementById('shopsStateTitle');
   var stateSub = document.getElementById('shopsStateSub');
+  var resetBtn = document.getElementById('shopsReset');
+  var addBtn = document.getElementById('shopsAdd');
+  var countEl = document.getElementById('shopsCount');
   var typeBtn = document.getElementById('shopsTypeBtn');
   var typeLabel = document.getElementById('shopsTypeLabel');
   var regionBtn = document.getElementById('shopsRegionBtn');
@@ -31,16 +21,23 @@
   var typeItems = Array.prototype.slice.call(document.querySelectorAll('[data-shops-type]'));
   var regionItems = Array.prototype.slice.call(document.querySelectorAll('[data-shops-region]'));
 
-  // filterable types -> label of the filter
   var TYPE_FILTERS = {
     'restaurant': 'shops.filterRestaurants',
-    'cafe': 'shops.filterCafes'
+    'cafe': 'shops.filterCafes',
+    'workspace': 'shops.filterWorkspaces',
+    'supermarket': 'shops.filterSupermarkets'
   };
 
   var FAV_KEY = 'gm_shops_favs_v1';
+  var FALLBACK_IMG = 'assets/img/shop-placeholder.svg';
+  var EAGER_COUNT = 4;
+  var LOAD_TIMEOUT_MS = 1500;
+  var STAGGER_MS = 60;
+  var STAGGER_MAX = 8;
 
-  // type: 'all' | 'restaurant' | 'cafe'     region: 'all' | region code     open: boolean
   var state = { type: 'all', region: 'all', open: false };
+  var visibleCount = cards.length;
+  var reduceMotion = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : { matches: false };
 
   function t(key) {
     return typeof i18n !== 'undefined' && i18n.t ? i18n.t(key) : key;
@@ -50,11 +47,17 @@
     return document.documentElement.getAttribute('lang') === 'en' ? 'en' : 'ar';
   }
 
+  function isTypeFilter(type) {
+    return Object.prototype.hasOwnProperty.call(TYPE_FILTERS, type);
+  }
+
   function isRegionCode(code) {
     return regionItems.some(function (item) { return item.dataset.shopsRegion === code; });
   }
 
-  /* ------------------------------ URL <-> state ------------------------------ */
+  function hasActiveFilters() {
+    return state.type !== 'all' || state.region !== 'all' || state.open;
+  }
 
   function readUrl() {
     var params;
@@ -65,7 +68,7 @@
     }
     var type = params.get('type');
     var region = params.get('region');
-    if (TYPE_FILTERS[type]) state.type = type;
+    if (type && isTypeFilter(type)) state.type = type;
     if (region && region !== 'all' && isRegionCode(region)) state.region = region;
     state.open = params.get('open') === '1';
   }
@@ -79,11 +82,9 @@
     try {
       history.replaceState(null, '', window.location.pathname + (query ? '?' + query : ''));
     } catch (err) {
-      /* history can be blocked (file://, sandbox): filters still work */
+      console.error('shops url sync failed:', err);
     }
   }
-
-  /* ------------------------------ favourites (browser only for now) ------------------------------ */
 
   function readFavs() {
     try {
@@ -117,14 +118,21 @@
     });
   }
 
-  /* ------------------------------ rendering ------------------------------ */
+  function typeMatches(cardType) {
+    if (cardType === state.type) return true;
+    return cardType === 'restaurant-cafe' && (state.type === 'restaurant' || state.type === 'cafe');
+  }
 
   function matches(card) {
-    var type = card.dataset.type;
-    if (state.type !== 'all' && type !== state.type && type !== 'restaurant-cafe') return false;
+    if (state.type !== 'all' && !typeMatches(card.dataset.type)) return false;
     if (state.region !== 'all' && card.dataset.region !== state.region) return false;
     if (state.open && card.dataset.open !== '1') return false;
     return true;
+  }
+
+  function paintCount() {
+    if (!countEl) return;
+    countEl.textContent = t('shops.count').replace('{n}', String(visibleCount));
   }
 
   function showEmpty(show) {
@@ -134,20 +142,34 @@
     }
     stateTitle.textContent = t('shops.empty');
     stateSub.textContent = t('shops.emptySub');
+    if (resetBtn) resetBtn.hidden = !hasActiveFilters();
+    if (addBtn) addBtn.hidden = false;
     stateBox.hidden = false;
   }
 
-  function renderCards() {
-    var visible = 0;
+  function playEnter(shown) {
+    if (reduceMotion.matches) return;
+    shown.forEach(function (card, index) {
+      card.classList.remove('is-entering');
+      card.style.setProperty('--enter-delay', Math.min(index, STAGGER_MAX) * STAGGER_MS + 'ms');
+    });
+    void list.offsetWidth;
+    shown.forEach(function (card) { card.classList.add('is-entering'); });
+  }
+
+  function renderCards(animate) {
+    var shown = [];
     cards.forEach(function (card) {
       var show = matches(card);
       card.hidden = !show;
-      if (show) visible++;
+      if (show) shown.push(card);
     });
-    showEmpty(visible === 0);
+    visibleCount = shown.length;
+    paintCount();
+    showEmpty(visibleCount === 0);
+    if (animate) playEnter(shown);
   }
 
-  // shop names come in both languages from the server (data-name-ar / data-name-en)
   function paintNames() {
     var lang = currentLang();
     cards.forEach(function (card) {
@@ -159,7 +181,7 @@
   }
 
   function syncFilterUI() {
-    var isAll = state.type === 'all' && state.region === 'all' && !state.open;
+    var isAll = !hasActiveFilters();
     allChip.classList.toggle('is-active', isAll);
     allChip.setAttribute('aria-pressed', isAll ? 'true' : 'false');
 
@@ -189,9 +211,6 @@
     regionLabel.textContent = regionActive ? t(state.region) : t('AllRegions');
   }
 
-  /* ------------------------------ events ------------------------------ */
-
-  // patch: any of { type, region, open }. Re-renders only when something really changed.
   function apply(patch) {
     var changed = false;
     Object.keys(patch).forEach(function (key) {
@@ -202,11 +221,10 @@
     });
     if (!changed) return;
     syncFilterUI();
-    renderCards();
+    renderCards(true);
     writeUrl();
   }
 
-  // one delegated listener for every filter control (chips, dropdown items, sidebar types)
   document.addEventListener('click', function (e) {
     var el = e.target.closest('[data-shops-all],[data-shops-type],[data-shops-open],[data-shops-region]');
     if (!el) return;
@@ -217,8 +235,7 @@
       apply({ open: !state.open });
     } else if (el.hasAttribute('data-shops-type')) {
       var type = el.dataset.shopsType;
-      if (type !== 'all' && !TYPE_FILTERS[type]) return;
-      // sidebar shortcuts toggle: a second click on the active type clears it
+      if (type !== 'all' && !isTypeFilter(type)) return;
       var toggle = el.classList.contains('shops-popular__item') && type === state.type;
       apply({ type: toggle ? 'all' : type });
     } else {
@@ -239,7 +256,75 @@
     paintFav(btn, on);
   });
 
-  // Language switch: i18n.js translates every data-i18n text; this refreshes what it does not know about
+  list.addEventListener('animationend', function (e) {
+    if (e.target.classList && e.target.classList.contains('is-entering')) {
+      e.target.classList.remove('is-entering');
+    }
+  });
+
+  function watchImage(img) {
+    var media = img.closest('.shops-card__media');
+    if (!media) return;
+
+    function settle() {
+      media.classList.remove('is-loading');
+    }
+
+    function fallback() {
+      if (img.getAttribute('src') !== FALLBACK_IMG) {
+        img.src = FALLBACK_IMG;
+      } else {
+        settle();
+      }
+    }
+
+    img.addEventListener('load', settle);
+    img.addEventListener('error', fallback);
+
+    if (!img.complete) {
+      media.classList.add('is-loading');
+    } else if (img.naturalWidth === 0) {
+      fallback();
+    }
+  }
+
+  function setLoading(on) {
+    if (on) list.setAttribute('aria-busy', 'true');
+    else list.removeAttribute('aria-busy');
+    if (skeleton) skeleton.hidden = !on;
+  }
+
+  function whenFirstImagesSettle(done) {
+    var pending = cards.slice(0, EAGER_COUNT)
+      .map(function (card) { return card.querySelector('.shops-card__img'); })
+      .filter(function (img) { return img && !img.complete; });
+
+    var finished = false;
+    var left = pending.length;
+
+    function finish() {
+      if (finished) return;
+      finished = true;
+      done();
+    }
+
+    function step() {
+      left -= 1;
+      if (left <= 0) finish();
+    }
+
+    if (!left) {
+      finish();
+      return;
+    }
+
+    pending.forEach(function (img) {
+      img.addEventListener('load', step, { once: true });
+      img.addEventListener('error', step, { once: true });
+    });
+    window.setTimeout(finish, LOAD_TIMEOUT_MS);
+  }
+
   var lastLang = currentLang();
   new MutationObserver(function () {
     var lang = currentLang();
@@ -248,12 +333,25 @@
     paintNames();
     paintFavs();
     syncFilterUI();
+    paintCount();
     if (!stateBox.hidden) showEmpty(true);
   }).observe(document.documentElement, { attributes: true, attributeFilter: ['lang'] });
+
+  window.GMShopsUI = { setLoading: setLoading };
 
   readUrl();
   paintNames();
   paintFavs();
   syncFilterUI();
-  renderCards();
+  renderCards(false);
+
+  cards.forEach(function (card) {
+    var img = card.querySelector('.shops-card__img');
+    if (img) watchImage(img);
+  });
+
+  whenFirstImagesSettle(function () {
+    setLoading(false);
+    renderCards(true);
+  });
 })();

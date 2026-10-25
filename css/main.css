@@ -8878,7 +8878,6 @@ body.dark-mode .priceList .check-badge button {
   }
 }
 
-
 #offline-banner {
   position: sticky;
   top: 0;
@@ -9136,45 +9135,15 @@ body.dark-mode {
   }
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-/* ==========================================================================
-   Shops page (shops.html) - every class starts with shops-
-   Lives at the END of css/main.css. Colors come from the existing variables,
-   so Dark Mode (body.dark-mode) and RTL/LTR (logical properties) work without extra rules.
-   ========================================================================== */
 .shops-page {
+  --shops-shimmer: rgba(255, 255, 255, 0.55);
   padding: 0;
 }
 
-/* css/vendor/bootstrap.min.css is a trimmed build: it has no .col-sm-6 / .col-lg-3.
-   Same definitions as Bootstrap 5.3, scoped to this page, so the cards can use the normal grid classes. */
+body.dark-mode .shops-page {
+  --shops-shimmer: rgba(255, 255, 255, 0.08);
+}
+
 @media (min-width: 576px) {
   .shops-page .col-sm-6 {
     flex: 0 0 auto;
@@ -9183,7 +9152,14 @@ body.dark-mode {
 }
 
 @media (min-width: 992px) {
-  .shops-page .col-lg-3 {
+  .shops-page .col-lg-4 {
+    flex: 0 0 auto;
+    width: 33.33333333%;
+  }
+}
+
+@media (min-width: 1400px) {
+  .shops-page .col-xxl-3 {
     flex: 0 0 auto;
     width: 25%;
   }
@@ -9193,7 +9169,6 @@ body.dark-mode {
   flex-shrink: 0;
 }
 
-/* ---------- filter bar ---------- */
 .shops-filters {
   display: flex;
   flex-wrap: wrap;
@@ -9205,6 +9180,22 @@ body.dark-mode {
   border: 1px solid var(--border-color);
   border-radius: 16px;
   box-shadow: var(--gm-shadow);
+  animation: shopsEnter 0.4s ease both;
+}
+
+.shops-count {
+  margin: 0;
+  margin-inline-start: auto;
+  padding-inline: 0.5rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--gm-muted);
+  white-space: nowrap;
+}
+
+.shops-chip > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .shops-chip {
@@ -9242,6 +9233,7 @@ body.dark-mode {
   background: var(--blue);
   border-color: var(--blue);
   color: #fff;
+  box-shadow: 0 2px 8px rgba(56, 102, 223, 0.3);
 }
 
 .shops-chip.shops-chip--menu.is-active {
@@ -9258,7 +9250,6 @@ body.dark-mode {
   transform: rotate(180deg);
 }
 
-/* ---------- dropdown menus (type + region) ---------- */
 .shops-menu {
   min-width: 220px;
   max-height: min(320px, 60vh);
@@ -9302,7 +9293,6 @@ body.dark-mode {
   border-color: var(--border-color);
 }
 
-/* ---------- sidebar: popular types ---------- */
 .shops-popular__list {
   display: flex;
   flex-direction: column;
@@ -9342,7 +9332,6 @@ body.dark-mode {
   color: var(--blue);
 }
 
-/* ---------- cards ---------- */
 .shops-card {
   position: relative;
   container-type: inline-size;
@@ -9362,18 +9351,19 @@ body.dark-mode {
 .shops-card__media {
   position: relative;
   flex-shrink: 0;
-  height: 150px;
+  aspect-ratio: 16 / 10;
   overflow: hidden;
   background: var(--gm-surface-2);
 }
 
-.shops-card__ph {
+.shops-card__media::after {
+  content: "";
   position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--gm-faint);
+  inset: 0 0 auto;
+  z-index: 1;
+  height: 64px;
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.35), rgba(0, 0, 0, 0));
+  pointer-events: none;
 }
 
 .shops-card__img {
@@ -9382,6 +9372,13 @@ body.dark-mode {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  transition:
+    transform 0.35s ease,
+    opacity 0.3s ease;
+}
+
+.shops-card__media.is-loading .shops-card__img {
+  opacity: 0;
 }
 
 .shops-card__status {
@@ -9476,7 +9473,6 @@ body.dark-mode {
   overflow-wrap: anywhere;
 }
 
-/* the whole card is clickable through the name link; buttons sit above it */
 .shops-card__link {
   color: inherit;
   text-decoration: none;
@@ -9561,7 +9557,115 @@ body.dark-mode {
   background: var(--blue-dark);
 }
 
-/* ---------- empty / error + load more ---------- */
+.shops-grid[aria-busy="true"] {
+  display: none;
+}
+
+.shops-skeleton > * {
+  display: none;
+}
+
+.shops-skeleton > :nth-child(1) {
+  display: block;
+}
+
+@media (min-width: 576px) {
+  .shops-skeleton > :nth-child(2) {
+    display: block;
+  }
+}
+
+@media (min-width: 992px) {
+  .shops-skeleton > :nth-child(3) {
+    display: block;
+  }
+}
+
+@media (min-width: 1400px) {
+  .shops-skeleton > :nth-child(4) {
+    display: block;
+  }
+}
+
+.shops-card--skeleton {
+  pointer-events: none;
+}
+
+.shops-card--skeleton .shops-card__media::after {
+  display: none;
+}
+
+.shops-skel,
+.shops-card--skeleton .shops-card__media {
+  position: relative;
+  overflow: hidden;
+  background: var(--gm-surface-2);
+}
+
+.shops-skel {
+  display: block;
+  border-radius: 8px;
+}
+
+.shops-skel::after,
+.shops-card--skeleton .shops-card__media::before,
+.shops-card__media.is-loading::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, transparent 20%, var(--shops-shimmer) 50%, transparent 80%);
+  background-size: 200% 100%;
+  animation: shopsShimmer 1.3s linear infinite;
+}
+
+.shops-skel--chip {
+  width: 4.5rem;
+  height: 1.2rem;
+  border-radius: 999px;
+}
+
+.shops-skel--title {
+  width: 70%;
+  height: 1.1rem;
+}
+
+.shops-skel--line {
+  width: 45%;
+  height: 0.8rem;
+}
+
+.shops-skel--btn {
+  height: 38px;
+  border-radius: 10px;
+}
+
+@keyframes shopsShimmer {
+  from {
+    background-position: 200% 0;
+  }
+
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@keyframes shopsEnter {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.shops-grid > .is-entering {
+  animation: shopsEnter 0.45s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+  animation-delay: var(--enter-delay, 0ms);
+}
+
 .shops-state {
   display: flex;
   flex-direction: column;
@@ -9588,7 +9692,6 @@ body.dark-mode {
   font-size: 0.85rem;
 }
 
-/* narrow card (4 per row): stack name/region and the two buttons so nothing is squeezed */
 @container (max-width: 230px) {
   .shops-card__row {
     flex-direction: column;
@@ -9606,15 +9709,65 @@ body.dark-mode {
     transform: translateY(-2px);
     box-shadow: var(--gm-shadow-card);
   }
+
+  .shops-card:hover .shops-card__img {
+    transform: scale(1.04);
+  }
+}
+
+@media (max-width: 991.98px) {
+  .shops-popular__list {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .shops-popular__item {
+    width: auto;
+  }
 }
 
 @media (max-width: 575.98px) {
   .shops-filters {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     padding: 0.6rem;
     gap: 0.5rem;
   }
 
-  /* single column on phones: keep the card compact instead of stretching edge to edge */
+  .shops-filters > [data-shops-all] {
+    order: 1;
+  }
+
+  .shops-filters > [data-shops-open] {
+    order: 2;
+  }
+
+  .shops-filters > .dropdown {
+    order: 3;
+    min-width: 0;
+  }
+
+  .shops-filters > .shops-count {
+    order: 4;
+    grid-column: 1 / -1;
+    margin: 0;
+    text-align: center;
+  }
+
+  .shops-chip {
+    width: 100%;
+    min-height: 44px;
+    justify-content: center;
+  }
+
+  .shops-chip--menu {
+    justify-content: space-between;
+  }
+
+  .shops-menu {
+    max-width: calc(100vw - 2rem);
+  }
+
   .shops-card {
     max-width: 420px;
     margin-inline: auto;
@@ -9622,7 +9775,16 @@ body.dark-mode {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .shops-filters,
+  .shops-grid > .is-entering,
+  .shops-skel::after,
+  .shops-card--skeleton .shops-card__media::before,
+  .shops-card__media.is-loading::before {
+    animation: none;
+  }
+
   .shops-card,
+  .shops-card__img,
   .shops-chip,
   .shops-chip__chev,
   .shops-card__fav {
@@ -9630,6 +9792,7 @@ body.dark-mode {
   }
 
   .shops-card:hover,
+  .shops-card:hover .shops-card__img,
   .shops-card__fav:hover {
     transform: none;
   }

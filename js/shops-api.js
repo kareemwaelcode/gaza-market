@@ -1,50 +1,5 @@
 'use strict';
 
-/*
- * Gaza Market - shops data layer (window.GMShops)
- *
- * Same pattern as js/prices-api.js: one place talks to the backend, the pages never fetch directly.
- *
- * ---------------------------------------------------------------------------
- * LARAVEL CONTRACT (what the backend must return)
- * ---------------------------------------------------------------------------
- *   GET /api/places?type=&region=&open=&cursor=&limit=
- *
- *   type    optional  restaurant | cafe        (restaurant-cafe places match BOTH values)
- *   region  optional  region code, e.g. Nuseirat, DeirBalah, KhanYunis (see REGIONS below)
- *   open    optional  1  -> only places whose is_open is true
- *   cursor  optional  opaque string returned as next_cursor by the previous page
- *   limit   optional  page size (default 12, backend caps it, e.g. 24)
- *
- *   200 JSON:
- *   {
- *     "data": [
- *       {
- *         "id": 17,                        // required
- *         "slug": "al-asema",              // optional, used in the link: shop.html?id=<slug|id>
- *         "name_ar": "العاصمة",
- *         "name_en": "Al Asema",           // at least one of name_ar / name_en is required
- *         "type": "cafe",                  // restaurant | cafe | restaurant-cafe
- *         "region": "Nuseirat",            // region code
- *         "address": "Near Al-Razi Medical Complex",   // optional
- *         "image_url": "https://.../x.webp",           // optional (null -> placeholder)
- *         "is_open": true,                 // manual open/closed switch of the owner
- *         "whatsapp": "972599123456",      // optional, digits only, international format without "+" (hides the WhatsApp button when empty)
- *         "has_menu": true                 // optional, shows the Menu button (page: shop.html?id=<slug|id>#menu)
- *       }
- *     ],
- *     "next_cursor": "opaque-or-null",
- *     "has_more": true,
- *     "total": 48                          // optional
- *   }
- *
- *   Errors: 401/419 unauthorized, 403 forbidden, 404 not_found, 422 validation, 429 rate_limited, 5xx server.
- *   Backend notes: paginate with a cursor, index (type, region, is_open), return only the columns above,
- *   cache the public list in Redis and clear it when a place or its open/closed status changes.
- * ---------------------------------------------------------------------------
- * Mock data is used ONLY on local hosts (window.GM_ENV.isMockAllowed()), exactly like prices-api.js.
- * Test modes on local hosts: ?gm_test=empty | error | slow
- */
 (function () {
 const DEFAULTS = {
 USE_MOCK: true,
@@ -62,7 +17,6 @@ const CACHE_MAX_KEYS = 12;
 const CACHE_MAX_ITEMS = 24;
 const DEFAULT_LIMIT = 12;
 
-// Same region codes/values as js/home.js (GM_REGIONS). Kept here so the shops page does not need home.js.
 const REGIONS = [
 { code: 'Nuseirat', value: 'Nuseirat' },
 { code: 'Breij', value: 'Breij' },
@@ -83,7 +37,7 @@ const REGIONS = [
 { code: 'Jabalia', value: 'Jabalia' },
 ];
 
-const PLACE_TYPES = ['restaurant', 'cafe', 'restaurant-cafe'];
+const PLACE_TYPES = ['restaurant', 'cafe', 'restaurant-cafe', 'workspace', 'supermarket'];
 
 const regionLookup = (function () {
 const squash = (s) => String(s).toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -147,7 +101,6 @@ try {
 }
 }
 
-// Only https, same-site absolute/relative paths and small inline images are accepted as image sources.
 function safeImageUrl(value) {
 if (typeof value !== 'string') return null;
 const v = value.trim();
@@ -159,7 +112,6 @@ if (/^data:image\/(png|jpe?g|webp);base64,/i.test(v)) return v;
 return null;
 }
 
-// WhatsApp number: digits only (10-15), used to build https://wa.me/<digits>. Anything else is dropped.
 function normalizePhone(value) {
 if (value === null || value === undefined) return '';
 const digits = String(value).replace(/\D/g, '');
@@ -209,8 +161,6 @@ return {
     total: isFinite(total) && total >= 0 ? Math.floor(total) : null,
 };
 }
-
-/* ------------------------------ real API ------------------------------ */
 
 function getXsrfToken() {
 const match = document.cookie.match(/(?:^|;\s*)XSRF-TOKEN=([^;]+)/);
@@ -274,8 +224,6 @@ query.set('limit', String(params.limit));
 return request('/places?' + query.toString());
 }
 
-/* ------------------------------ local mock ------------------------------ */
-
 const MOCK_PLACES = [
 { id: 1, slug: 'batikha', name_ar: 'بطيخة', name_en: 'Batikha', type: 'restaurant', region: 'Nuseirat', address: 'شارع الشهداء', image_url: null, is_open: true, whatsapp: '972590000001', has_menu: true },
 { id: 2, slug: 'al-asema', name_ar: 'العاصمة', name_en: 'Al Asema', type: 'cafe', region: 'Nuseirat', address: 'بجانب مجمع الرازي الطبي', image_url: null, is_open: true, whatsapp: '972590000002', has_menu: true },
@@ -291,11 +239,15 @@ const MOCK_PLACES = [
 { id: 12, slug: 'mawasi-kitchen', name_ar: 'مطبخ المواصي', name_en: 'Mawasi Kitchen', type: 'restaurant-cafe', region: 'MawasiKhanYunis', address: 'شارع البحر', image_url: null, is_open: true, whatsapp: '972590000012', has_menu: true },
 { id: 13, slug: 'jabalia-shawarma', name_ar: 'شاورما جباليا', name_en: 'Jabalia Shawarma', type: 'restaurant', region: 'Jabalia', address: 'دوار الصفطاوي', image_url: null, is_open: false, whatsapp: '972590000013', has_menu: false },
 { id: 14, slug: 'beit-lahia-cafe', name_ar: 'كافيه بيت لاهيا', name_en: 'Beit Lahia Cafe', type: 'cafe', region: 'BeitLahia', address: 'الشارع الرئيسي', image_url: null, is_open: true, whatsapp: '972590000014', has_menu: true },
+{ id: 15, slug: 'work-corner', name_ar: 'ركن العمل', name_en: 'Work Corner', type: 'workspace', region: 'Alrimal', address: 'قرب الجامعة', image_url: null, is_open: true, whatsapp: '972590000015', has_menu: false },
+{ id: 16, slug: 'al-amal-market', name_ar: 'سوبرماركت الأمل', name_en: 'Al Amal Supermarket', type: 'supermarket', region: 'Nuseirat', address: 'الشارع الرئيسي', image_url: null, is_open: false, whatsapp: '972590000016', has_menu: false },
 ];
 
 function mockMatches(place, params) {
 if (params.type === 'restaurant' && place.type !== 'restaurant' && place.type !== 'restaurant-cafe') return false;
 if (params.type === 'cafe' && place.type !== 'cafe' && place.type !== 'restaurant-cafe') return false;
+if (params.type === 'workspace' && place.type !== 'workspace') return false;
+if (params.type === 'supermarket' && place.type !== 'supermarket') return false;
 if (params.region && place.region !== params.region) return false;
 if (params.open && !place.is_open) return false;
 return true;
@@ -320,12 +272,9 @@ return {
 };
 }
 
-/* ------------------------------ public API ------------------------------ */
-
-// params: { type: 'restaurant'|'cafe'|null, region: code|null, open: boolean, cursor: string|null, limit: number }
 async function fetchPage(params) {
 const clean = {
-    type: params && (params.type === 'restaurant' || params.type === 'cafe') ? params.type : null,
+    type: params && PLACE_TYPES.indexOf(params.type) !== -1 && params.type !== 'restaurant-cafe' ? params.type : null,
     region: params && params.region ? normalizeRegion(params.region) : null,
     open: !!(params && params.open),
     cursor: params && params.cursor ? String(params.cursor) : null,
