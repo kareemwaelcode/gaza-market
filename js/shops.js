@@ -18,6 +18,9 @@
   var regionLabel = document.getElementById('shopsRegionLabel');
   var allChip = document.querySelector('[data-shops-all]');
   var openChip = document.querySelector('[data-shops-open]');
+  var moreWrap = document.getElementById('shopsMore');
+  var moreBtn = document.getElementById('shopsMoreBtn');
+  var moreLabel = document.getElementById('shopsMoreLabel');
   var clearChip = document.getElementById('shopsClear');
   var typeItems = Array.prototype.slice.call(document.querySelectorAll('[data-shops-type]'));
   var regionItems = Array.prototype.slice.call(document.querySelectorAll('[data-shops-region]'));
@@ -35,12 +38,14 @@
   var FAV_KEY = 'gm_shops_favs_v1';
   var FALLBACK_IMG = 'assets/img/shop-placeholder.svg';
   var EAGER_COUNT = 4;
+  var PAGE_SIZE = 20;
   var LOAD_TIMEOUT_MS = 1500;
   var STAGGER_MS = 60;
   var STAGGER_MAX = 8;
 
   var state = { type: 'all', region: 'all', open: false };
   var visibleCount = cards.length;
+  var limit = PAGE_SIZE;
   var reduceMotion = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : { matches: false };
 
   function t(key) {
@@ -192,17 +197,38 @@
     shown.forEach(function (card) { card.classList.add('is-entering'); });
   }
 
+  function paintMore() {
+    if (!moreWrap) return;
+    var remaining = Math.max(0, visibleCount - limit);
+    moreWrap.hidden = remaining === 0;
+    if (moreLabel) moreLabel.textContent = t('shops.showMore').replace('{n}', String(remaining));
+  }
+
   function renderCards(animate) {
     var shown = [];
+    var total = 0;
     cards.forEach(function (card) {
-      var show = matches(card);
+      var ok = matches(card);
+      if (ok) total += 1;
+      var show = ok && shown.length < limit;
       card.hidden = !show;
       if (show) shown.push(card);
     });
-    visibleCount = shown.length;
+    visibleCount = total;
     paintCount();
-    showEmpty(visibleCount === 0);
+    paintMore();
+    showEmpty(total === 0);
     if (animate) playEnter(shown);
+  }
+
+  function loadMore() {
+    var previous = limit;
+    limit += PAGE_SIZE;
+    renderCards(false);
+    var fresh = cards.filter(function (card) { return !card.hidden; }).slice(previous);
+    playEnter(fresh);
+    var link = fresh.length ? fresh[0].querySelector('.shops-card__link') : null;
+    if (link) link.focus();
   }
 
   function paintNames() {
@@ -257,6 +283,7 @@
       }
     });
     if (!changed) return;
+    limit = PAGE_SIZE;
     syncFilterUI();
     renderCards(true);
     writeUrl();
@@ -281,6 +308,8 @@
       apply({ region: region });
     }
   });
+
+  if (moreBtn) moreBtn.addEventListener('click', loadMore);
 
   list.addEventListener('click', function (e) {
     var btn = e.target.closest('[data-role="fav"]');
@@ -371,6 +400,7 @@
     paintFavs();
     syncFilterUI();
     paintCount();
+    paintMore();
     if (!stateBox.hidden) showEmpty(true);
   }).observe(document.documentElement, { attributes: true, attributeFilter: ['lang'] });
 

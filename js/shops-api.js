@@ -139,6 +139,7 @@ return {
     image_url: safeImageUrl(raw.image_url),
     is_open: raw.is_open === true || raw.is_open === 1 || raw.is_open === '1',
     whatsapp: normalizePhone(raw.whatsapp),
+    phone: normalizePhone(raw.phone),
     has_menu: raw.has_menu === true || raw.has_menu === 1 || raw.has_menu === '1',
 };
 }
@@ -243,6 +244,113 @@ const MOCK_PLACES = [
 { id: 16, slug: 'al-amal-market', name_ar: 'سوبرماركت الأمل', name_en: 'Al Amal Supermarket', type: 'supermarket', region: 'Nuseirat', address: 'الشارع الرئيسي', image_url: null, is_open: false, whatsapp: '972590000016', has_menu: false },
 ];
 
+const MENU_FREE_LIMITS = { categories: 5, items: 10 };
+
+function mockMenu(plan, groups) {
+const categories = [];
+const items = [];
+groups.forEach((group, gi) => {
+    const categoryId = 'c' + (gi + 1);
+    categories.push({ id: categoryId, name: group[0] });
+    group[1].forEach((row, ri) => {
+    items.push({ id: categoryId + '-' + (ri + 1), categoryId, name: row[0], price: row[1], image: null, available: row[2] !== false });
+    });
+});
+return { plan, categories, items };
+}
+
+const MOCK_MENUS = {
+'jeneen': mockMenu('paid', [
+    ['الشاورما (دجاج)', [['أساور العروس', 50], ['المنظوم أفندي', 50], ['المنظومة خانم', 45], ['حمص بالشاورما', 40], ['شاورما اسطنبولي', 45], ['شاورما سوري', 45], ['شاورما صاروخ', 50], ['صفيحة شاورما', 50], ['فتة شاورما', 45], ['فرشوحة دبل', 32], ['فرشوحة دبل دبل', 38], ['فرشوحة دبل لحمة', 37], ['فرشوحة عادي', 30]]],
+    ['البيتزا', [['بيتزا خضار', 25], ['بيتزا ذرة', 25], ['بيتزا شاورما', 50], ['بيتزا مارغريتا', 20], ['بيتزا مشروم', 25], ['شطورة', 55, false]]],
+    ['السلطات', [['بطاطا', 10], ['ذرة بالمايونيز', 10], ['سلطة تركية', 10], ['كريم ثوم', 10], ['كول سلو', 10], ['ملفوف أحمر', 10]]],
+    ['الحلويات', [['آيس كيك', 15], ['براونيز', 15], ['بفاريا', 15], ['تشيز كيك بأنواعه', 15], ['تيراميسو', 15], ['حلاوة الجبن', 15], ['كيك بأنواعه', 12], ['مفروكة بالقشطة', 15], ['موس شوكليت', 15]]],
+    ['العصائر', [['أفوكادو بالقشطة والمكسرات', 20], ['أناناس', 12], ['برتقال', 12], ['كوكتيل فواكه', 15], ['ليمون بالنعناع', 12]]],
+    ['المشروبات الساخنة', [['قهوة', 7], ['نسكافيه', 7]]],
+]),
+'al-asema': mockMenu('free', [
+    ['المشروبات الساخنة', [['إسبريسو', 8], ['أمريكانو', 9], ['كابتشينو', 12], ['لاتيه', 13], ['شاي', 5]]],
+    ['المشروبات الباردة', [['آيس لاتيه', 14], ['آيس موكا', 15], ['فرابيه', 16]]],
+    ['العصائر', [['برتقال', 10], ['ليمون بالنعناع', 10], ['فراولة', 12]]],
+    ['الحلويات', [['كيك شوكولاتة', 14], ['تشيز كيك', 15], ['وافل', 16]]],
+    ['الساندويتشات', [['ساندويتش جبنة', 12], ['ساندويتش دجاج', 15]]],
+    ['الأراجيل', [['أرجيلة تفاحتين', 25], ['أرجيلة نعنع', 25]]],
+]),
+'saada-shafout': mockMenu('paid', [
+    ['الوجبات', [['شفاعوط بالدجاج', 28], ['شفاعوط باللحمة', 32], ['وجبة عائلية', 90]]],
+    ['المشروبات', [['قهوة عربية', 6], ['شاي بالنعناع', 5], ['عصير ليمون', 10]]],
+]),
+};
+
+function mockApplyPlan(menu) {
+if (menu.plan === 'paid') return menu;
+const categories = menu.categories.slice(0, MENU_FREE_LIMITS.categories);
+const kept = new Set(categories.map((c) => c.id));
+const items = menu.items
+    .filter((it) => it.categoryId === null || kept.has(it.categoryId))
+    .slice(0, MENU_FREE_LIMITS.items);
+return { plan: menu.plan, categories, items };
+}
+
+async function mockGetPlace(slug) {
+const mode = getTestMode();
+await delay(mode === 'slow' ? 2500 : 250);
+if (mode === 'error') throw GMShopsError('server', 'Mock server error', 500);
+const raw = MOCK_PLACES.find((p) => p.slug === slug);
+if (!raw) throw GMShopsError('not_found', 'Place not found', 404);
+return { data: Object.assign({ phone: raw.whatsapp }, raw) };
+}
+
+async function mockGetMenu(slug) {
+const mode = getTestMode();
+await delay(mode === 'slow' ? 2500 : 250);
+if (mode === 'error') throw GMShopsError('server', 'Mock server error', 500);
+const menu = MOCK_MENUS[slug];
+if (!menu || mode === 'empty') return { data: { categories: [], items: [] } };
+const visible = mockApplyPlan(menu);
+return { data: { categories: visible.categories, items: visible.items } };
+}
+
+function normalizeMenu(json) {
+const data = json && json.data;
+if (!data || !Array.isArray(data.categories) || !Array.isArray(data.items)) {
+    throw GMShopsError('invalid_response', 'Invalid menu response');
+}
+const categories = data.categories
+    .filter((c) => c && c.id !== undefined && c.id !== null && typeof c.name === 'string' && c.name.trim())
+    .map((c) => ({ id: String(c.id), name: c.name.trim() }));
+const items = data.items
+    .filter((it) => it && it.id !== undefined && it.id !== null && typeof it.name === 'string' && it.name.trim() && it.hidden !== true)
+    .map((it) => {
+    const price = Number(it.price);
+    return {
+        id: String(it.id),
+        categoryId: it.categoryId === undefined || it.categoryId === null || it.categoryId === '' ? null : String(it.categoryId),
+        name: it.name.trim(),
+        price: it.price === null || it.price === undefined || it.price === '' || !isFinite(price) || price < 0 ? null : price,
+        image: safeImageUrl(it.image),
+        available: it.available !== false,
+    };
+    });
+return { categories, items };
+}
+
+async function getPlace(slug) {
+const safeSlug = typeof slug === 'string' && /^[a-z0-9-]{1,80}$/i.test(slug) ? slug : '';
+if (!safeSlug) throw GMShopsError('not_found', 'Place not found', 404);
+const json = USE_MOCK ? await mockGetPlace(safeSlug) : await request('/places/' + encodeURIComponent(safeSlug));
+const place = normalizePlace(json && json.data);
+if (!place) throw GMShopsError('invalid_response', 'Invalid place response');
+return place;
+}
+
+async function getMenu(slug) {
+const safeSlug = typeof slug === 'string' && /^[a-z0-9-]{1,80}$/i.test(slug) ? slug : '';
+if (!safeSlug) throw GMShopsError('not_found', 'Place not found', 404);
+const json = USE_MOCK ? await mockGetMenu(safeSlug) : await request('/places/' + encodeURIComponent(safeSlug) + '/menu');
+return normalizeMenu(json);
+}
+
 function mockMatches(place, params) {
 if (params.type === 'restaurant' && place.type !== 'restaurant' && place.type !== 'restaurant-cafe') return false;
 if (params.type === 'cafe' && place.type !== 'cafe' && place.type !== 'restaurant-cafe') return false;
@@ -314,6 +422,8 @@ isMock: USE_MOCK,
 defaultLimit: DEFAULT_LIMIT,
 normalizeRegion,
 fetchPage,
+getPlace,
+getMenu,
 readCache,
 writeCache,
 };

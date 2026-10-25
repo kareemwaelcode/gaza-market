@@ -1392,10 +1392,18 @@
           <span data-i18n="shops.popularTypes">Shops popular types</span>
         </div>
         <div class="shops-popular__list">
-          <button type="button" class="shops-popular__item" data-shops-type="cafe" data-i18n="shops.filterCafes">Cafes</button>
-          <button type="button" class="shops-popular__item" data-shops-type="restaurant" data-i18n="shops.filterRestaurants">Restaurants</button>
-          <button type="button" class="shops-popular__item" data-shops-type="workspace" data-i18n="shops.filterWorkspaces">Workspaces</button>
-          <button type="button" class="shops-popular__item" data-shops-type="supermarket" data-i18n="shops.filterSupermarkets">Supermarkets</button>
+          <button type="button" class="shops-popular__item" data-shops-type="cafe">
+            <svg class="shops-popular__icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M10 2v2"/><path d="M14 2v2"/><path d="M16 8a1 1 0 0 1 1 1v8a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V9a1 1 0 0 1 1-1h14a4 4 0 1 1 0 8h-1"/><path d="M6 2v2"/></svg>
+            <span data-i18n="shops.filterCafes">Cafes</span>
+          </button>
+          <button type="button" class="shops-popular__item" data-shops-type="restaurant">
+            <svg class="shops-popular__icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/></svg>
+            <span data-i18n="shops.filterRestaurants">Restaurants</span>
+          </button>
+          <button type="button" class="shops-popular__item" data-shops-type="workspace">
+            <svg class="shops-popular__icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M18 5a2 2 0 0 1 2 2v8.526a2 2 0 0 0 .212.897l1.068 2.127a1 1 0 0 1-.9 1.45H3.62a1 1 0 0 1-.9-1.45l1.068-2.127A2 2 0 0 0 4 15.526V7a2 2 0 0 1 2-2z"/><path d="M20.054 15.987H3.946"/></svg>
+            <span data-i18n="shops.filterWorkspaces">Workspaces</span>
+          </button>
         </div>
       </div>
     </div>
@@ -1547,7 +1555,7 @@
               </div>
               <div class="shops-card__actions">
                 <a class="shops-btn shops-btn--wa" href="https://wa.me/972590000004" target="_blank" rel="noopener noreferrer"><svg class="shops-icon" width="16" height="16" aria-hidden="true" focusable="false"><use href="#gm-i-whatsapp"/></svg><span data-i18n="shops.whatsapp">WhatsApp</span></a>
-                <a class="shops-btn shops-btn--menu" href="shop.html?id=jeneen#menu"><svg class="shops-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/></svg><span data-i18n="shops.menu">Menu</span></a>
+                <a class="shops-btn shops-btn--menu" href="menu.html"><svg class="shops-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/></svg><span data-i18n="shops.menu">Menu</span></a>
               </div>
             </div>
           </article>
@@ -1636,6 +1644,13 @@
             </div>
           </article>
         </div>
+        </div>
+
+        <div class="shops-more" id="shopsMore" hidden>
+          <button type="button" class="shops-more__btn" id="shopsMoreBtn">
+            <span id="shopsMoreLabel">Show more</span>
+            <svg class="shops-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m6 9 6 6 6-6"/></svg>
+          </button>
         </div>
 
         <div class="shops-state" id="shopsState" hidden>
