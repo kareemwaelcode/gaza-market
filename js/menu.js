@@ -158,7 +158,8 @@
 
     var parts = [];
     if (place.region) parts.push(t(place.region));
-    if (place.address) parts.push(place.address);
+    var address = currentLang() === 'ar' ? place.address_ar : place.address_en;
+    if (address) parts.push(address);
     whereTextEl.textContent = parts.join(' · ');
     show(whereEl, parts.length > 0);
 
@@ -358,5 +359,5 @@
   }).observe(document.documentElement, { attributes: true, attributeFilter: ['lang'] });
 
   if (document.readyState === 'complete') load();
-  else window.addEventListener('load', load);
+  else document.addEventListener('DOMContentLoaded', load);
 })();

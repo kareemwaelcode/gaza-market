@@ -71,6 +71,7 @@
   let seq = 0;
   let controller = null;
   let busyMore = false;
+  let extraPages = 0;
   let moreFailed = false;
   let panel = null;
 
@@ -310,7 +311,7 @@
     if (place.has_menu) {
       actions.appendChild(actionLink('shops-btn--menu', 'menu.html?id=' + ref + '#menu', 'book', 'shops.menu', false));
     } else {
-      actions.appendChild(actionLink('shops-btn--menu', 'menu.html?id=' + ref + '#prices', 'tag', 'shops.prices', false));
+      actions.appendChild(actionLink('shops-btn--menu', 'menu.html?id=' + ref, 'tag', 'shops.prices', false));
     }
 
     body.appendChild(type);
@@ -459,6 +460,7 @@
     controller = null;
     busyMore = false;
     moreFailed = false;
+    extraPages = 0;
     if (moreBtn) moreBtn.disabled = false;
   }
 
@@ -469,7 +471,7 @@
   function revalidate(query, mine) {
     api.fetchPage(query, { refresh: true }).then(function (page) {
       if (mine !== seq) return;
-      if (items.length > page.items.length) return;
+      if (extraPages > 0) return;
       if (items.length === page.items.length && signature(items) === signature(page.items)) {
         updateView(page);
         return;
@@ -532,6 +534,7 @@
     api.fetchPage(queryFor(view.nextCursor), { signal: ctl ? ctl.signal : undefined }).then(function (page) {
       if (mine !== seq) return;
       const fresh = appendItems(page.items);
+      extraPages += 1;
       updateView(page);
       playEnter(fresh);
       const link = fresh.length ? fresh[0].querySelector('.shops-card__link') : null;
