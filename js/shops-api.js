@@ -226,25 +226,31 @@ return request('/places?' + query.toString());
 }
 
 const MOCK_PLACES = [
-{ id: 1, slug: 'batikha', name_ar: 'بطيخة', name_en: 'Batikha', type: 'restaurant', region: 'Nuseirat', address: 'شارع الشهداء', image_url: null, is_open: true, whatsapp: '972590000001', has_menu: true },
-{ id: 2, slug: 'al-asema', name_ar: 'العاصمة', name_en: 'Al Asema', type: 'cafe', region: 'Nuseirat', address: 'بجانب مجمع الرازي الطبي', image_url: null, is_open: true, whatsapp: '972590000002', has_menu: true },
-{ id: 3, slug: 'roof-cafe', name_ar: 'الرووف', name_en: 'Roof Cafe', type: 'restaurant', region: 'Nuseirat', address: 'الشارع الرئيسي', image_url: null, is_open: false, whatsapp: '972590000003', has_menu: true },
-{ id: 4, slug: 'jeneen', name_ar: 'جنين', name_en: 'Jeneen', type: 'restaurant', region: 'DeirBalah', address: 'وسط المدينة', image_url: null, is_open: true, whatsapp: '972590000004', has_menu: true },
-{ id: 5, slug: 'sama-cafe', name_ar: 'سما كافيه', name_en: 'Sama Cafe', type: 'cafe', region: 'DeirBalah', address: 'قرب الكورنيش', image_url: null, is_open: false, whatsapp: '972590000005', has_menu: true },
-{ id: 6, slug: 'saada-shafout', name_ar: 'السعادة شفاعوط', name_en: "Al-Sa'ada Shaf'out", type: 'restaurant-cafe', region: 'Nuseirat', address: 'مفرق النصيرات', image_url: null, is_open: true, whatsapp: '972590000006', has_menu: true },
-{ id: 7, slug: 'bahr-restaurant', name_ar: 'مطعم البحر', name_en: 'Al Bahr Restaurant', type: 'restaurant', region: 'Alrimal', address: 'شارع الوحدة', image_url: null, is_open: true, whatsapp: '972590000007', has_menu: true },
-{ id: 8, slug: 'qahwa-w-kteb', name_ar: 'قهوة وكتاب', name_en: 'Coffee & Books', type: 'cafe', region: 'Alrimal', address: 'قرب الجامعة', image_url: null, is_open: true, whatsapp: '972590000008', has_menu: true },
-{ id: 9, slug: 'tal-hawa-grill', name_ar: 'مشويات تل الهوا', name_en: 'Tal Al-Hawa Grill', type: 'restaurant', region: 'TalHawa', address: 'الشارع العام', image_url: null, is_open: false, whatsapp: '972590000009', has_menu: false },
-{ id: 10, slug: 'khan-yunis-mandi', name_ar: 'مندي خان يونس', name_en: 'Khan Yunis Mandi', type: 'restaurant', region: 'KhanYunis', address: 'قرب دوار الأمم', image_url: null, is_open: true, whatsapp: '972590000010', has_menu: true },
-{ id: 11, slug: 'rafah-sweets', name_ar: 'حلويات رفح', name_en: 'Rafah Sweets', type: 'cafe', region: 'Rafah', address: 'السوق القديم', image_url: null, is_open: true, whatsapp: '972590000011', has_menu: true },
-{ id: 12, slug: 'mawasi-kitchen', name_ar: 'مطبخ المواصي', name_en: 'Mawasi Kitchen', type: 'restaurant-cafe', region: 'MawasiKhanYunis', address: 'شارع البحر', image_url: null, is_open: true, whatsapp: '972590000012', has_menu: true },
-{ id: 13, slug: 'jabalia-shawarma', name_ar: 'شاورما جباليا', name_en: 'Jabalia Shawarma', type: 'restaurant', region: 'Jabalia', address: 'دوار الصفطاوي', image_url: null, is_open: false, whatsapp: '972590000013', has_menu: false },
-{ id: 14, slug: 'beit-lahia-cafe', name_ar: 'كافيه بيت لاهيا', name_en: 'Beit Lahia Cafe', type: 'cafe', region: 'BeitLahia', address: 'الشارع الرئيسي', image_url: null, is_open: true, whatsapp: '972590000014', has_menu: true },
-{ id: 15, slug: 'work-corner', name_ar: 'ركن العمل', name_en: 'Work Corner', type: 'workspace', region: 'Alrimal', address: 'قرب الجامعة', image_url: null, is_open: true, whatsapp: '972590000015', has_menu: false },
-{ id: 16, slug: 'al-amal-market', name_ar: 'سوبرماركت الأمل', name_en: 'Al Amal Supermarket', type: 'supermarket', region: 'Nuseirat', address: 'الشارع الرئيسي', image_url: null, is_open: false, whatsapp: '972590000016', has_menu: false },
+{ id: 1, slug: 'batikha', name_ar: 'بطيخة', name_en: 'Batikha', type: 'restaurant', region: 'Nuseirat', address: 'شارع الشهداء', image_url: 'assets/img/demo/demo.webp', is_open: true, whatsapp: '972590000001', has_menu: true },
+{ id: 2, slug: 'al-asema', name_ar: 'العاصمة', name_en: 'Al Asema', type: 'cafe', region: 'Nuseirat', address: 'بجانب مجمع الرازي الطبي', image_url: 'assets/img/demo/demo.webp', is_open: true, whatsapp: '972590000002', has_menu: true },
+{ id: 3, slug: 'roof-cafe', name_ar: 'الرووف', name_en: 'Roof Cafe', type: 'restaurant', region: 'Nuseirat', address: 'الشارع الرئيسي', image_url: 'assets/img/demo/demo.webp', is_open: false, whatsapp: '972590000003', has_menu: true },
+{ id: 4, slug: 'jeneen', name_ar: 'جنين', name_en: 'Jeneen', type: 'restaurant', region: 'DeirBalah', address: 'وسط المدينة', image_url: 'assets/img/demo/demo.webp', is_open: true, whatsapp: '972590000004', has_menu: true },
+{ id: 5, slug: 'sama-cafe', name_ar: 'سما كافيه', name_en: 'Sama Cafe', type: 'cafe', region: 'DeirBalah', address: 'قرب الكورنيش', image_url: 'assets/img/demo/demo.webp', is_open: false, whatsapp: '972590000005', has_menu: true },
+{ id: 6, slug: 'saada-shafout', name_ar: 'السعادة شفاعوط', name_en: "Al-Sa'ada Shaf'out", type: 'restaurant-cafe', region: 'Nuseirat', address: 'مفرق النصيرات', image_url: 'assets/img/demo/demo.webp', is_open: true, whatsapp: '972590000006', has_menu: true },
+{ id: 7, slug: 'bahr-restaurant', name_ar: 'مطعم البحر', name_en: 'Al Bahr Restaurant', type: 'restaurant', region: 'Alrimal', address: 'شارع الوحدة', image_url: 'assets/img/demo/demo.webp', is_open: true, whatsapp: '972590000007', has_menu: true },
+{ id: 8, slug: 'qahwa-w-kteb', name_ar: 'قهوة وكتاب', name_en: 'Coffee & Books', type: 'cafe', region: 'Alrimal', address: 'قرب الجامعة', image_url: 'assets/img/demo/demo.webp', is_open: true, whatsapp: '972590000008', has_menu: true },
+{ id: 9, slug: 'tal-hawa-grill', name_ar: 'مشويات تل الهوا', name_en: 'Tal Al-Hawa Grill', type: 'restaurant', region: 'TalHawa', address: 'الشارع العام', image_url: 'assets/img/demo/demo.webp', is_open: false, whatsapp: '972590000009', has_menu: false },
+{ id: 10, slug: 'khan-yunis-mandi', name_ar: 'مندي خان يونس', name_en: 'Khan Yunis Mandi', type: 'restaurant', region: 'KhanYunis', address: 'قرب دوار الأمم', image_url: 'assets/img/demo/demo.webp', is_open: true, whatsapp: '972590000010', has_menu: true },
+{ id: 11, slug: 'rafah-sweets', name_ar: 'حلويات رفح', name_en: 'Rafah Sweets', type: 'cafe', region: 'Rafah', address: 'السوق القديم', image_url: 'assets/img/demo/demo.webp', is_open: true, whatsapp: '972590000011', has_menu: true },
+{ id: 12, slug: 'mawasi-kitchen', name_ar: 'مطبخ المواصي', name_en: 'Mawasi Kitchen', type: 'restaurant-cafe', region: 'MawasiKhanYunis', address: 'شارع البحر', image_url: 'assets/img/demo/demo.webp', is_open: true, whatsapp: '972590000012', has_menu: true },
+{ id: 13, slug: 'jabalia-shawarma', name_ar: 'شاورما جباليا', name_en: 'Jabalia Shawarma', type: 'restaurant', region: 'Jabalia', address: 'دوار الصفطاوي', image_url: 'assets/img/demo/demo.webp', is_open: false, whatsapp: '972590000013', has_menu: false },
+{ id: 14, slug: 'beit-lahia-cafe', name_ar: 'كافيه بيت لاهيا', name_en: 'Beit Lahia Cafe', type: 'cafe', region: 'BeitLahia', address: 'الشارع الرئيسي', image_url: 'assets/img/demo/demo.webp', is_open: true, whatsapp: '972590000014', has_menu: true },
+{ id: 15, slug: 'work-corner', name_ar: 'ركن العمل', name_en: 'Work Corner', type: 'workspace', region: 'Alrimal', address: 'قرب الجامعة', image_url: 'assets/img/demo/demo.webp', is_open: true, whatsapp: '972590000015', has_menu: false },
+{ id: 16, slug: 'al-amal-market', name_ar: 'سوبرماركت الأمل', name_en: 'Al Amal Supermarket', type: 'supermarket', region: 'Nuseirat', address: 'الشارع الرئيسي', image_url: 'assets/img/demo/demo.webp', is_open: false, whatsapp: '972590000016', has_menu: false },
 ];
 
 const MENU_FREE_LIMITS = { categories: 5, items: 10 };
+
+// TEMP: one demo image used for every shop and every item, for the look only.
+// Real images come from the API (image_url for shops, item.image for items).
+function mockItemImage() {
+return 'assets/img/demo.webp';
+}
 
 function mockMenu(plan, groups) {
 const categories = [];
@@ -253,7 +259,7 @@ groups.forEach((group, gi) => {
     const categoryId = 'c' + (gi + 1);
     categories.push({ id: categoryId, name: group[0] });
     group[1].forEach((row, ri) => {
-    items.push({ id: categoryId + '-' + (ri + 1), categoryId, name: row[0], price: row[1], image: null, available: row[2] !== false });
+    items.push({ id: categoryId + '-' + (ri + 1), categoryId, name: row[0], price: row[1], image: mockItemImage(), available: row[2] !== false });
     });
 });
 return { plan, categories, items };
