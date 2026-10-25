@@ -1386,10 +1386,213 @@
           </a>
         </nav>
       </div>
+      <div class="surface mb-card shops-popular">
+        <div class="surface__title">
+          <span data-i18n="shops.popularTypes">Shops popular types</span>
+        </div>
+        <div class="shops-popular__list">
+          <button type="button" class="shops-popular__item" data-shops-type="cafe" data-i18n="shops.filterCafes">Cafes</button>
+          <button type="button" class="shops-popular__item" data-shops-type="restaurant" data-i18n="shops.filterRestaurants">Restaurants</button>
+        </div>
+      </div>
     </div>
 
     <main class="col-12 col-lg-10 order-1 order-lg-2" id="shopsMain">
-      <!-- STAGE 2: shops content (filters + cards) goes here -->
+      <section class="shops-page" aria-labelledby="shopsTitle">
+        <h1 class="visually-hidden" id="shopsTitle" data-i18n="shops.title">Shops</h1>
+
+        <div class="shops-filters" role="toolbar" aria-label="Shops filters">
+          <button type="button" class="shops-chip is-active" data-shops-all aria-pressed="true">
+            <svg class="shops-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>
+            <span data-i18n="shops.filterAll">All</span>
+          </button>
+
+          <div class="dropdown">
+            <button type="button" class="shops-chip shops-chip--menu" id="shopsTypeBtn" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">
+              <svg class="shops-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M8.3 10a.7.7 0 0 1-.626-1.079L11.4 3a.7.7 0 0 1 1.198-.043L16.3 8.9a.7.7 0 0 1-.572 1.1Z"/><rect x="3" y="14" width="7" height="7" rx="1"/><circle cx="17.5" cy="17.5" r="3.5"/></svg>
+              <span id="shopsTypeLabel">Category</span>
+              <svg class="shops-icon shops-chip__chev" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m6 9 6 6 6-6"/></svg>
+            </button>
+            <ul class="dropdown-menu shops-menu" aria-labelledby="shopsTypeBtn">
+              <li><button type="button" class="dropdown-item" data-shops-type="all" data-i18n="shops.allTypes">All types</button></li>
+              <li><button type="button" class="dropdown-item" data-shops-type="restaurant" data-i18n="shops.filterRestaurants">Restaurants</button></li>
+              <li><button type="button" class="dropdown-item" data-shops-type="cafe" data-i18n="shops.filterCafes">Cafes</button></li>
+            </ul>
+          </div>
+
+          <div class="dropdown">
+            <button type="button" class="shops-chip shops-chip--menu" id="shopsRegionBtn" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">
+              <svg class="shops-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/></svg>
+              <span id="shopsRegionLabel">All regions</span>
+              <svg class="shops-icon shops-chip__chev" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m6 9 6 6 6-6"/></svg>
+            </button>
+            <ul class="dropdown-menu shops-menu" aria-labelledby="shopsRegionBtn">
+          <li><button type="button" class="dropdown-item" data-shops-region="all" data-i18n="AllRegions">All regions</button></li>
+          <li><hr class="dropdown-divider" /></li>
+          <li><h6 class="dropdown-header" data-i18n="CentralGaza">Central Gaza</h6></li>
+          <li><button type="button" class="dropdown-item" data-shops-region="Nuseirat" data-i18n="Nuseirat">Nuseirat</button></li>
+          <li><button type="button" class="dropdown-item" data-shops-region="Breij" data-i18n="Breij">Breij</button></li>
+          <li><button type="button" class="dropdown-item" data-shops-region="Maghazi" data-i18n="Maghazi">Maghazi</button></li>
+          <li><button type="button" class="dropdown-item" data-shops-region="Zawayda" data-i18n="Zawayda">Zawayda</button></li>
+          <li><button type="button" class="dropdown-item" data-shops-region="DeirBalah" data-i18n="DeirBalah">Deir al-Balah</button></li>
+          <li><h6 class="dropdown-header" data-i18n="SouthGaza">South Gaza</h6></li>
+          <li><button type="button" class="dropdown-item" data-shops-region="KhanYunis" data-i18n="KhanYunis">Khan Yunis</button></li>
+          <li><button type="button" class="dropdown-item" data-shops-region="Rafah" data-i18n="Rafah">Rafah</button></li>
+          <li><button type="button" class="dropdown-item" data-shops-region="MawasiKhanYunis" data-i18n="MawasiKhanYunis">Mawasi Khan Yunis</button></li>
+          <li><button type="button" class="dropdown-item" data-shops-region="MawasiQarara" data-i18n="MawasiQarara">Mawasi al-Qarara</button></li>
+          <li><h6 class="dropdown-header" data-i18n="NorthGaza">North Gaza</h6></li>
+          <li><button type="button" class="dropdown-item" data-shops-region="Alrimal" data-i18n="Alrimal">Al-Rimal</button></li>
+          <li><button type="button" class="dropdown-item" data-shops-region="Alshaati" data-i18n="Alshaati">Al-Shaati</button></li>
+          <li><button type="button" class="dropdown-item" data-shops-region="SheikhRadwan" data-i18n="SheikhRadwan">Sheikh Radwan</button></li>
+          <li><button type="button" class="dropdown-item" data-shops-region="Saftawi" data-i18n="Saftawi">Saftawi</button></li>
+          <li><button type="button" class="dropdown-item" data-shops-region="BeitHanoun" data-i18n="BeitHanoun">Beit Hanoun</button></li>
+          <li><button type="button" class="dropdown-item" data-shops-region="BeitLahia" data-i18n="BeitLahia">Beit Lahia</button></li>
+          <li><button type="button" class="dropdown-item" data-shops-region="TalHawa" data-i18n="TalHawa">Tal Al-Hawa</button></li>
+          <li><button type="button" class="dropdown-item" data-shops-region="Jabalia" data-i18n="Jabalia">Jabalia</button></li>
+            </ul>
+          </div>
+
+          <button type="button" class="shops-chip" data-shops-open aria-pressed="false">
+            <svg class="shops-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            <span data-i18n="shops.filterOpen">Open only</span>
+          </button>
+        </div>
+
+        <!--
+          BACKEND (Laravel) - every card below is one Blade iteration. Nothing else in the page needs to change:
+
+          @foreach ($shops as $shop)
+            <div class="col-12 col-sm-6 col-lg-3" data-shop data-id="{{ $shop->id }}" data-slug="{{ $shop->slug }}"
+                 data-type="{{ $shop->type }}" data-region="{{ $shop->region }}" data-open="{{ $shop->is_open ? 1 : 0 }}">
+              ... same <article class="shops-card"> markup ...
+              name link   : href="shop.html?id={{ $shop->slug }}"  data-name-ar="{{ $shop->name_ar }}"  data-name-en="{{ $shop->name_en }}"
+              WhatsApp    : only when $shop->whatsapp is set  ->  https://wa.me/{{ $shop->whatsapp }}   (digits only, e.g. 972599123456)
+              Menu button : only when $shop->has_menu          ->  shop.html?id={{ $shop->slug }}#menu
+              image       : only when $shop->image_url is set  ->  <img class="shops-card__img" src="..." alt="" width="400" height="200" loading="lazy" decoding="async">
+                            placed before .shops-card__status inside .shops-card__media
+            </div>
+          @endforeach
+
+          Filters use the SAME query names as the API contract (js/shops-api.js):  shops.html?type=cafe&region=Nuseirat&open=1
+          type: restaurant | cafe  (restaurant-cafe shops match both)    region: region code    open: 1
+          Today the page filters these 5 cards in the browser and keeps the URL in sync; later the controller reads the same
+          query string, filters in MySQL (cached in Redis, invalidated when a shop changes) and paginates with ->cursorPaginate().
+        -->
+        <div class="row g-3" id="shopsGrid">
+        <div class="col-12 col-sm-6 col-lg-3" data-shop data-id="2" data-slug="al-asema" data-type="cafe" data-region="Nuseirat" data-open="1">
+          <article class="shops-card">
+            <div class="shops-card__media">
+              <span class="shops-card__ph" aria-hidden="true"><svg class="shops-icon" xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M15 21v-5a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v5"/><path d="M17.774 10.31a1.12 1.12 0 0 0-1.549 0 2.5 2.5 0 0 1-3.451 0 1.12 1.12 0 0 0-1.548 0 2.5 2.5 0 0 1-3.452 0 1.12 1.12 0 0 0-1.549 0 2.5 2.5 0 0 1-3.77-3.248l2.889-4.184A2 2 0 0 1 7 2h10a2 2 0 0 1 1.653.873l2.895 4.192a2.5 2.5 0 0 1-3.774 3.244"/><path d="M4 10.95V19a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8.05"/></svg></span>
+              <span class="shops-card__status is-open" data-i18n="stores.open">Open</span>
+              <button type="button" class="shops-card__fav" data-role="fav" aria-pressed="false"><svg class="shops-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M2 9.5a5.5 5.5 0 0 1 9.591-3.676.56.56 0 0 0 .818 0A5.49 5.49 0 0 1 22 9.5c0 2.29-1.5 4-3 5.5l-5.492 5.313a2 2 0 0 1-3 .019L5 15c-1.5-1.5-3-3.2-3-5.5"/></svg></button>
+            </div>
+            <div class="shops-card__body">
+              <span class="shops-card__type" data-i18n="typeCafe">Cafe</span>
+              <div class="shops-card__row">
+                <h2 class="shops-card__name"><a class="shops-card__link" href="shop.html?id=al-asema" data-name-ar="العاصمة" data-name-en="Al Asema">العاصمة</a></h2>
+                <p class="shops-card__where"><svg class="shops-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/></svg><span data-i18n="Nuseirat">Nuseirat</span></p>
+              </div>
+              <div class="shops-card__actions">
+                <a class="shops-btn shops-btn--wa" href="https://wa.me/972590000002" target="_blank" rel="noopener noreferrer"><svg class="shops-icon" width="16" height="16" aria-hidden="true" focusable="false"><use href="#gm-i-whatsapp"/></svg><span data-i18n="shops.whatsapp">WhatsApp</span></a>
+                <a class="shops-btn shops-btn--menu" href="shop.html?id=al-asema#menu"><svg class="shops-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/></svg><span data-i18n="shops.menu">Menu</span></a>
+              </div>
+            </div>
+          </article>
+        </div>
+
+        <div class="col-12 col-sm-6 col-lg-3" data-shop data-id="4" data-slug="jeneen" data-type="restaurant" data-region="Nuseirat" data-open="0">
+          <article class="shops-card">
+            <div class="shops-card__media">
+              <span class="shops-card__ph" aria-hidden="true"><svg class="shops-icon" xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M15 21v-5a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v5"/><path d="M17.774 10.31a1.12 1.12 0 0 0-1.549 0 2.5 2.5 0 0 1-3.451 0 1.12 1.12 0 0 0-1.548 0 2.5 2.5 0 0 1-3.452 0 1.12 1.12 0 0 0-1.549 0 2.5 2.5 0 0 1-3.77-3.248l2.889-4.184A2 2 0 0 1 7 2h10a2 2 0 0 1 1.653.873l2.895 4.192a2.5 2.5 0 0 1-3.774 3.244"/><path d="M4 10.95V19a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8.05"/></svg></span>
+              <span class="shops-card__status is-closed" data-i18n="stores.closed">Closed</span>
+              <button type="button" class="shops-card__fav" data-role="fav" aria-pressed="false"><svg class="shops-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M2 9.5a5.5 5.5 0 0 1 9.591-3.676.56.56 0 0 0 .818 0A5.49 5.49 0 0 1 22 9.5c0 2.29-1.5 4-3 5.5l-5.492 5.313a2 2 0 0 1-3 .019L5 15c-1.5-1.5-3-3.2-3-5.5"/></svg></button>
+            </div>
+            <div class="shops-card__body">
+              <span class="shops-card__type" data-i18n="typeRestaurant">Restaurant</span>
+              <div class="shops-card__row">
+                <h2 class="shops-card__name"><a class="shops-card__link" href="shop.html?id=jeneen" data-name-ar="جنين" data-name-en="Jeneen">جنين</a></h2>
+                <p class="shops-card__where"><svg class="shops-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/></svg><span data-i18n="Nuseirat">Nuseirat</span></p>
+              </div>
+              <div class="shops-card__actions">
+                <a class="shops-btn shops-btn--wa" href="https://wa.me/972590000004" target="_blank" rel="noopener noreferrer"><svg class="shops-icon" width="16" height="16" aria-hidden="true" focusable="false"><use href="#gm-i-whatsapp"/></svg><span data-i18n="shops.whatsapp">WhatsApp</span></a>
+                <a class="shops-btn shops-btn--menu" href="shop.html?id=jeneen#menu"><svg class="shops-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/></svg><span data-i18n="shops.menu">Menu</span></a>
+              </div>
+            </div>
+          </article>
+        </div>
+
+        <div class="col-12 col-sm-6 col-lg-3" data-shop data-id="1" data-slug="batikha" data-type="restaurant" data-region="Nuseirat" data-open="1">
+          <article class="shops-card">
+            <div class="shops-card__media">
+              <span class="shops-card__ph" aria-hidden="true"><svg class="shops-icon" xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M15 21v-5a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v5"/><path d="M17.774 10.31a1.12 1.12 0 0 0-1.549 0 2.5 2.5 0 0 1-3.451 0 1.12 1.12 0 0 0-1.548 0 2.5 2.5 0 0 1-3.452 0 1.12 1.12 0 0 0-1.549 0 2.5 2.5 0 0 1-3.77-3.248l2.889-4.184A2 2 0 0 1 7 2h10a2 2 0 0 1 1.653.873l2.895 4.192a2.5 2.5 0 0 1-3.774 3.244"/><path d="M4 10.95V19a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8.05"/></svg></span>
+              <span class="shops-card__status is-open" data-i18n="stores.open">Open</span>
+              <button type="button" class="shops-card__fav" data-role="fav" aria-pressed="false"><svg class="shops-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M2 9.5a5.5 5.5 0 0 1 9.591-3.676.56.56 0 0 0 .818 0A5.49 5.49 0 0 1 22 9.5c0 2.29-1.5 4-3 5.5l-5.492 5.313a2 2 0 0 1-3 .019L5 15c-1.5-1.5-3-3.2-3-5.5"/></svg></button>
+            </div>
+            <div class="shops-card__body">
+              <span class="shops-card__type" data-i18n="typeRestaurant">Restaurant</span>
+              <div class="shops-card__row">
+                <h2 class="shops-card__name"><a class="shops-card__link" href="shop.html?id=batikha" data-name-ar="بطيخة" data-name-en="Batikha">بطيخة</a></h2>
+                <p class="shops-card__where"><svg class="shops-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/></svg><span data-i18n="Nuseirat">Nuseirat</span></p>
+              </div>
+              <div class="shops-card__actions">
+                <a class="shops-btn shops-btn--wa" href="https://wa.me/972590000001" target="_blank" rel="noopener noreferrer"><svg class="shops-icon" width="16" height="16" aria-hidden="true" focusable="false"><use href="#gm-i-whatsapp"/></svg><span data-i18n="shops.whatsapp">WhatsApp</span></a>
+                <a class="shops-btn shops-btn--menu" href="shop.html?id=batikha#menu"><svg class="shops-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/></svg><span data-i18n="shops.menu">Menu</span></a>
+              </div>
+            </div>
+          </article>
+        </div>
+
+        <div class="col-12 col-sm-6 col-lg-3" data-shop data-id="5" data-slug="sama-cafe" data-type="cafe" data-region="DeirBalah" data-open="0">
+          <article class="shops-card">
+            <div class="shops-card__media">
+              <span class="shops-card__ph" aria-hidden="true"><svg class="shops-icon" xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M15 21v-5a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v5"/><path d="M17.774 10.31a1.12 1.12 0 0 0-1.549 0 2.5 2.5 0 0 1-3.451 0 1.12 1.12 0 0 0-1.548 0 2.5 2.5 0 0 1-3.452 0 1.12 1.12 0 0 0-1.549 0 2.5 2.5 0 0 1-3.77-3.248l2.889-4.184A2 2 0 0 1 7 2h10a2 2 0 0 1 1.653.873l2.895 4.192a2.5 2.5 0 0 1-3.774 3.244"/><path d="M4 10.95V19a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8.05"/></svg></span>
+              <span class="shops-card__status is-closed" data-i18n="stores.closed">Closed</span>
+              <button type="button" class="shops-card__fav" data-role="fav" aria-pressed="false"><svg class="shops-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M2 9.5a5.5 5.5 0 0 1 9.591-3.676.56.56 0 0 0 .818 0A5.49 5.49 0 0 1 22 9.5c0 2.29-1.5 4-3 5.5l-5.492 5.313a2 2 0 0 1-3 .019L5 15c-1.5-1.5-3-3.2-3-5.5"/></svg></button>
+            </div>
+            <div class="shops-card__body">
+              <span class="shops-card__type" data-i18n="typeCafe">Cafe</span>
+              <div class="shops-card__row">
+                <h2 class="shops-card__name"><a class="shops-card__link" href="shop.html?id=sama-cafe" data-name-ar="سما كافيه" data-name-en="Sama Cafe">سما كافيه</a></h2>
+                <p class="shops-card__where"><svg class="shops-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/></svg><span data-i18n="DeirBalah">Deir al-Balah</span></p>
+              </div>
+              <div class="shops-card__actions">
+                <a class="shops-btn shops-btn--wa" href="https://wa.me/972590000005" target="_blank" rel="noopener noreferrer"><svg class="shops-icon" width="16" height="16" aria-hidden="true" focusable="false"><use href="#gm-i-whatsapp"/></svg><span data-i18n="shops.whatsapp">WhatsApp</span></a>
+                <a class="shops-btn shops-btn--menu" href="shop.html?id=sama-cafe#menu"><svg class="shops-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/></svg><span data-i18n="shops.menu">Menu</span></a>
+              </div>
+            </div>
+          </article>
+        </div>
+
+        <div class="col-12 col-sm-6 col-lg-3" data-shop data-id="6" data-slug="saada-shafout" data-type="restaurant-cafe" data-region="DeirBalah" data-open="1">
+          <article class="shops-card">
+            <div class="shops-card__media">
+              <span class="shops-card__ph" aria-hidden="true"><svg class="shops-icon" xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M15 21v-5a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v5"/><path d="M17.774 10.31a1.12 1.12 0 0 0-1.549 0 2.5 2.5 0 0 1-3.451 0 1.12 1.12 0 0 0-1.548 0 2.5 2.5 0 0 1-3.452 0 1.12 1.12 0 0 0-1.549 0 2.5 2.5 0 0 1-3.77-3.248l2.889-4.184A2 2 0 0 1 7 2h10a2 2 0 0 1 1.653.873l2.895 4.192a2.5 2.5 0 0 1-3.774 3.244"/><path d="M4 10.95V19a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8.05"/></svg></span>
+              <span class="shops-card__status is-open" data-i18n="stores.open">Open</span>
+              <button type="button" class="shops-card__fav" data-role="fav" aria-pressed="false"><svg class="shops-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M2 9.5a5.5 5.5 0 0 1 9.591-3.676.56.56 0 0 0 .818 0A5.49 5.49 0 0 1 22 9.5c0 2.29-1.5 4-3 5.5l-5.492 5.313a2 2 0 0 1-3 .019L5 15c-1.5-1.5-3-3.2-3-5.5"/></svg></button>
+            </div>
+            <div class="shops-card__body">
+              <span class="shops-card__type" data-i18n="typeRestCafe">Restaurant &amp; Cafe</span>
+              <div class="shops-card__row">
+                <h2 class="shops-card__name"><a class="shops-card__link" href="shop.html?id=saada-shafout" data-name-ar="السعادة شفاعوط" data-name-en="Al-Sa'ada Shaf'out">السعادة شفاعوط</a></h2>
+                <p class="shops-card__where"><svg class="shops-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/></svg><span data-i18n="DeirBalah">Deir al-Balah</span></p>
+              </div>
+              <div class="shops-card__actions">
+                <a class="shops-btn shops-btn--wa" href="https://wa.me/972590000006" target="_blank" rel="noopener noreferrer"><svg class="shops-icon" width="16" height="16" aria-hidden="true" focusable="false"><use href="#gm-i-whatsapp"/></svg><span data-i18n="shops.whatsapp">WhatsApp</span></a>
+                <a class="shops-btn shops-btn--menu" href="shop.html?id=saada-shafout#menu"><svg class="shops-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/></svg><span data-i18n="shops.menu">Menu</span></a>
+              </div>
+            </div>
+          </article>
+        </div>
+        </div>
+
+        <div class="shops-state" id="shopsState" hidden>
+          <svg class="shops-icon" width="32" height="32" aria-hidden="true" focusable="false"><use href="#gm-i-circle-alert"/></svg>
+          <h2 class="shops-state__title" id="shopsStateTitle"></h2>
+          <p class="shops-state__sub" id="shopsStateSub"></p>
+          <a href="add-store.html" class="btn btn-primary" id="shopsAdd" hidden data-i18n="shops.emptyBtn">Add a shop</a>
+        </div>
+
+      </section>
     </main>
 
   </div>
@@ -1423,6 +1626,7 @@
 <script src="js/vendor/bootstrap.bundle.min.js" defer></script>
 <script src="js/translations.js" defer></script>
 <script src="js/i18n.js" defer></script>
+<script src="js/shops.js" defer></script>
 <script src="js/main.js" defer></script>
 <script src="js/auth.js" defer></script>
 <script src="js/offline.js" defer></script>

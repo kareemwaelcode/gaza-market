@@ -551,6 +551,13 @@ const translations = {
     "shops.retry":             "Try again",
     "shops.loadMore":          "Show more shops",
     "shops.loadMoreFailed":    "Could not load more shops. Please try again.",
+    "shops.filterCategory":    "Category",
+    "shops.allTypes":          "All types",
+    "shops.popularTypes":      "Shops popular types",
+    "shops.whatsapp":          "WhatsApp",
+    "shops.menu":              "Menu",
+    "shops.favAdd":            "Add to favorites",
+    "shops.favRemove":         "Remove from favorites",
  
   },
 
@@ -1103,8 +1110,13 @@ const translations = {
     "shops.retry":             "حاول مرة ثانية",
     "shops.loadMore":          "عرض المزيد",
     "shops.loadMoreFailed":    "ما قدرنا نحمّل محلات أكثر، جرّب مرة ثانية.",
+    "shops.filterCategory":    "التصنيف",
+    "shops.allTypes":          "كل الأنواع",
+    "shops.popularTypes":      "أنواع المحلات الشائعة",
+    "shops.whatsapp":          "واتساب",
+    "shops.menu":              "المنيو",
+    "shops.favAdd":            "أضف للمفضلة",
+    "shops.favRemove":         "أزل من المفضلة",
  
   },
 };
-
-
