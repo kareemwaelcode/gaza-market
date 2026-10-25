@@ -347,10 +347,10 @@ window.gmRequireAuthThenRun = gmRequireAuthThenRun;
 
     if (gmArea) {
       let matchingItem =
-        document.querySelector(`.dropdown-menu .dropdown-item[data-area="${CSS.escape(gmArea)}"]`) ||
-        document.querySelector(`.dropdown-menu .dropdown-item[data-i18n="${CSS.escape(gmArea)}"]`);
+        document.querySelector(`.dropdown-menu:not(.shops-menu) .dropdown-item[data-area="${CSS.escape(gmArea)}"]`) ||
+        document.querySelector(`.dropdown-menu:not(.shops-menu) .dropdown-item[data-i18n="${CSS.escape(gmArea)}"]`);
 
-      document.querySelectorAll(".dropdown-menu .dropdown-item[data-i18n]").forEach(item => {
+      document.querySelectorAll(".dropdown-menu:not(.shops-menu) .dropdown-item[data-i18n]").forEach(item => {
         item.classList.remove("area-selected");
       });
 
@@ -368,7 +368,7 @@ window.gmRequireAuthThenRun = gmRequireAuthThenRun;
     const savedKey = localStorage.getItem(STORAGE_KEY);
     if (!savedKey) return;
 
-    document.querySelectorAll(".dropdown-menu .dropdown-item[data-i18n]").forEach(item => {
+    document.querySelectorAll(".dropdown-menu:not(.shops-menu) .dropdown-item[data-i18n]").forEach(item => {
       item.classList.remove("area-selected");
       if (item.getAttribute("data-i18n") === savedKey) {
         item.classList.add("area-selected");
@@ -382,11 +382,11 @@ window.gmRequireAuthThenRun = gmRequireAuthThenRun;
 
   document.addEventListener("gmRegionChanged", restoreSelection);
 
-  document.querySelectorAll(".dropdown-menu .dropdown-item[data-i18n]").forEach(item => {
+  document.querySelectorAll(".dropdown-menu:not(.shops-menu) .dropdown-item[data-i18n]").forEach(item => {
     item.addEventListener("click", function (e) {
       e.preventDefault();
 
-      document.querySelectorAll(".dropdown-menu .dropdown-item")
+      document.querySelectorAll(".dropdown-menu:not(.shops-menu) .dropdown-item")
         .forEach(el => el.classList.remove("area-selected"));
 
       this.classList.add("area-selected");

@@ -18,14 +18,18 @@
   var regionLabel = document.getElementById('shopsRegionLabel');
   var allChip = document.querySelector('[data-shops-all]');
   var openChip = document.querySelector('[data-shops-open]');
+  var clearChip = document.getElementById('shopsClear');
   var typeItems = Array.prototype.slice.call(document.querySelectorAll('[data-shops-type]'));
   var regionItems = Array.prototype.slice.call(document.querySelectorAll('[data-shops-region]'));
 
   var TYPE_FILTERS = {
     'restaurant': 'shops.filterRestaurants',
     'cafe': 'shops.filterCafes',
+    'restaurant-cafe': 'typeRestCafe',
     'workspace': 'shops.filterWorkspaces',
-    'supermarket': 'shops.filterSupermarkets'
+    'supermarket': 'shops.filterSupermarkets',
+    'pharmacy': 'shops.filterPharmacy',
+    'misc': 'shops.filterMisc'
   };
 
   var FAV_KEY = 'gm_shops_favs_v1';
@@ -55,11 +59,32 @@
     return regionItems.some(function (item) { return item.dataset.shopsRegion === code; });
   }
 
+  function toRegionCode(raw) {
+    if (!raw) return null;
+    var code = typeof window.gmNormalizeRegionKey === 'function' ? window.gmNormalizeRegionKey(raw) : raw;
+    return isRegionCode(code) ? code : null;
+  }
+
+  function savedRegion() {
+    var raw = '';
+    try {
+      raw = typeof window.gmGetSelectedArea === 'function'
+        ? window.gmGetSelectedArea()
+        : (localStorage.getItem('gmSelectedArea') || '');
+    } catch (err) {
+      raw = '';
+    }
+    return toRegionCode(raw);
+  }
+
   function hasActiveFilters() {
     return state.type !== 'all' || state.region !== 'all' || state.open;
   }
 
   function readUrl() {
+    var saved = savedRegion();
+    if (saved) state.region = saved;
+
     var params;
     try {
       params = new URLSearchParams(window.location.search);
@@ -68,8 +93,11 @@
     }
     var type = params.get('type');
     var region = params.get('region');
+    var areaCode = toRegionCode(params.get('area'));
     if (type && isTypeFilter(type)) state.type = type;
-    if (region && region !== 'all' && isRegionCode(region)) state.region = region;
+    if (areaCode) state.region = areaCode;
+    else if (region === 'all') state.region = 'all';
+    else if (region && isRegionCode(region)) state.region = region;
     state.open = params.get('open') === '1';
   }
 
@@ -77,6 +105,7 @@
     var params = new URLSearchParams();
     if (state.type !== 'all') params.set('type', state.type);
     if (state.region !== 'all') params.set('region', state.region);
+    else if (savedRegion()) params.set('region', 'all');
     if (state.open) params.set('open', '1');
     var query = params.toString();
     try {
@@ -119,6 +148,7 @@
   }
 
   function typeMatches(cardType) {
+    if (state.type === 'misc') return true;
     if (cardType === state.type) return true;
     return cardType === 'restaurant-cafe' && (state.type === 'restaurant' || state.type === 'cafe');
   }
@@ -135,13 +165,18 @@
     countEl.textContent = t('shops.count').replace('{n}', String(visibleCount));
   }
 
+  function categoryHasShops() {
+    return cards.some(function (card) { return typeMatches(card.dataset.type); });
+  }
+
   function showEmpty(show) {
     if (!show) {
       stateBox.hidden = true;
       return;
     }
-    stateTitle.textContent = t('shops.empty');
-    stateSub.textContent = t('shops.emptySub');
+    var categoryEmpty = state.type !== 'all' && !categoryHasShops();
+    stateTitle.textContent = t(categoryEmpty ? 'shops.emptyCategory' : 'shops.empty');
+    stateSub.textContent = t(categoryEmpty ? 'shops.emptyCategorySub' : 'shops.emptySub');
     if (resetBtn) resetBtn.hidden = !hasActiveFilters();
     if (addBtn) addBtn.hidden = false;
     stateBox.hidden = false;
@@ -184,6 +219,8 @@
     var isAll = !hasActiveFilters();
     allChip.classList.toggle('is-active', isAll);
     allChip.setAttribute('aria-pressed', isAll ? 'true' : 'false');
+
+    if (clearChip) clearChip.hidden = isAll;
 
     openChip.classList.toggle('is-active', state.open);
     openChip.setAttribute('aria-pressed', state.open ? 'true' : 'false');
@@ -339,19 +376,24 @@
 
   window.GMShopsUI = { setLoading: setLoading };
 
-  readUrl();
-  paintNames();
-  paintFavs();
-  syncFilterUI();
-  renderCards(false);
+  function boot() {
+    readUrl();
+    paintNames();
+    paintFavs();
+    syncFilterUI();
+    renderCards(false);
 
-  cards.forEach(function (card) {
-    var img = card.querySelector('.shops-card__img');
-    if (img) watchImage(img);
-  });
+    cards.forEach(function (card) {
+      var img = card.querySelector('.shops-card__img');
+      if (img) watchImage(img);
+    });
 
-  whenFirstImagesSettle(function () {
-    setLoading(false);
-    renderCards(true);
-  });
+    whenFirstImagesSettle(function () {
+      setLoading(false);
+      renderCards(true);
+    });
+  }
+
+  if (document.readyState === 'complete') boot();
+  else document.addEventListener('DOMContentLoaded', boot);
 })();

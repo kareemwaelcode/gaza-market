@@ -9170,6 +9170,8 @@ body.dark-mode .shops-page {
 }
 
 .shops-filters {
+  position: relative;
+  z-index: 20;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -9240,6 +9242,19 @@ body.dark-mode .shops-page {
   background: var(--sel-bg);
   border-color: var(--blue);
   color: var(--blue);
+}
+
+.shops-chip[hidden] {
+  display: none;
+}
+
+.shops-chip--clear {
+  border-style: dashed;
+  color: var(--gm-muted);
+}
+
+.shops-chip--clear:hover {
+  color: var(--text);
 }
 
 .shops-chip__chev {
@@ -9671,7 +9686,7 @@ body.dark-mode .shops-page {
   flex-direction: column;
   align-items: center;
   gap: 0.5rem;
-  padding: 2.5rem 1rem;
+  padding: 3rem 1rem;
   text-align: center;
   color: var(--gm-muted);
 }
@@ -9688,8 +9703,66 @@ body.dark-mode .shops-page {
 }
 
 .shops-state__sub {
-  margin: 0 0 0.4rem;
+  max-width: 34ch;
+  margin: 0 0 0.6rem;
   font-size: 0.85rem;
+  line-height: 1.6;
+}
+
+.shops-state__icon {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  margin-bottom: 0.4rem;
+  border-radius: 50%;
+  background: var(--sel-bg);
+  color: var(--blue);
+}
+
+.shops-state__add {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  padding: 0 1.4rem;
+  border-radius: 999px;
+  background: var(--blue);
+  color: #fff;
+  font-size: 0.88rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: opacity 0.2s;
+}
+
+.shops-state__add:hover {
+  color: #fff;
+  opacity: 0.9;
+}
+
+.shops-state__add:focus-visible,
+.shops-state__reset:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+}
+
+.shops-state__reset {
+  padding: 0.3rem 0.6rem;
+  border: 0;
+  background: none;
+  color: var(--gm-muted);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.shops-state__reset:hover {
+  color: var(--text);
+}
+
+.shops-state__add[hidden],
+.shops-state__reset[hidden] {
+  display: none;
 }
 
 @container (max-width: 230px) {
@@ -9747,8 +9820,13 @@ body.dark-mode .shops-page {
     min-width: 0;
   }
 
-  .shops-filters > .shops-count {
+  .shops-filters > .shops-chip--clear {
     order: 4;
+    grid-column: 1 / -1;
+  }
+
+  .shops-filters > .shops-count {
+    order: 5;
     grid-column: 1 / -1;
     margin: 0;
     text-align: center;
