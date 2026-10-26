@@ -30,6 +30,7 @@
   var emptySubEl = document.getElementById('shopMenuEmptySub');
 
   var FOOD_TYPES = ['restaurant', 'cafe', 'restaurant-cafe'];
+  var BOOKING_TYPES = ['cafe', 'restaurant-cafe'];
   var SLUG_RE = /^[a-z0-9-]{1,80}$/i;
   var SEARCH_DELAY_MS = 120;
 
@@ -75,6 +76,10 @@
 
   function isFood(place) {
     return !!place && FOOD_TYPES.indexOf(place.type) !== -1;
+  }
+
+  function hasBooking(place) {
+    return !!place && BOOKING_TYPES.indexOf(place.type) !== -1;
   }
 
   function itemIconName() {
@@ -177,7 +182,7 @@
       show(callBtn, false);
     }
     show(headEl, true);
-    if (window.GMBooking) window.GMBooking.setPlace(slugFromUrl(), isFood(place));
+    if (window.GMBooking) window.GMBooking.setPlace(slugFromUrl(), hasBooking(place));
   }
 
   function groupMenu() {
