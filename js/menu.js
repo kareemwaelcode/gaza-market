@@ -23,6 +23,7 @@
   var menuSection = document.getElementById('menu');
   var toolbarEl = document.getElementById('shopToolbar');
   var searchEl = document.getElementById('shopSearch');
+  var searchWrapEl = document.getElementById('shopSearchWrap');
   var gridEl = document.getElementById('shopMenuGrid');
   var emptyEl = document.getElementById('shopMenuEmpty');
   var emptyTitleEl = document.getElementById('shopMenuEmptyTitle');
@@ -176,6 +177,7 @@
       show(callBtn, false);
     }
     show(headEl, true);
+    if (window.GMBooking) window.GMBooking.setPlace(slugFromUrl(), isFood(place));
   }
 
   function groupMenu() {
@@ -254,7 +256,8 @@
     var groups = hasAny ? groupMenu() : [];
 
     gridEl.textContent = '';
-    show(toolbarEl, hasAny);
+    show(toolbarEl, hasAny || isFood(state.place));
+    show(searchWrapEl, hasAny);
 
     if (!hasAny) {
       emptyTitleEl.textContent = t('shop.noMenu');

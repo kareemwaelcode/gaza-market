@@ -25,6 +25,12 @@ const DETAIL_MAX = 80;
 const DEFAULT_LIMIT = 12;
 const MAX_LIMIT = 24;
 
+const GAZA_TZ = 'Asia/Gaza';
+const BOOK_MAX_DAYS = 30;
+const BOOK_COUNTRY_CODES = ['970', '972'];
+const BOOK_NATIONAL_RE = /^5[0-9]{8}$/;
+const SAFE_ID_RE = /^[A-Za-z0-9_-]{1,64}$/;
+
 const REGIONS = [
 { code: 'Nuseirat', value: 'Nuseirat' },
 { code: 'Breij', value: 'Breij' },
@@ -76,6 +82,7 @@ function codeFromStatus(status) {
 if (status === 401 || status === 419) return 'unauthorized';
 if (status === 403) return 'forbidden';
 if (status === 404) return 'not_found';
+if (status === 409) return 'conflict';
 if (status === 422) return 'validation';
 if (status === 429) return 'rate_limited';
 return 'server';
@@ -197,7 +204,14 @@ if (xsrf) headers['X-XSRF-TOKEN'] = xsrf;
 return headers;
 }
 
-async function request(path) {
+async function request(path, init) {
+const opts = init || {};
+const headers = buildHeaders();
+let body;
+if (opts.body !== undefined) {
+    headers['Content-Type'] = 'application/json';
+    body = JSON.stringify(opts.body);
+}
 const controller = typeof AbortController === 'function' ? new AbortController() : null;
 let timedOut = false;
 const timer = controller ? setTimeout(() => { timedOut = true; controller.abort(); }, CONFIG.TIMEOUT_MS) : null;
@@ -205,8 +219,9 @@ const timer = controller ? setTimeout(() => { timedOut = true; controller.abort(
 let res;
 try {
     res = await fetch(API_BASE + path, {
-    method: 'GET',
-    headers: buildHeaders(),
+    method: opts.method || 'GET',
+    headers: headers,
+    body: body,
     credentials: CONFIG.CREDENTIALS,
     signal: controller ? controller.signal : undefined,
     });
@@ -419,6 +434,178 @@ const json = await memoDetail('menu:' + clean, () => (USE_MOCK ? mockGetMenu(cle
 return normalizeMenu(json);
 }
 
+const MOCK_TABLES = {
+'jeneen': [
+    { id: 'jn-1', name: 'طاولة 1', seats: 2, status: 'available' },
+    { id: 'jn-2', name: 'طاولة 2', seats: 4, status: 'available' },
+    { id: 'jn-3', name: 'طاولة 3', seats: 4, status: 'occupied' },
+    { id: 'jn-4', name: 'طاولة 4', seats: 6, status: 'available' },
+    { id: 'jn-5', name: 'طاولة VIP', seats: 8, status: 'available' },
+],
+'al-asema': [
+    { id: 'as-1', name: 'طاولة 1', seats: 2, status: 'available' },
+    { id: 'as-2', name: 'طاولة 2', seats: 4, status: 'available' },
+    { id: 'as-3', name: 'الجلسة الخارجية', seats: 6, status: 'available' },
+],
+'saada-shafout': [
+    { id: 'sa-1', name: 'طاولة 1', seats: 4, status: 'available' },
+    { id: 'sa-2', name: 'طاولة 2', seats: 4, status: 'occupied' },
+],
+};
+
+async function mockGetTables(slug) {
+const mode = getTestMode();
+await delay(mode === 'slow' ? 2500 : 300);
+if (mode === 'error') throw GMShopsError('server', 'Mock server error', 500);
+return { data: MOCK_TABLES[slug] || [] };
+}
+
+async function mockSubmitReservation(slug, payload) {
+const mode = getTestMode();
+await delay(mode === 'slow' ? 2500 : 700);
+if (mode === 'error') throw GMShopsError('server', 'Mock server error', 500);
+const table = (MOCK_TABLES[slug] || []).find((t) => t.id === payload.tableId);
+if (mode === 'taken' || !table || table.status === 'occupied') throw GMShopsError('conflict', 'Table is not available', 409);
+return { data: { id: 'mock-' + Date.now().toString(36), status: 'pending' } };
+}
+
+function normalizeTables(json) {
+const data = json && json.data;
+if (!Array.isArray(data)) throw GMShopsError('invalid_response', 'Invalid tables response');
+return data
+    .filter((t) => t && t.id !== undefined && t.id !== null && SAFE_ID_RE.test(String(t.id)) && typeof t.name === 'string' && t.name.trim() && t.status !== 'occupied')
+    .map((t) => {
+    const seats = Math.floor(Number(t.seats));
+    return { id: String(t.id), name: t.name.trim().slice(0, 40), seats: isFinite(seats) && seats > 0 ? seats : null };
+    });
+}
+
+function gazaParts(ms) {
+try {
+    const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: GAZA_TZ,
+    hourCycle: 'h23',
+    year: 'numeric',
+    month: 'numeric',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: 'numeric',
+    second: 'numeric',
+    }).formatToParts(new Date(ms));
+    const o = {};
+    parts.forEach((p) => { if (p.type !== 'literal') o[p.type] = Number(p.value); });
+    if (isFinite(o.year) && isFinite(o.hour)) return o;
+} catch (err) {
+}
+const d = new Date(ms);
+return { year: d.getFullYear(), month: d.getMonth() + 1, day: d.getDate(), hour: d.getHours(), minute: d.getMinutes(), second: d.getSeconds() };
+}
+
+function gazaOffsetMs(ms) {
+const p = gazaParts(ms);
+return Date.UTC(p.year, p.month - 1, p.day, p.hour, p.minute, p.second) - Math.floor(ms / 1000) * 1000;
+}
+
+function gazaInstant(dateStr, timeStr) {
+const d = dateStr.split('-').map(Number);
+const t = timeStr.split(':').map(Number);
+const guess = Date.UTC(d[0], d[1] - 1, d[2], t[0], t[1]);
+const first = guess - gazaOffsetMs(guess);
+return guess - gazaOffsetMs(first);
+}
+
+function pad2(n) {
+return n < 10 ? '0' + n : String(n);
+}
+
+function gazaDateString(ms) {
+const p = gazaParts(ms);
+return p.year + '-' + pad2(p.month) + '-' + pad2(p.day);
+}
+
+function isRealDate(value) {
+const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+if (!m) return false;
+const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3])));
+return d.getUTCFullYear() === Number(m[1]) && d.getUTCMonth() === Number(m[2]) - 1 && d.getUTCDate() === Number(m[3]);
+}
+
+function reservationWindow() {
+const now = Date.now();
+return { min: gazaDateString(now), max: gazaDateString(now + BOOK_MAX_DAYS * 86400000) };
+}
+
+function validateReservation(raw) {
+const src = raw || {};
+const errors = {};
+
+const name = String(src.name || '').replace(/\s+/g, ' ').trim();
+if (name.length < 2 || name.length > 80) errors.name = 'book.errName';
+
+const code = BOOK_COUNTRY_CODES.indexOf(String(src.countryCode)) !== -1 ? String(src.countryCode) : '970';
+let digits = String(src.phone || '').replace(/\D/g, '');
+if (digits.indexOf('00') === 0) digits = digits.slice(2);
+if (digits.indexOf(code) === 0 && digits.length === code.length + 9) digits = digits.slice(code.length);
+else if (digits.charAt(0) === '0') digits = digits.slice(1);
+if (!BOOK_NATIONAL_RE.test(digits)) errors.phone = 'book.errWhatsapp';
+
+const date = String(src.date || '');
+const time = String(src.time || '');
+const dateOk = isRealDate(date);
+const timeOk = /^([01][0-9]|2[0-3]):[0-5][0-9]$/.test(time);
+if (!dateOk) errors.date = 'book.errDate';
+if (!timeOk) errors.time = 'book.errTime';
+
+let instant = null;
+if (dateOk && timeOk) {
+    const win = reservationWindow();
+    instant = gazaInstant(date, time);
+    if (date < win.min) errors.date = 'book.errPast';
+    else if (date > win.max) errors.date = 'book.errFar';
+    else if (instant <= Date.now()) errors.time = 'book.errPast';
+}
+
+const tableId = String(src.tableId || '');
+if (!SAFE_ID_RE.test(tableId)) errors.table = 'book.errTable';
+
+if (Object.keys(errors).length) return { errors: errors, payload: null };
+
+return {
+    errors: null,
+    payload: {
+    name: name,
+    countryCode: code,
+    whatsapp: digits,
+    datetime: new Date(instant).toISOString(),
+    tableId: tableId,
+    note: String(src.note || '').trim().slice(0, 300),
+    },
+};
+}
+
+async function getTables(slug) {
+const clean = safeSlug(slug);
+if (!clean) throw GMShopsError('not_found', 'Place not found', 404);
+const json = await memoDetail('tables:' + clean, () => (USE_MOCK ? mockGetTables(clean) : requestWithRetry('/places/' + encodeURIComponent(clean) + '/tables')));
+return normalizeTables(json);
+}
+
+async function submitReservation(slug, raw) {
+const clean = safeSlug(slug);
+if (!clean) throw GMShopsError('not_found', 'Place not found', 404);
+const result = validateReservation(raw);
+if (result.errors) throw GMShopsError('validation', 'Invalid reservation', 422, result.errors);
+try {
+    const json = USE_MOCK
+    ? await mockSubmitReservation(clean, result.payload)
+    : await request('/places/' + encodeURIComponent(clean) + '/reservations', { method: 'POST', body: result.payload });
+    const data = json && json.data;
+    return { id: data && data.id !== undefined && data.id !== null ? String(data.id) : '', status: 'pending' };
+} finally {
+    detailCache.delete('tables:' + clean);
+}
+}
+
 function mockMatches(place, params) {
 if (params.type) {
     const t = params.type;
@@ -610,5 +797,9 @@ peekPage,
 clearCache,
 getPlace,
 getMenu,
+getTables,
+submitReservation,
+validateReservation,
+reservationWindow,
 };
 })();
