@@ -11,12 +11,19 @@
     return document.getElementById(id);
   }
 
+  var DEFAULT_CODE = '970';
+  var CODES = ['970', '972'];
+  var TIME_STEP_MIN = 15;
+  var TIME_DEFAULT_VALUE = '12:00';
+
   var doneEl = byId('bookingDone');
   var formErrEl = byId('bookFormErr');
   var submitEl = byId('bookSubmit');
   var submitLabelEl = byId('bookSubmitLabel');
   var nameEl = byId('bookName');
   var codeEl = byId('bookCode');
+  var codeBtn = byId('bookCodeBtn');
+  var codeTextEl = byId('bookCodeText');
   var phoneEl = byId('bookPhone');
   var dateEl = byId('bookDate');
   var timeEl = byId('bookTime');
@@ -26,11 +33,11 @@
   var retryBtn = byId('bookTablesRetry');
 
   var FIELDS = {
-    name: { input: nameEl, error: byId('bookErrName') },
-    phone: { input: phoneEl, error: byId('bookErrPhone') },
-    date: { input: dateEl, error: byId('bookErrDate') },
-    time: { input: timeEl, error: byId('bookErrTime') },
-    table: { input: tableEl, error: byId('bookErrTable') }
+    name: { input: nameEl, control: nameEl, error: byId('bookErrName') },
+    phone: { input: phoneEl, control: phoneEl, error: byId('bookErrPhone') },
+    date: { input: dateEl, control: dateEl, error: byId('bookErrDate') },
+    time: { input: timeEl, control: byId('bookTimeBtn'), error: byId('bookErrTime') },
+    table: { input: tableEl, control: byId('bookTableBtn'), error: byId('bookErrTable') }
   };
   var ORDER = ['name', 'phone', 'date', 'time', 'table'];
 
@@ -57,18 +64,305 @@
     node.textContent = '';
   }
 
+  function pad(n) {
+    return n < 10 ? '0' + n : String(n);
+  }
+
+  /* ---------- Custom picker (time + tables) ---------- */
+
+  var pickers = [];
+
+  function createPicker(cfg) {
+    var root = cfg.root;
+    var btn = cfg.button;
+    var panel = cfg.panel;
+    var native = cfg.native;
+    var phEl = btn.querySelector('.booking-select__ph');
+    var valEl = btn.querySelector('.booking-select__val');
+    var items = [];
+    var active = -1;
+    var isOpen = false;
+
+    function fullLabel(item) {
+      return item.hint ? item.label + ' — ' + item.hint : item.label;
+    }
+
+    function indexOfValue(value) {
+      for (var i = 0; i < items.length; i++) {
+        if (items[i].value === value) return i;
+      }
+      return -1;
+    }
+
+    function markSelected() {
+      var selected = indexOfValue(native.value);
+      for (var i = 0; i < panel.children.length; i++) {
+        panel.children[i].setAttribute('aria-selected', i === selected ? 'true' : 'false');
+      }
+    }
+
+    function sync() {
+      var item = items[indexOfValue(native.value)];
+      if (item) {
+        valEl.textContent = fullLabel(item);
+        valEl.hidden = false;
+        phEl.hidden = true;
+      } else {
+        valEl.textContent = '';
+        valEl.hidden = true;
+        phEl.hidden = false;
+      }
+      markSelected();
+    }
+
+    function renderPanel() {
+      panel.textContent = '';
+      items.forEach(function (item, i) {
+        var li = document.createElement('li');
+        li.id = panel.id + '-opt-' + i;
+        li.className = 'booking-select__opt';
+        li.setAttribute('role', 'option');
+        li.setAttribute('data-index', String(i));
+        var label = document.createElement('span');
+        label.textContent = item.label;
+        li.appendChild(label);
+        if (item.hint) {
+          var hint = document.createElement('span');
+          hint.className = 'booking-select__hint';
+          hint.textContent = item.hint;
+          li.appendChild(hint);
+        }
+        panel.appendChild(li);
+      });
+    }
+
+    function setItems(list) {
+      var keep = native.value;
+      items = list;
+      native.textContent = '';
+      var placeholder = document.createElement('option');
+      placeholder.value = '';
+      native.appendChild(placeholder);
+      list.forEach(function (item) {
+        var option = document.createElement('option');
+        option.value = item.value;
+        option.textContent = fullLabel(item);
+        native.appendChild(option);
+      });
+      if (keep && indexOfValue(keep) !== -1) native.value = keep;
+      active = -1;
+      renderPanel();
+      sync();
+    }
+
+    function setDisabled(on) {
+      btn.disabled = on;
+      native.disabled = on;
+      if (on) close(false);
+    }
+
+    function setActive(index, mode) {
+      if (!items.length) return;
+      var next = Math.max(0, Math.min(items.length - 1, index));
+      var prev = panel.children[active];
+      if (prev) prev.classList.remove('active');
+      active = next;
+      var li = panel.children[active];
+      li.classList.add('active');
+      panel.setAttribute('aria-activedescendant', li.id);
+
+      if (mode === 'hover') return;
+      if (mode === 'center') {
+        panel.scrollTop = li.offsetTop - (panel.clientHeight - li.offsetHeight) / 2;
+      } else {
+        var top = li.offsetTop;
+        var bottom = top + li.offsetHeight;
+        if (top < panel.scrollTop + 6) panel.scrollTop = top - 6;
+        else if (bottom > panel.scrollTop + panel.clientHeight - 6) panel.scrollTop = bottom - panel.clientHeight + 6;
+      }
+    }
+
+    function place() {
+      var holder = root.closest('.modal-body');
+      var rootRect = root.getBoundingClientRect();
+      var limitBottom = window.innerHeight;
+      var limitTop = 0;
+      if (holder) {
+        var holderRect = holder.getBoundingClientRect();
+        limitBottom = Math.min(limitBottom, holderRect.bottom);
+        limitTop = Math.max(limitTop, holderRect.top);
+      }
+      var need = Math.min(panel.scrollHeight, 232) + 12;
+      var below = limitBottom - rootRect.bottom;
+      var above = rootRect.top - limitTop;
+      panel.classList.toggle('up', below < need && above > below);
+    }
+
+    function open() {
+      if (isOpen || btn.disabled || !items.length) return;
+      pickers.forEach(function (picker) {
+        if (picker.panel !== panel) picker.close(false);
+      });
+      isOpen = true;
+      place();
+      panel.classList.add('open');
+      btn.classList.add('open');
+      btn.setAttribute('aria-expanded', 'true');
+
+      var selected = indexOfValue(native.value);
+      var start = selected !== -1 ? selected : cfg.startValue ? indexOfValue(cfg.startValue) : 0;
+      setActive(start === -1 ? 0 : start, 'center');
+      panel.focus({ preventScroll: true });
+      if (typeof panel.scrollIntoView === 'function') panel.scrollIntoView({ block: 'nearest' });
+    }
+
+    function close(returnFocus) {
+      if (!isOpen) return;
+      isOpen = false;
+      panel.classList.remove('open');
+      btn.classList.remove('open');
+      btn.setAttribute('aria-expanded', 'false');
+      panel.removeAttribute('aria-activedescendant');
+      if (returnFocus) btn.focus();
+    }
+
+    function choose(index) {
+      var item = items[index];
+      if (!item) return;
+      native.value = item.value;
+      sync();
+      native.dispatchEvent(new Event('input', { bubbles: true }));
+      native.dispatchEvent(new Event('change', { bubbles: true }));
+      close(true);
+    }
+
+    btn.addEventListener('click', function () {
+      if (isOpen) close(false);
+      else open();
+    });
+
+    btn.addEventListener('keydown', function (event) {
+      if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+        event.preventDefault();
+        open();
+      }
+    });
+
+    panel.addEventListener('keydown', function (event) {
+      var key = event.key;
+      if (key === 'ArrowDown') setActive(active + 1);
+      else if (key === 'ArrowUp') setActive(active - 1);
+      else if (key === 'PageDown') setActive(active + 5);
+      else if (key === 'PageUp') setActive(active - 5);
+      else if (key === 'Home') setActive(0);
+      else if (key === 'End') setActive(items.length - 1);
+      else if (key === 'Enter' || key === ' ') choose(active);
+      else if (key === 'Escape') {
+        event.stopPropagation();
+        close(true);
+      } else if (key === 'Tab') {
+        close(false);
+        return;
+      } else return;
+      event.preventDefault();
+    });
+
+    panel.addEventListener('click', function (event) {
+      var li = event.target.closest('.booking-select__opt');
+      if (li && panel.contains(li)) choose(Number(li.getAttribute('data-index')));
+    });
+
+    panel.addEventListener('mousemove', function (event) {
+      var li = event.target.closest('.booking-select__opt');
+      if (!li) return;
+      var index = Number(li.getAttribute('data-index'));
+      if (index !== active) setActive(index, 'hover');
+    });
+
+    var picker = {
+      panel: panel,
+      setItems: setItems,
+      setDisabled: setDisabled,
+      sync: sync,
+      close: close
+    };
+    pickers.push(picker);
+    return picker;
+  }
+
+  document.addEventListener('pointerdown', function (event) {
+    pickers.forEach(function (picker) {
+      var root = picker.panel.parentNode;
+      if (!root.contains(event.target)) picker.close(false);
+    });
+  });
+
+  function timeLabel(hour, minute) {
+    var h12 = hour % 12 === 0 ? 12 : hour % 12;
+    return h12 + ':' + pad(minute) + ' ' + t(hour < 12 ? 'book.am' : 'book.pm');
+  }
+
+  function timeItems() {
+    var list = [];
+    for (var min = 0; min < 24 * 60; min += TIME_STEP_MIN) {
+      var hour = Math.floor(min / 60);
+      var minute = min % 60;
+      list.push({ value: pad(hour) + ':' + pad(minute), label: timeLabel(hour, minute) });
+    }
+    return list;
+  }
+
+  var timePicker = createPicker({
+    root: byId('bookTimeSelect'),
+    button: FIELDS.time.control,
+    panel: byId('bookTimeList'),
+    native: timeEl,
+    startValue: TIME_DEFAULT_VALUE
+  });
+
+  var tablePicker = createPicker({
+    root: byId('bookTableSelect'),
+    button: FIELDS.table.control,
+    panel: byId('bookTableList'),
+    native: tableEl
+  });
+
+  timePicker.setItems(timeItems());
+
+  /* ---------- Country code toggle ---------- */
+
+  function setCode(code) {
+    var next = CODES.indexOf(code) !== -1 ? code : DEFAULT_CODE;
+    var other = next === CODES[0] ? CODES[1] : CODES[0];
+    codeEl.value = next;
+    codeTextEl.textContent = '+' + next;
+    codeBtn.setAttribute(
+      'aria-label',
+      t('book.codeToggle').replace('{code}', '+' + next).replace('{other}', '+' + other)
+    );
+  }
+
+  codeBtn.addEventListener('click', function () {
+    setCode(codeEl.value === CODES[0] ? CODES[1] : CODES[0]);
+    clearFieldError('phone');
+  });
+
+  setCode(DEFAULT_CODE);
+
+  /* ---------- Errors ---------- */
+
   function showFieldError(name, key) {
     var field = FIELDS[name];
     setI18n(field.error, key);
     field.error.classList.add('show');
-    field.input.setAttribute('aria-invalid', 'true');
+    field.control.setAttribute('aria-invalid', 'true');
   }
 
   function clearFieldError(name) {
     var field = FIELDS[name];
     clearI18n(field.error);
     field.error.classList.remove('show');
-    field.input.removeAttribute('aria-invalid');
+    field.control.removeAttribute('aria-invalid');
   }
 
   function showFormError(key) {
@@ -94,30 +388,19 @@
     updateSubmit();
   }
 
-  function tableLabel(table) {
-    return table.seats ? table.name + ' — ' + table.seats + ' ' + t('book.seats') : table.name;
-  }
+  /* ---------- Tables ---------- */
 
   function renderTables() {
-    var keep = tableEl.value;
-    tableEl.textContent = '';
-
-    var placeholder = document.createElement('option');
-    placeholder.value = '';
-    placeholder.textContent = t('book.tablePh');
-    tableEl.appendChild(placeholder);
-
-    state.tables.forEach(function (table) {
-      var option = document.createElement('option');
-      option.value = table.id;
-      option.textContent = tableLabel(table);
-      tableEl.appendChild(option);
-    });
-
-    if (keep && state.tables.some(function (table) { return table.id === keep; })) tableEl.value = keep;
+    tablePicker.setItems(state.tables.map(function (table) {
+      return {
+        value: table.id,
+        label: table.name,
+        hint: table.seats ? table.seats + ' ' + t('book.seats') : ''
+      };
+    }));
 
     var status = state.tablesState;
-    tableEl.disabled = status !== 'ready';
+    tablePicker.setDisabled(status !== 'ready');
 
     if (status === 'loading') setI18n(tableStatusEl, 'book.tablesLoading');
     else if (status === 'empty') setI18n(tableStatusEl, 'book.tablesEmpty');
@@ -177,11 +460,14 @@
       showFieldError(name, errors[name]);
       if (!first) first = name;
     });
-    if (first) FIELDS[first].input.focus();
+    if (first) FIELDS[first].control.focus();
   }
 
   function resetForm() {
     formEl.reset();
+    setCode(DEFAULT_CODE);
+    timePicker.sync();
+    tablePicker.sync();
     clearErrors();
     state.tables = [];
     state.tablesState = 'idle';
@@ -270,6 +556,10 @@
     if (!formEl.hidden) nameEl.focus();
   });
 
+  modalEl.addEventListener('hide.bs.modal', function () {
+    pickers.forEach(function (picker) { picker.close(false); });
+  });
+
   modalEl.addEventListener('hidden.bs.modal', function () {
     if (state.done) resetForm();
   });
@@ -279,7 +569,9 @@
     var lang = document.documentElement.getAttribute('lang');
     if (lang === lastLang) return;
     lastLang = lang;
+    timePicker.setItems(timeItems());
     renderTables();
+    setCode(codeEl.value);
   }).observe(document.documentElement, { attributes: true, attributeFilter: ['lang'] });
 
   window.GMBooking = { setPlace: setPlace };
