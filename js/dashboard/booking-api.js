@@ -2,7 +2,7 @@
   'use strict';
 
   // Dashboard API for tables and table reservations.
-  // Contract: tables-reservations-api-contract.md (v3). Same style as dashboard-users/auth/auth-api.js:
+  // Contract: tables-reservations-api-contract.md (v4). Same style as dashboard-users/auth/auth-api.js:
   // every method returns a Promise that always resolves to { ok, data } or { ok: false, code, data }.
   // It never throws and never touches the DOM.
   //
@@ -379,11 +379,13 @@
   // ---------- Mock driver (localStorage, mirrors the server rules of the contract) ----------
   // Reads and writes the same scoped keys the current dashboard pages use, so the data stays in one place
   // while the pages are migrated one by one.
-  // Test modes (query string): ?gm_test=slow | error | empty | conflict | limit
+  // Test modes (query string): ?gm_test=slow | error | empty | conflict | limit | seed
+  // seed: when no reservations are stored, plants 25 reservations (all statuses, one with a deleted table,
+  // some old ones without a table). If no tables are stored it also plants 3 tables, and marks the first table
+  // as occupied by the confirmed reservation seeded on it.
 
   function createMockDriver() {
     var RESERVATIONS_KEY = 'gmDashboardReservations';
-    var RESERVATIONS_CREATED_KEY = 'gmDashboardReservationsCreated';
     var TABLES_KEY = 'gmDashboardTables';
     var DELAY_MS = 300;
 
@@ -472,6 +474,56 @@
       var limit = limitFor('reservations', all.length);
       var shown = limit === null ? sorted : sorted.slice(0, limit);
       return { all: all, shown: shown, limit: limit, hidden: all.length - shown.length };
+    }
+
+    var SEED_NAMES = [
+      'أحمد علي', 'محمد خالد', 'سارة يوسف', 'ليلى حسن', 'عمر إبراهيم', 'نور الدين', 'رنا سمير', 'يوسف محمود',
+      'هبة أحمد', 'خالد وليد', 'مريم عادل', 'إسلام ناصر', 'دانا فادي', 'باسل رامي', 'آية محمود', 'كريم سعيد',
+      'لينا جمال', 'طارق زياد', 'سلمى عمر', 'حمزة مازن', 'جنى هاني', 'معتز بلال', 'رهف ياسر', 'أنس ماهر', 'شهد نبيل'
+    ];
+
+    function pad2(n) {
+      return n < 10 ? '0' + n : String(n);
+    }
+
+    function seedReservations() {
+      if (readList(RESERVATIONS_KEY).length) return;
+
+      var tables = readTables();
+      if (!tables.length) {
+        tables = [
+          { id: 'tbl_seed1', name: 'طاولة 1', seats: 2, status: 'available' },
+          { id: 'tbl_seed2', name: 'طاولة 2', seats: 4, status: 'available' },
+          { id: 'tbl_seed3', name: 'طاولة 3', seats: 6, status: 'available' }
+        ];
+      }
+
+      var now = Date.now();
+      var HOUR = 3600000;
+      var list = SEED_NAMES.map(function (name, i) {
+        var status = i % 4 === 1 ? 'confirmed' : (i % 4 === 3 ? 'cancelled' : 'pending');
+        var tableId = tables[i % tables.length].id;
+        if (i % 5 === 0) tableId = null;
+        if (i === 2) tableId = 'tbl_seed_deleted';
+        if (status === 'confirmed' && i !== 1) tableId = null;
+        if (i === 1) tableId = tables[0].id;
+        return {
+          id: 'res_seed' + pad2(i + 1),
+          name: name,
+          countryCode: i % 6 === 5 ? '972' : '970',
+          whatsapp: '5991234' + pad2(i + 1),
+          datetime: new Date(now + (i + 1) * 5 * HOUR).toISOString(),
+          peopleCount: (i % 10) + 1,
+          tableId: tableId,
+          note: i % 3 === 0 ? 'ملاحظة تجريبية للحجز رقم ' + (i + 1) : '',
+          status: status,
+          createdAt: now - i * HOUR
+        };
+      });
+
+      tables[0].status = 'occupied';
+      writeTables(tables);
+      writeList(RESERVATIONS_KEY, list);
     }
 
     function tableLookup() {
@@ -578,6 +630,7 @@
         list: function (params) {
           var p = cleanListParams(params);
           return later(function (mode) {
+            if (mode === 'seed') seedReservations();
             var v = visibleReservations();
             var needle = p.q.toLowerCase();
             var rows = mode === 'empty' ? [] : v.shown.filter(function (r) {
@@ -597,6 +650,7 @@
         },
         summary: function () {
           return later(function (mode) {
+            if (mode === 'seed') seedReservations();
             var v = visibleReservations();
             var shown = mode === 'empty' ? [] : v.shown;
             var pending = 0;
@@ -636,8 +690,9 @@
               }
             }
 
-            if (status === 'confirmed' && target.tableId) {
-              var usable = tableIndex !== -1 && findVisibleTable(target.tableId) && tables[tableIndex].status !== 'occupied';
+            // Confirming a reservation whose table was deleted (or that never had one) only changes the reservation.
+            if (status === 'confirmed' && target.tableId && tableIndex !== -1) {
+              var usable = findVisibleTable(target.tableId) && tables[tableIndex].status !== 'occupied';
               if (mode === 'conflict' || !usable) return fail('CONFLICT', { reason: 'table_unavailable' });
               tables[tableIndex].status = 'occupied';
               writeTables(tables);
@@ -669,14 +724,8 @@
             if (!target) return fail('NOT_FOUND');
             if (target.status !== 'cancelled') return fail('VALIDATION', { reason: 'invalid_transition' });
 
-            // The "created" counter keeps counting deleted reservations (same as the current page logic).
-            var all = readList(RESERVATIONS_KEY);
-            var created = 0;
-            try {
-              created = parseInt(localStorage.getItem(dash().scopedKey(RESERVATIONS_CREATED_KEY)), 10) || 0;
-            } catch (err) { }
-            localStorage.setItem(dash().scopedKey(RESERVATIONS_CREATED_KEY), String(Math.max(created, all.length)));
-            writeList(RESERVATIONS_KEY, all.filter(function (r) { return r.id !== id; }));
+            // A deleted reservation no longer counts toward the plan limit.
+            writeList(RESERVATIONS_KEY, readList(RESERVATIONS_KEY).filter(function (r) { return r.id !== id; }));
             return ok();
           });
         }

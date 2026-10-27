@@ -7,36 +7,48 @@
   var bootIcons = GM.bootIcons;
   var GAZA_TZ = GM.GAZA_TZ;
   var LIMIT_NOUNS = GM.LIMIT_NOUNS;
-  var getPlanLimitStatus = GM.getPlanLimitStatus;
   var updateReservationsNavBadge = GM.updateReservationsNavBadge;
   var escapeHtml = GM.escapeHtml;
-  var handleStorageError = GM.handleStorageError;
   var debounce = GM.debounce;
   var showToast = GM.showToast;
   var openConfirmModal = GM.openConfirmModal;
-  var scopedKey = GM.scopedKey;
-  var addNotification = GM.addNotification;
-  var getStoredReservations = GM.getStoredReservations;
-  var getStoredTables = GM.getStoredTables;
-  var setStoredTables = GM.setStoredTables;
 
-  var RESERVATIONS_STORAGE_KEY = 'gmDashboardReservations';
-  var RESERVATIONS_CREATED_KEY = 'gmDashboardReservationsCreated';
+  var api = window.GMBookingApi;
 
-  function setStoredReservations(list) {
-    try {
-      localStorage.setItem(scopedKey(RESERVATIONS_STORAGE_KEY), JSON.stringify(list));
-    } catch (err) { handleStorageError(err); }
-  }
+  var PAGE_SIZE = 20;
+  var SEARCH_DELAY_MS = 300;
 
-  function generateReservationId() {
-    return window.GM_ID.generate('res');
+  // The server (or the mock that mirrors it) is the source of truth. This page only keeps the last loaded snapshot:
+  // items = the pages loaded so far, meta = cursor info of the last page, summary = counters and plan usage.
+  var state = {
+    items: [],
+    meta: { nextCursor: null, hasMore: false, total: null },
+    summary: null,
+    q: '',
+    view: 'loading',
+    errorText: '',
+    allSeq: 0,
+    listSeq: 0,
+    busy: false,
+    loadingMore: false
+  };
+
+  var ERROR_TEXT = {
+    NETWORK: 'تأكد من اتصالك بالإنترنت وجرّب مرة ثانية.',
+    UNAUTHENTICATED: 'انتهت الجلسة. سجّل دخولك من جديد.',
+    FORBIDDEN: 'ما عندك صلاحية على هاي الصفحة.',
+    NOT_FOUND: 'الحجوزات مش متاحة لنوع نشاطك.',
+    RATE_LIMITED: 'محاولات كثيرة. استنى شوي وجرّب مرة ثانية.',
+    SERVER: 'صار خطأ. جرّب مرة ثانية.'
+  };
+
+  function errorText(result) {
+    return ERROR_TEXT[result && result.code] || ERROR_TEXT.SERVER;
   }
 
   function findReservationById(id) {
-    var list = getStoredReservations();
-    for (var i = 0; i < list.length; i++) {
-      if (list[i].id === id) return list[i];
+    for (var i = 0; i < state.items.length; i++) {
+      if (state.items[i].id === id) return state.items[i];
     }
     return null;
   }
@@ -63,241 +75,383 @@
     return '<span class="badge amber"><span>\u25cf</span> قيد الانتظار</span>';
   }
 
-  function getReservationsCreatedCount() {
-    var stored = 0;
-    try {
-      stored = parseInt(localStorage.getItem(scopedKey(RESERVATIONS_CREATED_KEY)), 10) || 0;
-    } catch (e) { }
-    return Math.max(stored, getStoredReservations().length);
+  function tableLabelFor(item) {
+    if (item.table) return escapeHtml(item.table.name);
+    return item.tableDeleted ? 'طاولة محذوفة' : 'بدون تحديد';
   }
 
-  function setReservationsCreatedCount(count) {
-    try {
-      localStorage.setItem(scopedKey(RESERVATIONS_CREATED_KEY), String(count));
-    } catch (e) { }
+  function hiddenLabel(count) {
+    if (count === 1) return 'حجز واحد مخفي';
+    if (count === 2) return 'حجزين مخفيين';
+    if (count <= 10) return count + ' حجوزات مخفية';
+    return count + ' حجز مخفي';
   }
 
-  function gmGetReservationLimitStatus() {
-    return getPlanLimitStatus('reservations', getReservationsCreatedCount());
-  }
+  function setStateBlock(icon, title, sub, canRetry, spinning) {
+    var block = document.getElementById('res-state');
+    if (!block) return;
+    var iconHost = document.getElementById('res-state-icon');
+    var titleEl = document.getElementById('res-state-title');
+    var subEl = document.getElementById('res-state-sub');
+    var retryBtn = document.getElementById('res-state-retry');
 
-  window.gmGetReservationLimitStatus = gmGetReservationLimitStatus;
-
-  function gmSubmitTableReservation(data) {
-    data = data || {};
-    if (!gmGetReservationLimitStatus().canAdd) {
-      var limitError = new Error('gmSubmitTableReservation: reservation limit reached for the current plan');
-      limitError.code = 'RESERVATION_LIMIT_REACHED';
-      throw limitError;
+    if (iconHost) {
+      iconHost.innerHTML = '<i data-lucide="' + icon + '" class="icon"></i>';
+      var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      iconHost.style.animation = spinning && !reduceMotion ? 'gm-spin 1s linear infinite' : '';
     }
-    var name = (data.name || '').toString().trim().slice(0, 80);
-    var whatsapp = (data.whatsapp || '').toString().replace(/\s+/g, '').slice(0, 20);
-    if (!name) throw new Error('gmSubmitTableReservation: name is required');
-    if (!whatsapp) throw new Error('gmSubmitTableReservation: whatsapp is required');
-    var peopleCount = parseInt(data.peopleCount, 10);
-    if (!(peopleCount >= 1 && peopleCount <= 10)) throw new Error('gmSubmitTableReservation: peopleCount must be between 1 and 10');
-
-    var reservation = {
-      id: generateReservationId(),
-      name: name,
-      countryCode: (data.countryCode || '970').toString().trim(),
-      whatsapp: whatsapp,
-      datetime: (data.datetime || '').toString().trim(),
-      peopleCount: peopleCount,
-      tableId: data.tableId || null,
-      note: (data.note || '').toString().trim().slice(0, 300),
-      status: 'pending',
-      createdAt: Date.now()
-    };
-
-    var list = getStoredReservations();
-    var createdCount = getReservationsCreatedCount();
-    list.unshift(reservation);
-    setStoredReservations(list);
-    setReservationsCreatedCount(createdCount + 1);
-
-    addNotification({
-      icon: 'calendar-check',
-      title: 'وصلك طلب حجز جديد',
-      sub: name
-    });
-
-    if (typeof window.renderReservationsPage === 'function') {
-      window.renderReservationsPage();
-    }
-
-    return reservation;
+    if (titleEl) titleEl.textContent = title;
+    if (subEl) subEl.textContent = sub || '';
+    if (retryBtn) retryBtn.style.display = canRetry ? '' : 'none';
+    block.setAttribute('aria-busy', spinning ? 'true' : 'false');
+    block.style.display = '';
   }
 
-  window.gmSubmitTableReservation = gmSubmitTableReservation;
+  function buildRow(item, disabledAttr) {
+    var id = escapeHtml(item.id);
+    var whatsappDisplay = '+' + item.countryCode + item.whatsapp;
+    var avatarLetter = escapeHtml((item.name || '').trim().charAt(0) || '؟');
+    var statusBadge = buildReservationStatusBadge(item.status);
+    var dateLabel = item.datetime ? formatReservationDateTime(item.datetime) : '\u2014';
+    var tableLabel = tableLabelFor(item);
+    var peopleLine = item.peopleCount ? (escapeHtml(String(item.peopleCount)) + ' أشخاص') : '';
+
+    var rowActionsHtml;
+    var cardActionsHtml;
+    if (item.status === 'pending') {
+      rowActionsHtml =
+        '<button type="button" class="btn btn-primary btn-sm" data-action="confirm-reservation" data-id="' + id + '"' + disabledAttr + '>تأكيد</button>' +
+        '<button type="button" class="btn btn-danger btn-sm" data-action="cancel-reservation" data-id="' + id + '"' + disabledAttr + '>إلغاء</button>';
+      cardActionsHtml =
+        '<button type="button" class="btn btn-sm btn-primary" data-action="confirm-reservation" data-id="' + id + '"' + disabledAttr + '>' +
+          '<i data-lucide="check" class="icon"></i> تأكيد' +
+        '</button>' +
+        '<button type="button" class="btn btn-sm btn-danger" data-action="cancel-reservation" data-id="' + id + '"' + disabledAttr + '>' +
+          '<i data-lucide="x" class="icon"></i> إلغاء' +
+        '</button>';
+    } else if (item.status === 'confirmed') {
+      rowActionsHtml =
+        '<button type="button" class="btn btn-danger btn-sm" data-action="cancel-reservation" data-id="' + id + '"' + disabledAttr + '>إلغاء الحجز</button>';
+      cardActionsHtml =
+        '<button type="button" class="btn btn-sm btn-danger" data-action="cancel-reservation" data-id="' + id + '"' + disabledAttr + '>' +
+          '<i data-lucide="x" class="icon"></i> إلغاء الحجز' +
+        '</button>';
+    } else {
+      rowActionsHtml =
+        '<button type="button" class="icon-btn" data-action="delete-reservation" data-id="' + id + '" aria-label="حذف" title="حذف"' + disabledAttr + '><i data-lucide="trash-2" class="icon"></i></button>';
+      cardActionsHtml =
+        '<button type="button" class="btn btn-sm btn-ghost" data-action="delete-reservation" data-id="' + id + '"' + disabledAttr + '>' +
+          '<i data-lucide="trash-2" class="icon"></i> حذف' +
+        '</button>';
+    }
+
+    var row =
+      '<tr>' +
+        '<td><div class="flex gap-12">' +
+            '<div class="avatar">' + avatarLetter + '</div>' +
+            '<div>' +
+              '<div style="font-weight:700;">' + escapeHtml(item.name) + '</div>' +
+              (peopleLine ? '<div class="sub" style="font-size:12px;color:var(--db-text-tertiary);">' + peopleLine + '</div>' : '') +
+            '</div>' +
+          '</div>' +
+        '</td>' +
+        '<td><div class="flex gap-8">' +
+            '<i data-lucide="message-circle" class="icon" style="color:var(--db-text-tertiary);"></i>' +
+            '<span class="mono">' + escapeHtml(whatsappDisplay) + '</span>' +
+          '</div></td>' +
+        '<td class="mono" style="direction:ltr;text-align:right;">' + dateLabel + '</td>' +
+        '<td>' + tableLabel + '</td>' +
+        '<td>' + statusBadge + '</td>' +
+        '<td><div class="flex gap-8">' + rowActionsHtml + '</div></td>' +
+      '</tr>';
+
+    var card =
+      '<div class="sub-card" data-id="' + id + '">' +
+        '<div class="sub-card-top">' +
+          statusBadge +
+          '<div class="sub-card-name">' + escapeHtml(item.name) + '</div>' +
+        '</div>' +
+        '<div class="sub-card-row mono">' +
+          '<i data-lucide="message-circle" class="icon"></i>' +
+          '<span>' + escapeHtml(whatsappDisplay) + '</span>' +
+        '</div>' +
+        '<div class="sub-card-row">' + dateLabel + ' \u00b7 ' + tableLabel + (peopleLine ? ' \u00b7 ' + peopleLine : '') + '</div>' +
+        (item.note ? '<div class="sub-card-note">' + escapeHtml(item.note) + '</div>' : '') +
+        '<div class="sub-card-actions" style="grid-template-columns:repeat(' + (item.status === 'pending' ? 2 : 1) + ',1fr);">' +
+          cardActionsHtml +
+        '</div>' +
+      '</div>';
+
+    return { row: row, card: card };
+  }
 
   function renderReservationsPage() {
     var tbody = document.getElementById('res-table-body');
+    if (!tbody) return;
+
     var cardsWrap = document.getElementById('res-cards-wrap');
     var dataWrap = document.getElementById('res-data-wrap');
+    var tableWrap = document.getElementById('res-table-wrap');
     var emptyState = document.getElementById('res-empty-state');
+    var stateBlock = document.getElementById('res-state');
     var searchInput = document.getElementById('res-search-input');
     var searchClearBtn = document.getElementById('res-search-clear');
     var searchEmptyState = document.getElementById('res-search-empty');
-    var tableCard = document.getElementById('res-table-card');
     var statPendingEl = document.getElementById('res-stat-pending');
     var statConfirmedEl = document.getElementById('res-stat-confirmed');
     var statTotalEl = document.getElementById('res-stat-total');
+    var usageEl = document.getElementById('res-usage-counter');
+    var hiddenNoteEl = document.getElementById('res-hidden-note');
+    var loadMoreWrap = document.getElementById('res-load-more-wrap');
+    var loadMoreBtn = document.getElementById('res-load-more');
 
-    var list = getStoredReservations();
-    var pendingCount = 0;
-    var confirmedCount = 0;
+    var summary = state.summary;
+    var ready = state.view === 'ready' && !!summary;
 
-    list.forEach(function (res) {
-      if (res.status === 'pending') pendingCount++;
-      if (res.status === 'confirmed') confirmedCount++;
-    });
+    if (!ready) {
+      tbody.innerHTML = '';
+      if (cardsWrap) cardsWrap.innerHTML = '';
+      if (dataWrap) dataWrap.style.display = 'none';
+      if (emptyState) emptyState.style.display = 'none';
+      if (usageEl) usageEl.style.display = 'none';
+      if (hiddenNoteEl) hiddenNoteEl.style.display = 'none';
+      if (loadMoreWrap) loadMoreWrap.style.display = 'none';
+      if (statPendingEl) statPendingEl.textContent = '\u2013';
+      if (statConfirmedEl) statConfirmedEl.textContent = '\u2013';
+      if (statTotalEl) statTotalEl.textContent = '\u2013';
 
-    updateReservationsNavBadge(pendingCount);
+      if (state.view === 'error') {
+        setStateBlock('alert-triangle', 'تعذّر تحميل الحجوزات', state.errorText, true, false);
+      } else {
+        setStateBlock('loader-2', 'جاري تحميل الحجوزات...', '', false, true);
+      }
+      bootIcons();
+      return;
+    }
 
-    if (!tbody) return;
+    if (stateBlock) stateBlock.style.display = 'none';
 
-    var tablesById = {};
-    getStoredTables().forEach(function (tb) { tablesById[tb.id] = tb; });
-
-    var searchQuery = searchInput ? searchInput.value.trim().toLowerCase() : '';
-    if (searchClearBtn) searchClearBtn.style.display = searchQuery ? '' : 'none';
-
-    var visibleList = searchQuery
-      ? list.filter(function (res) { return (res.name || '').toLowerCase().indexOf(searchQuery) !== -1; })
-      : list;
-
+    var disabledAttr = state.busy ? ' disabled' : '';
     var rowsHtml = '';
     var cardsHtml = '';
-
-    visibleList.forEach(function (res) {
-      var whatsappDisplay = '+' + (res.countryCode || '970') + res.whatsapp;
-      var avatarLetter = escapeHtml((res.name || '').trim().charAt(0) || '؟');
-      var statusBadge = buildReservationStatusBadge(res.status);
-      var dateLabel = res.datetime ? formatReservationDateTime(res.datetime) : '\u2014';
-      var table = res.tableId ? (tablesById[res.tableId] || null) : null;
-      var tableLabel = table ? escapeHtml(table.name) : (res.tableId ? 'طاولة محذوفة' : 'بدون تحديد');
-      var peopleLine = res.peopleCount ? (escapeHtml(String(res.peopleCount)) + ' أشخاص') : '';
-
-      var rowActionsHtml = '';
-      var cardActionsHtml = '';
-      if (res.status === 'pending') {
-        rowActionsHtml =
-          '<button type="button" class="btn btn-primary btn-sm" data-action="confirm-reservation" data-id="' + escapeHtml(res.id) + '">تأكيد</button>' +
-          '<button type="button" class="btn btn-danger btn-sm" data-action="cancel-reservation" data-id="' + escapeHtml(res.id) + '">إلغاء</button>';
-        cardActionsHtml =
-          '<button type="button" class="btn btn-sm btn-primary" data-action="confirm-reservation" data-id="' + escapeHtml(res.id) + '">' +
-            '<i data-lucide="check" class="icon"></i> تأكيد' +
-          '</button>' +
-          '<button type="button" class="btn btn-sm btn-danger" data-action="cancel-reservation" data-id="' + escapeHtml(res.id) + '">' +
-            '<i data-lucide="x" class="icon"></i> إلغاء' +
-          '</button>';
-      } else if (res.status === 'confirmed') {
-        rowActionsHtml =
-          '<button type="button" class="btn btn-danger btn-sm" data-action="cancel-reservation" data-id="' + escapeHtml(res.id) + '">إلغاء الحجز</button>';
-        cardActionsHtml =
-          '<button type="button" class="btn btn-sm btn-danger" data-action="cancel-reservation" data-id="' + escapeHtml(res.id) + '">' +
-            '<i data-lucide="x" class="icon"></i> إلغاء الحجز' +
-          '</button>';
-      } else {
-        rowActionsHtml =
-          '<button type="button" class="icon-btn" data-action="delete-reservation" data-id="' + escapeHtml(res.id) + '" aria-label="حذف" title="حذف"><i data-lucide="trash-2" class="icon"></i></button>';
-        cardActionsHtml =
-          '<button type="button" class="btn btn-sm btn-ghost" data-action="delete-reservation" data-id="' + escapeHtml(res.id) + '">' +
-            '<i data-lucide="trash-2" class="icon"></i> حذف' +
-          '</button>';
-      }
-
-      rowsHtml +=
-        '<tr>' +
-          '<td><div class="flex gap-12">' +
-              '<div class="avatar">' + avatarLetter + '</div>' +
-              '<div>' +
-                '<div style="font-weight:700;">' + escapeHtml(res.name) + '</div>' +
-                (peopleLine ? '<div class="sub" style="font-size:12px;color:var(--db-text-tertiary);">' + peopleLine + '</div>' : '') +
-              '</div>' +
-            '</div>' +
-          '</td>' +
-          '<td><div class="flex gap-8">' +
-              '<i data-lucide="message-circle" class="icon" style="color:var(--db-text-tertiary);"></i>' +
-              '<span class="mono">' + escapeHtml(whatsappDisplay) + '</span>' +
-            '</div></td>' +
-          '<td class="mono" style="direction:ltr;text-align:right;">' + dateLabel + '</td>' +
-          '<td>' + tableLabel + '</td>' +
-          '<td>' + statusBadge + '</td>' +
-          '<td><div class="flex gap-8">' + rowActionsHtml + '</div></td>' +
-        '</tr>';
-
-      cardsHtml +=
-        '<div class="sub-card" data-id="' + escapeHtml(res.id) + '">' +
-          '<div class="sub-card-top">' +
-            statusBadge +
-            '<div class="sub-card-name">' + escapeHtml(res.name) + '</div>' +
-          '</div>' +
-          '<div class="sub-card-row mono">' +
-            '<i data-lucide="message-circle" class="icon"></i>' +
-            '<span>' + escapeHtml(whatsappDisplay) + '</span>' +
-          '</div>' +
-          '<div class="sub-card-row">' + dateLabel + ' \u00b7 ' + tableLabel + (peopleLine ? ' \u00b7 ' + peopleLine : '') + '</div>' +
-          (res.note ? '<div class="sub-card-note">' + escapeHtml(res.note) + '</div>' : '') +
-          '<div class="sub-card-actions" style="grid-template-columns:repeat(' + (res.status === 'pending' ? 2 : 1) + ',1fr);">' +
-            cardActionsHtml +
-          '</div>' +
-        '</div>';
+    state.items.forEach(function (item) {
+      var built = buildRow(item, disabledAttr);
+      rowsHtml += built.row;
+      cardsHtml += built.card;
     });
-
     tbody.innerHTML = rowsHtml;
     if (cardsWrap) cardsWrap.innerHTML = cardsHtml;
 
-    if (statPendingEl) statPendingEl.textContent = String(pendingCount);
-    if (statConfirmedEl) statConfirmedEl.textContent = String(confirmedCount);
-    if (statTotalEl) statTotalEl.textContent = String(list.length);
+    if (statPendingEl) statPendingEl.textContent = String(summary.pending);
+    if (statConfirmedEl) statConfirmedEl.textContent = String(summary.confirmed);
+    if (statTotalEl) statTotalEl.textContent = String(summary.total);
 
-    var reservationsUsageEl = document.getElementById('res-usage-counter');
-    if (reservationsUsageEl) {
-      var reservationsUsage = gmGetReservationLimitStatus();
-      if (reservationsUsage.unlimited) {
-        reservationsUsageEl.style.display = 'none';
+    if (usageEl) {
+      if (summary.limit === null) {
+        usageEl.style.display = 'none';
       } else {
-        reservationsUsageEl.textContent = reservationsUsage.used + ' من ' + reservationsUsage.limit + ' ' + LIMIT_NOUNS.reservations +
-          (reservationsUsage.canAdd ? '' : ' — وصلت للحد الأقصى');
-        reservationsUsageEl.style.display = '';
+        usageEl.textContent = summary.used + ' من ' + summary.limit + ' ' + LIMIT_NOUNS.reservations +
+          (summary.used >= summary.limit ? ' — وصلت للحد الأقصى' : '');
+        usageEl.style.display = '';
       }
     }
 
-    if (dataWrap && emptyState) {
-      var hasReservations = list.length > 0;
-      dataWrap.style.display = hasReservations ? '' : 'none';
-      emptyState.style.display = hasReservations ? 'none' : '';
+    if (hiddenNoteEl) {
+      if (summary.hidden > 0) {
+        hiddenNoteEl.textContent = 'في ' + hiddenLabel(summary.hidden) +
+          ' بسبب حد الباقة المجانية. بتظهر كلها لما تشترك بالباقة المدفوعة.';
+        hiddenNoteEl.style.display = '';
+      } else {
+        hiddenNoteEl.style.display = 'none';
+      }
     }
 
-    if (list.length > 0) {
-      var hasVisibleResults = visibleList.length > 0;
-      if (tableCard) tableCard.style.display = hasVisibleResults ? '' : 'none';
-      if (cardsWrap) cardsWrap.style.display = hasVisibleResults ? '' : 'none';
-      if (searchEmptyState) searchEmptyState.style.display = hasVisibleResults ? 'none' : '';
-    } else if (searchEmptyState) {
-      searchEmptyState.style.display = 'none';
+    // The search box lives inside the data wrap, so it stays visible while a search has no results.
+    var hasAny = summary.total > 0 || !!state.q;
+    if (dataWrap) dataWrap.style.display = hasAny ? '' : 'none';
+    if (emptyState) emptyState.style.display = hasAny ? 'none' : '';
+
+    var hasRows = state.items.length > 0;
+    if (tableWrap) tableWrap.style.display = hasRows ? '' : 'none';
+    if (cardsWrap) cardsWrap.style.display = hasRows ? '' : 'none';
+    if (searchEmptyState) searchEmptyState.style.display = !hasRows && state.q ? '' : 'none';
+    if (searchClearBtn && searchInput) searchClearBtn.style.display = searchInput.value.trim() ? '' : 'none';
+
+    if (loadMoreWrap) loadMoreWrap.style.display = state.meta.hasMore ? '' : 'none';
+    if (loadMoreBtn) {
+      loadMoreBtn.disabled = state.busy || state.loadingMore;
+      loadMoreBtn.classList.toggle('is-saving', state.loadingMore);
     }
 
     bootIcons();
   }
 
-  window.renderReservationsPage = renderReservationsPage;
+  function listParams(cursor) {
+    return { q: state.q, cursor: cursor || '', limit: PAGE_SIZE };
+  }
+
+  // Loads the counters and the first page together. silent = keep the current screen while refreshing
+  // (used after a change, because counters and plan-hidden items change on the server side).
+  function loadAll(silent) {
+    if (!api || !api.reservations) {
+      state.view = 'error';
+      state.errorText = ERROR_TEXT.SERVER;
+      renderReservationsPage();
+      return Promise.resolve();
+    }
+
+    var keepScreen = !!silent && state.view === 'ready';
+    if (!keepScreen) {
+      state.view = 'loading';
+      renderReservationsPage();
+    }
+
+    var allSeq = ++state.allSeq;
+    var listSeq = ++state.listSeq;
+
+    return Promise.all([
+      api.reservations.summary(),
+      api.reservations.list(listParams())
+    ]).then(function (results) {
+      if (allSeq !== state.allSeq) return;
+      var summaryRes = results[0];
+      var listRes = results[1];
+
+      if (!summaryRes.ok || !listRes.ok) {
+        var failed = !summaryRes.ok ? summaryRes : listRes;
+        if (keepScreen) {
+          showToast(errorText(failed), { icon: 'alert-triangle', danger: true });
+          return;
+        }
+        state.view = 'error';
+        state.errorText = errorText(failed);
+        renderReservationsPage();
+        return;
+      }
+
+      state.summary = summaryRes.data;
+      updateReservationsNavBadge(state.summary.pending);
+
+      // If the owner searched while this was loading, the search request owns the list.
+      if (listSeq === state.listSeq) {
+        state.items = listRes.data.items;
+        state.meta = listRes.data.meta;
+      }
+      state.view = 'ready';
+      renderReservationsPage();
+    });
+  }
+
+  // Reloads only the list (search or clearing the search). The counters do not change.
+  function reloadList() {
+    if (!api || !api.reservations || state.view !== 'ready') return;
+    var seq = ++state.listSeq;
+    state.loadingMore = false;
+
+    api.reservations.list(listParams()).then(function (res) {
+      if (seq !== state.listSeq) return;
+      if (!res.ok) {
+        showToast(errorText(res), { icon: 'alert-triangle', danger: true });
+        return;
+      }
+      state.items = res.data.items;
+      state.meta = res.data.meta;
+      renderReservationsPage();
+    });
+  }
+
+  function loadMore() {
+    if (!api || !api.reservations) return;
+    if (state.view !== 'ready' || state.busy || state.loadingMore) return;
+    if (!state.meta.hasMore || !state.meta.nextCursor) return;
+
+    var seq = state.listSeq;
+    state.loadingMore = true;
+    renderReservationsPage();
+
+    api.reservations.list(listParams(state.meta.nextCursor)).then(function (res) {
+      if (seq !== state.listSeq) return;
+      state.loadingMore = false;
+      if (!res.ok) {
+        showToast(errorText(res), { icon: 'alert-triangle', danger: true });
+        renderReservationsPage();
+        return;
+      }
+      var known = Object.create(null);
+      state.items.forEach(function (item) { known[item.id] = true; });
+      res.data.items.forEach(function (item) {
+        if (!known[item.id]) state.items.push(item);
+      });
+      state.meta = res.data.meta;
+      renderReservationsPage();
+    });
+  }
+
+  function handleFailure(res) {
+    var reason = res.data && res.data.reason;
+
+    if (res.code === 'CONFLICT') {
+      showToast('الطاولة مستخدمة حالياً. ألغِ الحجز أو رجّع الطاولة متاحة من صفحة الطاولات ثم أكّد.', { icon: 'alert-triangle', danger: true });
+      loadAll(true);
+      return;
+    }
+    if (res.code === 'VALIDATION') {
+      showToast(reason === 'invalid_transition'
+        ? 'ما بصير تغيّر حالة هذا الحجز. تم تحديث القائمة.'
+        : 'تعذّر تنفيذ الطلب. تم تحديث القائمة.', { icon: 'alert-triangle', danger: true });
+      loadAll(true);
+      return;
+    }
+    if (res.code === 'NOT_FOUND') {
+      showToast('الحجز مش موجود أو مخفي بسبب حد الباقة. تم تحديث القائمة.', { icon: 'alert-triangle', danger: true });
+      loadAll(true);
+      return;
+    }
+    showToast(errorText(res), { icon: 'alert-triangle', danger: true });
+  }
+
+  // One change at a time. Buttons stay disabled until the server answers, then the page reloads from the server.
+  function mutate(call, successText, successOpts) {
+    if (state.busy) return;
+    state.busy = true;
+    renderReservationsPage();
+
+    call.then(function (res) {
+      state.busy = false;
+      if (!res.ok) {
+        renderReservationsPage();
+        handleFailure(res);
+        return;
+      }
+      showToast(successText, successOpts);
+      loadAll(true);
+    });
+  }
 
   function initReservationsSearch() {
     var searchInput = document.getElementById('res-search-input');
     var searchClearBtn = document.getElementById('res-search-clear');
     if (!searchInput) return;
 
-    searchInput.addEventListener('input', debounce(function () {
-      renderReservationsPage();
-    }, 150));
+    function applySearch() {
+      var next = searchInput.value.replace(/\s+/g, ' ').trim();
+      if (next === state.q) return;
+      state.q = next;
+      reloadList();
+    }
+
+    var applySearchDebounced = debounce(applySearch, SEARCH_DELAY_MS);
+
+    searchInput.addEventListener('input', function () {
+      if (searchClearBtn) searchClearBtn.style.display = searchInput.value.trim() ? '' : 'none';
+      applySearchDebounced();
+    });
 
     if (searchClearBtn) {
       searchClearBtn.addEventListener('click', function () {
         searchInput.value = '';
-        renderReservationsPage();
+        searchClearBtn.style.display = 'none';
+        applySearch();
         searchInput.focus();
       });
     }
@@ -305,94 +459,73 @@
 
   function initReservationActions() {
     document.addEventListener('click', function (e) {
-      var confirmBtn = e.target.closest && e.target.closest('[data-action="confirm-reservation"]');
+      var target = e.target;
+      if (!target || !target.closest) return;
+
+      if (target.closest('[data-action="retry-reservations"]')) {
+        e.preventDefault();
+        loadAll(false);
+        return;
+      }
+
+      if (target.closest('[data-action="load-more-reservations"]')) {
+        e.preventDefault();
+        loadMore();
+        return;
+      }
+
+      var confirmBtn = target.closest('[data-action="confirm-reservation"]');
       if (confirmBtn) {
+        if (state.busy) return;
         var idToConfirm = confirmBtn.getAttribute('data-id');
-        var resToConfirm = findReservationById(idToConfirm);
-        if (!resToConfirm) return;
+        var toConfirm = findReservationById(idToConfirm);
+        if (!toConfirm) return;
+
+        var confirmNote = '.';
+        if (toConfirm.table) confirmNote = ' وتصير الطاولة مستخدمة تلقائياً.';
+        else if (toConfirm.tableDeleted) confirmNote = ' (طاولته انحذفت، فما رح تتغيّر حالة أي طاولة).';
 
         openConfirmModal({
           icon: 'calendar-check',
           danger: false,
           title: 'تأكيد الحجز؟',
-          message: 'رح يتم تأكيد حجز «<strong>' + escapeHtml(resToConfirm.name) + '</strong>»' +
-            (resToConfirm.tableId ? ' وتصير الطاولة مستخدمة تلقائياً.' : '.'),
+          message: 'رح يتم تأكيد حجز «<strong>' + escapeHtml(toConfirm.name) + '</strong>»' + confirmNote,
           confirmLabel: 'تأكيد الحجز',
           cancelLabel: 'إلغاء',
           onConfirm: function () {
-            var reservations = getStoredReservations();
-            for (var i = 0; i < reservations.length; i++) {
-              if (reservations[i].id === idToConfirm) {
-                reservations[i].status = 'confirmed';
-                break;
-              }
-            }
-            setStoredReservations(reservations);
-
-            if (resToConfirm.tableId) {
-              var tables = getStoredTables();
-              for (var j = 0; j < tables.length; j++) {
-                if (tables[j].id === resToConfirm.tableId) {
-                  tables[j].status = 'occupied';
-                  break;
-                }
-              }
-              setStoredTables(tables);
-            }
-
-            renderReservationsPage();
-            showToast('تم تأكيد الحجز', { icon: 'calendar-check' });
+            mutate(api.reservations.setStatus(idToConfirm, 'confirmed'), 'تم تأكيد الحجز', { icon: 'calendar-check' });
           }
         });
         return;
       }
 
-      var cancelBtn = e.target.closest && e.target.closest('[data-action="cancel-reservation"]');
+      var cancelBtn = target.closest('[data-action="cancel-reservation"]');
       if (cancelBtn) {
+        if (state.busy) return;
         var idToCancel = cancelBtn.getAttribute('data-id');
-        var resToCancel = findReservationById(idToCancel);
-        var nameHtml = resToCancel ? '<strong>' + escapeHtml(resToCancel.name) + '</strong>' : 'هذا الحجز';
-        var wasConfirmed = !!(resToCancel && resToCancel.status === 'confirmed');
+        var toCancel = findReservationById(idToCancel);
+        if (!toCancel) return;
 
         openConfirmModal({
           icon: 'x',
           danger: true,
           title: 'إلغاء الحجز؟',
-          message: 'سيتم إلغاء حجز «' + nameHtml + '»' +
-            (wasConfirmed && resToCancel.tableId ? ' وتصير الطاولة متاحة من جديد.' : '.'),
+          message: 'سيتم إلغاء حجز «<strong>' + escapeHtml(toCancel.name) + '</strong>»' +
+            (toCancel.status === 'confirmed' && toCancel.table ? ' وتصير الطاولة متاحة من جديد.' : '.'),
           confirmLabel: 'إلغاء الحجز',
           cancelLabel: 'تراجع',
           onConfirm: function () {
-            var reservations = getStoredReservations();
-            for (var i = 0; i < reservations.length; i++) {
-              if (reservations[i].id === idToCancel) {
-                reservations[i].status = 'cancelled';
-                break;
-              }
-            }
-            setStoredReservations(reservations);
-
-            if (wasConfirmed && resToCancel.tableId) {
-              var tables = getStoredTables();
-              for (var j = 0; j < tables.length; j++) {
-                if (tables[j].id === resToCancel.tableId) {
-                  tables[j].status = 'available';
-                  break;
-                }
-              }
-              setStoredTables(tables);
-            }
-
-            renderReservationsPage();
-            showToast('تم إلغاء الحجز', { icon: 'x', danger: true });
+            mutate(api.reservations.setStatus(idToCancel, 'cancelled'), 'تم إلغاء الحجز', { icon: 'x', danger: true });
           }
         });
         return;
       }
 
-      var deleteBtn = e.target.closest && e.target.closest('[data-action="delete-reservation"]');
+      var deleteBtn = target.closest('[data-action="delete-reservation"]');
       if (deleteBtn) {
+        if (state.busy) return;
         var idToDelete = deleteBtn.getAttribute('data-id');
+
         openConfirmModal({
           icon: 'trash-2',
           danger: true,
@@ -401,14 +534,9 @@
           confirmLabel: 'حذف',
           cancelLabel: 'إلغاء',
           onConfirm: function () {
-            var remaining = getStoredReservations().filter(function (r) {
-              return r.id !== idToDelete;
-            });
-            setStoredReservations(remaining);
-            renderReservationsPage();
+            mutate(api.reservations.remove(idToDelete), 'تم حذف الحجز', { icon: 'trash-2', danger: true });
           }
         });
-        return;
       }
     });
   }
@@ -418,6 +546,7 @@
       renderReservationsPage();
       initReservationActions();
       initReservationsSearch();
+      loadAll(false);
     }
   });
 
