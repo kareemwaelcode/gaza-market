@@ -10605,7 +10605,7 @@ body.dark-mode .shop-item__price {
   margin: 0;
   font-size: 1.15rem;
   font-weight: 700;
-  color: var(--text);
+  color: var(--blue);
 }
 
 .booking-sub {

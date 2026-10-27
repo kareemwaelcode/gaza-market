@@ -13,7 +13,7 @@ return document.getElementById(id);
 
 var DEFAULT_CODE = '970';
 var CODES = ['970', '972'];
-var TIME_STEP_MIN = 15;
+var TIME_STEP_MIN = 30;
 var GAZA_TZ = 'Asia/Gaza';
 var TIME_DEFAULT_VALUE = '12:00';
 
