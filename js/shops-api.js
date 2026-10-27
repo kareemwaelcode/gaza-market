@@ -70,13 +70,42 @@ if (raw === null || raw === undefined || raw === '') return null;
 return regionLookup.map.get(regionLookup.squash(raw)) || null;
 }
 
-function GMShopsError(code, message, status, errors) {
+function GMShopsError(code, message, status, errors, reason) {
 const err = new Error(message || code);
 err.name = 'GMShopsError';
 err.code = code;
 err.status = status || 0;
 err.errors = errors || null;
+err.reason = typeof reason === 'string' ? reason : '';
 return err;
+}
+
+const BOOK_ERROR_FIELDS = {
+name: 'name',
+countryCode: 'phone',
+whatsapp: 'phone',
+phone: 'phone',
+datetime: 'date',
+date: 'date',
+time: 'time',
+peopleCount: 'people',
+people: 'people',
+tableId: 'table',
+table: 'table',
+};
+
+function normalizeServerErrors(raw) {
+if (!raw || typeof raw !== 'object') return null;
+const out = {};
+Object.keys(raw).forEach((key) => {
+    const field = BOOK_ERROR_FIELDS[key];
+    let value = raw[key];
+    if (Array.isArray(value)) value = value[0];
+    if (!field || typeof value !== 'string' || !/^book\.err[A-Za-z]+$/.test(value)) return;
+    const target = key === 'datetime' && value === 'book.errTime' ? 'time' : field;
+    if (!out[target]) out[target] = value;
+});
+return Object.keys(out).length ? out : null;
 }
 
 function codeFromStatus(status) {
@@ -166,6 +195,7 @@ return {
     whatsapp: normalizePhone(raw.whatsapp),
     phone: normalizePhone(raw.phone),
     has_menu: raw.has_menu === true || raw.has_menu === 1 || raw.has_menu === '1',
+    booking_available: !(raw.booking_available === false || raw.booking_available === 0 || raw.booking_available === '0'),
 };
 }
 
@@ -242,7 +272,8 @@ try {
 
 if (!res.ok) {
     const message = json && typeof json.message === 'string' ? json.message : 'HTTP ' + res.status;
-    throw GMShopsError(codeFromStatus(res.status), message, res.status, json && json.errors);
+    const errors = res.status === 422 ? normalizeServerErrors(json && json.errors) : null;
+    throw GMShopsError(codeFromStatus(res.status), message, res.status, errors, json && json.code);
 }
 
 if (json === null) throw GMShopsError('invalid_response', 'Empty or invalid JSON response', res.status);
@@ -353,7 +384,7 @@ await delay(mode === 'slow' ? 2500 : 250);
 if (mode === 'error') throw GMShopsError('server', 'Mock server error', 500);
 const raw = MOCK_PLACES.find((p) => p.slug === slug);
 if (!raw) throw GMShopsError('not_found', 'Place not found', 404);
-return { data: Object.assign({ phone: raw.whatsapp }, raw) };
+return { data: Object.assign({ phone: raw.whatsapp }, raw, mode === 'closed' ? { booking_available: false } : {}) };
 }
 
 async function mockGetMenu(slug) {
@@ -463,8 +494,12 @@ async function mockSubmitReservation(slug, payload) {
 const mode = getTestMode();
 await delay(mode === 'slow' ? 2500 : 700);
 if (mode === 'error') throw GMShopsError('server', 'Mock server error', 500);
+if (mode === 'limit') throw GMShopsError('forbidden', 'Plan limit reached', 403, null, 'plan_limit_reached');
+if (mode === 'invalid') {
+    throw GMShopsError('validation', 'Invalid reservation', 422, normalizeServerErrors({ name: 'book.errName', whatsapp: 'book.errWhatsapp', peopleCount: 'book.errPeople' }));
+}
 const table = (MOCK_TABLES[slug] || []).find((t) => t.id === payload.tableId);
-if (mode === 'taken' || !table || table.status === 'occupied') throw GMShopsError('conflict', 'Table is not available', 409);
+if (mode === 'taken' || !table || table.status === 'occupied') throw GMShopsError('conflict', 'Table is not available', 409, null, 'table_unavailable');
 return { data: { id: 'mock-' + Date.now().toString(36), status: 'pending' } };
 }
 
@@ -607,6 +642,9 @@ try {
     : await request('/places/' + encodeURIComponent(clean) + '/reservations', { method: 'POST', body: result.payload });
     const data = json && json.data;
     return { id: data && data.id !== undefined && data.id !== null ? String(data.id) : '', status: 'pending' };
+} catch (err) {
+    if (err && err.reason === 'plan_limit_reached') detailCache.delete('place:' + clean);
+    throw err;
 } finally {
     detailCache.delete('tables:' + clean);
 }

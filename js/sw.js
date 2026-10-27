@@ -1,5 +1,5 @@
 const CACHE_PREFIX = 'gm-';
-const CACHE_VERSION = 'gm-v14';
+const CACHE_VERSION = 'gm-v15';
 const SCOPE = self.registration.scope;
 
 const PRECACHE = [
@@ -102,6 +102,7 @@ const DASHBOARD_PRECACHE = [
   'js/dashboard/shell.js',
   'js/dashboard/page-runner.js',
   'js/dashboard/common.js',
+  'js/dashboard/booking-api.js',
   'js/dashboard/pages/ads.js',
   'js/dashboard/pages/dashboard.js',
   'js/dashboard/pages/extra-fields.js',

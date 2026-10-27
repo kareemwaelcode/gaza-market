@@ -50,7 +50,15 @@ tables: [],
 tablesState: 'idle',
 tablesSeq: 0,
 sending: false,
-done: false
+done: false,
+placeOpen: true,
+limitHit: false
+};
+
+var limitNoteEl = null;
+var toggleAttrs = {
+toggle: openBtn.getAttribute('data-bs-toggle'),
+target: openBtn.getAttribute('data-bs-target')
 };
 
 function t(key) {
@@ -405,7 +413,49 @@ formErrEl.hidden = true;
 }
 
 function updateSubmit() {
-submitEl.disabled = state.sending || state.tablesState !== 'ready';
+submitEl.disabled = state.sending || state.limitHit || state.tablesState !== 'ready';
+}
+
+function bookingOpen() {
+return state.placeOpen && !state.limitHit;
+}
+
+function ensureLimitNote() {
+if (limitNoteEl) return limitNoteEl;
+limitNoteEl = document.createElement('p');
+limitNoteEl.id = 'shopBookNote';
+limitNoteEl.className = 'shop-book-note';
+limitNoteEl.setAttribute('role', 'status');
+limitNoteEl.hidden = true;
+var toolbar = openBtn.parentNode;
+if (toolbar && toolbar.parentNode) toolbar.parentNode.insertBefore(limitNoteEl, toolbar.nextSibling);
+else openBtn.insertAdjacentElement('afterend', limitNoteEl);
+return limitNoteEl;
+}
+
+function showLimitNote() {
+var note = ensureLimitNote();
+setI18n(note, 'book.unavailable');
+note.hidden = false;
+}
+
+function hideLimitNote() {
+if (!limitNoteEl) return;
+limitNoteEl.hidden = true;
+clearI18n(limitNoteEl);
+}
+
+function syncOpenBtn() {
+if (bookingOpen()) {
+    if (toggleAttrs.toggle) openBtn.setAttribute('data-bs-toggle', toggleAttrs.toggle);
+    if (toggleAttrs.target) openBtn.setAttribute('data-bs-target', toggleAttrs.target);
+    openBtn.removeAttribute('aria-disabled');
+    hideLimitNote();
+} else {
+    openBtn.removeAttribute('data-bs-toggle');
+    openBtn.removeAttribute('data-bs-target');
+    openBtn.setAttribute('aria-disabled', 'true');
+}
 }
 
 function setSending(on) {
@@ -490,11 +540,12 @@ return {
 function showErrors(errors) {
 var first = '';
 ORDER.forEach(function (name) {
-    if (!errors[name]) return;
+    if (!errors || typeof errors[name] !== 'string' || !errors[name]) return;
     showFieldError(name, errors[name]);
     if (!first) first = name;
 });
 if (first) FIELDS[first].control.focus();
+return !!first;
 }
 
 function resetForm() {
@@ -522,10 +573,21 @@ doneEl.focus();
 
 function onFailed(err) {
 var code = err && err.code;
+if (code === 'forbidden' && err.reason === 'plan_limit_reached') {
+    state.limitHit = true;
+    showFormError('book.unavailable');
+    syncOpenBtn();
+    updateSubmit();
+    return;
+}
 if (code === 'conflict') {
     showFieldError('table', 'book.errTaken');
     state.tables = [];
     loadTables();
+    return;
+}
+if (code === 'validation') {
+    if (!showErrors(err.errors)) showFormError('book.errServer');
     return;
 }
 if (code === 'rate_limited') showFormError('book.errRate');
@@ -552,16 +614,27 @@ api.submitReservation(state.slug, raw).then(onSent, onFailed).then(function () {
 });
 }
 
-function setPlace(slug, enabled) {
+function setPlace(slug, enabled, available) {
 var clean = typeof slug === 'string' ? slug : '';
 if (clean !== state.slug) {
     state.slug = clean;
     state.tables = [];
     state.tablesState = 'idle';
     state.tablesSeq += 1;
+    state.limitHit = false;
 }
+state.placeOpen = available !== false;
 openBtn.hidden = !(enabled && clean);
+syncOpenBtn();
+if (!bookingOpen() && limitNoteEl && !limitNoteEl.hidden) showLimitNote();
 }
+
+openBtn.addEventListener('click', function (event) {
+if (bookingOpen()) return;
+event.preventDefault();
+event.stopPropagation();
+showLimitNote();
+});
 
 formEl.addEventListener('submit', onSubmit);
 retryBtn.addEventListener('click', function () {

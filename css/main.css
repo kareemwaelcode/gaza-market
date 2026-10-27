@@ -10575,6 +10575,25 @@ body.dark-mode .shop-item__price {
   display: none;
 }
 
+.shop-book-btn[aria-disabled="true"] {
+  background: color-mix(in srgb, var(--blue) 55%, var(--text-muted));
+  cursor: pointer;
+}
+
+.shop-book-note {
+  margin: 0 0 0.9rem;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--blue) 10%, transparent);
+  color: var(--text);
+  font-size: 0.86rem;
+  line-height: 1.6;
+}
+
+.shop-book-note[hidden] {
+  display: none;
+}
+
 .shop-search {
   min-width: 0;
 }

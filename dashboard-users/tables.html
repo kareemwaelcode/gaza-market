@@ -36,6 +36,7 @@
             <div class="page-title">الطاولات</div>
             <div class="page-subtitle">حدد عدد طاولات نشاطك وحالتها ليختار الزبون منها عند الحجز</div>
             <div class="page-subtitle" id="tbl-usage-counter" style="display:none;"></div>
+            <div class="page-subtitle" id="tbl-hidden-note" style="display:none;"></div>
           </div>
           <div class="page-actions">
             <button type="button" class="btn btn-primary btn-pill" data-action="open-table-add">
@@ -57,6 +58,15 @@
             <div class="label">مستخدمة</div>
             <div class="value" id="tbl-stat-occupied" style="color:var(--db-red-text);">0</div>
           </div>
+        </div>
+
+        <div class="card card-pad empty-state" id="tbl-state" role="status" aria-live="polite">
+          <div id="tbl-state-icon"></div>
+          <div class="title" id="tbl-state-title">جاري تحميل الطاولات...</div>
+          <div class="sub" id="tbl-state-sub"></div>
+          <button type="button" class="btn btn-ghost btn-sm" id="tbl-state-retry" data-action="retry-tables" style="display:none;margin-top:12px;">
+            <i data-lucide="refresh-cw" class="icon" style="width:16px;height:16px;margin:0;"></i> جرّب مرة ثانية
+          </button>
         </div>
 
         <div id="tbl-data-wrap" style="display:none;">
@@ -81,7 +91,7 @@
 
         </div>
 
-        <div class="card card-pad empty-state" id="tbl-empty-state">
+        <div class="card card-pad empty-state" id="tbl-empty-state" style="display:none;">
           <i data-lucide="armchair" class="icon"></i>
           <div class="title">لا يوجد طاولات مُضافة بعد</div>
           <div class="sub">
@@ -103,6 +113,7 @@
   <script src="../js/dashboard/shell.js" defer></script>
   <script src="../js/dashboard/page-runner.js" defer></script>
   <script src="../js/dashboard/common.js" defer></script>
+  <script src="../js/dashboard/booking-api.js" defer></script>
   <script src="../js/dashboard/pages/tables.js" defer></script>
 </body>
 </html>

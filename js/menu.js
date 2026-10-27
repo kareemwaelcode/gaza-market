@@ -182,7 +182,7 @@
       show(callBtn, false);
     }
     show(headEl, true);
-    if (window.GMBooking) window.GMBooking.setPlace(slugFromUrl(), hasBooking(place));
+    if (window.GMBooking) window.GMBooking.setPlace(slugFromUrl(), hasBooking(place), place.booking_available !== false);
   }
 
   function groupMenu() {
