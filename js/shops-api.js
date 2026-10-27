@@ -27,6 +27,7 @@ const MAX_LIMIT = 24;
 
 const GAZA_TZ = 'Asia/Gaza';
 const BOOK_MAX_DAYS = 30;
+const BOOK_MAX_PEOPLE = 10;
 const BOOK_COUNTRY_CODES = ['970', '972'];
 const BOOK_NATIONAL_RE = /^5[0-9]{8}$/;
 const SAFE_ID_RE = /^[A-Za-z0-9_-]{1,64}$/;
@@ -296,8 +297,6 @@ const MOCK_PLACES = [
 
 const MENU_FREE_LIMITS = { categories: 5, items: 10 };
 
-// TEMP: one demo image used for every shop and every item, for the look only.
-// Real images come from the API (image_url for shops, item.image for items).
 function mockItemImage() {
 return 'assets/img/demo.webp';
 }
@@ -565,6 +564,12 @@ if (dateOk && timeOk) {
     else if (instant <= Date.now()) errors.time = 'book.errPast';
 }
 
+const peopleRaw = String(src.peopleCount === undefined || src.peopleCount === null ? '' : src.peopleCount)
+    .replace(/[\u0660-\u0669]/g, (ch) => String(ch.charCodeAt(0) - 1632))
+    .trim();
+const peopleCount = /^[0-9]{1,2}$/.test(peopleRaw) ? Number(peopleRaw) : 0;
+if (peopleCount < 1 || peopleCount > BOOK_MAX_PEOPLE) errors.people = 'book.errPeople';
+
 const tableId = String(src.tableId || '');
 if (!SAFE_ID_RE.test(tableId)) errors.table = 'book.errTable';
 
@@ -577,6 +582,7 @@ return {
     countryCode: code,
     whatsapp: digits,
     datetime: new Date(instant).toISOString(),
+    peopleCount: peopleCount,
     tableId: tableId,
     note: String(src.note || '').trim().slice(0, 300),
     },

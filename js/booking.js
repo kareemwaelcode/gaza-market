@@ -29,6 +29,7 @@ var phoneEl = byId('bookPhone');
 var dateEl = byId('bookDate');
 var timeEl = byId('bookTime');
 var tableEl = byId('bookTable');
+var peopleEl = byId('bookPeople');
 var noteEl = byId('bookNote');
 var tableStatusEl = byId('bookTableStatus');
 var retryBtn = byId('bookTablesRetry');
@@ -38,9 +39,10 @@ name: { input: nameEl, control: nameEl, error: byId('bookErrName') },
 phone: { input: phoneEl, control: phoneEl, error: byId('bookErrPhone') },
 date: { input: dateEl, control: dateEl, error: byId('bookErrDate') },
 time: { input: timeEl, control: byId('bookTimeBtn'), error: byId('bookErrTime') },
+people: { input: peopleEl, control: peopleEl, error: byId('bookErrPeople') },
 table: { input: tableEl, control: byId('bookTableBtn'), error: byId('bookErrTable') }
 };
-var ORDER = ['name', 'phone', 'date', 'time', 'table'];
+var ORDER = ['name', 'phone', 'date', 'time', 'people', 'table'];
 
 var state = {
 slug: '',
@@ -479,6 +481,7 @@ return {
     phone: phoneEl.value,
     date: dateEl.value,
     time: timeEl.value,
+    peopleCount: peopleEl.value,
     tableId: tableEl.value,
     note: noteEl.value
 };
@@ -567,9 +570,13 @@ renderTables();
 loadTables();
 });
 
-['name', 'phone', 'table'].forEach(function (name) {
+['name', 'phone', 'people', 'table'].forEach(function (name) {
 FIELDS[name].input.addEventListener('input', function () { clearFieldError(name); });
 FIELDS[name].input.addEventListener('change', function () { clearFieldError(name); });
+});
+peopleEl.addEventListener('input', function () {
+var digits = peopleEl.value.replace(/[\u0660-\u0669]/g, function (ch) { return String(ch.charCodeAt(0) - 1632); }).replace(/[^0-9]/g, '').slice(0, 2);
+if (digits !== peopleEl.value) peopleEl.value = digits;
 });
 timeEl.addEventListener('change', function () {
 clearFieldError('date');

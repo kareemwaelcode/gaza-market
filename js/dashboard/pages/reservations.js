@@ -94,6 +94,8 @@
     var whatsapp = (data.whatsapp || '').toString().replace(/\s+/g, '').slice(0, 20);
     if (!name) throw new Error('gmSubmitTableReservation: name is required');
     if (!whatsapp) throw new Error('gmSubmitTableReservation: whatsapp is required');
+    var peopleCount = parseInt(data.peopleCount, 10);
+    if (!(peopleCount >= 1 && peopleCount <= 10)) throw new Error('gmSubmitTableReservation: peopleCount must be between 1 and 10');
 
     var reservation = {
       id: generateReservationId(),
@@ -101,7 +103,7 @@
       countryCode: (data.countryCode || '970').toString().trim(),
       whatsapp: whatsapp,
       datetime: (data.datetime || '').toString().trim(),
-      peopleCount: parseInt(data.peopleCount, 10) >= 1 ? parseInt(data.peopleCount, 10) : null,
+      peopleCount: peopleCount,
       tableId: data.tableId || null,
       note: (data.note || '').toString().trim().slice(0, 300),
       status: 'pending',
