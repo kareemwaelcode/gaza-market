@@ -1468,6 +1468,7 @@ window.GMStoreTypeConfig = (function () {
       label: label,
       fallbackAvatarLetter: 'ن',
       hasTableBooking: hasTableBooking,
+      
       sidebar: sidebar,
       mobileNav: mobileNav,
       services: [
