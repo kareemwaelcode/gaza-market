@@ -1,5 +1,5 @@
 const CACHE_PREFIX = 'gm-';
-const CACHE_VERSION = 'gm-v16';
+const CACHE_VERSION = 'gm-v17';
 const SCOPE = self.registration.scope;
 
 const PRECACHE = [
@@ -27,6 +27,7 @@ const PRECACHE = [
   'js/shops-api.js',
   'js/menu.js',
   'js/booking.js',
+  'js/workspace.js',
   'js/exchange-rates.js',
   'js/prices-api.js',
   'js/profile.js',

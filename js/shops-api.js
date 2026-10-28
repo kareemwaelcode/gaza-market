@@ -32,6 +32,12 @@ const BOOK_COUNTRY_CODES = ['970', '972'];
 const BOOK_NATIONAL_RE = /^5[0-9]{8}$/;
 const SAFE_ID_RE = /^[A-Za-z0-9_-]{1,64}$/;
 const SLUG_RE = /^[a-z0-9-]{1,80}$/i;
+const SUB_MAX_DAYS = 60;
+const SUB_DURATIONS = ['day', 'week', 'month'];
+const SUB_STORAGE_KEY = 'gmDashboardSubscriptionRequests:cowork';
+const SUB_STORAGE_MAX = 200;
+const TIME_RE = /^([01][0-9]|2[0-3]):[0-5][0-9]$/;
+const SERVICE_ID_RE = /^[a-z][a-z_]{0,31}$/;
 
 const REGIONS = [
 { code: 'Nuseirat', value: 'Nuseirat' },
@@ -334,6 +340,7 @@ const MOCK_PLACES = [
 { id: 13, slug: 'jabalia-shawarma', name_ar: 'شاورما جباليا', name_en: 'Jabalia Shawarma', type: 'restaurant', region: 'Jabalia', address: 'دوار الصفطاوي', image_url: null, is_open: false, whatsapp: '972590000013', has_menu: false },
 { id: 14, slug: 'beit-lahia-cafe', name_ar: 'كافيه بيت لاهيا', name_en: 'Beit Lahia Cafe', type: 'cafe', region: 'BeitLahia', address: 'الشارع الرئيسي', image_url: 'assets/img/demo.webp', is_open: true, whatsapp: '972590000014', has_menu: true },
 { id: 15, slug: 'work-corner', name_ar: 'ركن العمل', name_en: 'Work Corner', type: 'workspace', region: 'Alrimal', address: 'قرب الجامعة', image_url: 'assets/img/demo.webp', is_open: true, whatsapp: '972590000015', has_menu: false },
+{ id: 18, slug: 'vibe-hub', name_ar: 'فايب هب', name_en: 'Vibe Hub', type: 'workspace', region: 'Alrimal', address_ar: 'عمارة كاظم، الطابق الثاني', address_en: 'Kazem Building, 2nd floor', image_url: 'assets/img/demo.webp', is_open: true, whatsapp: '972590000018', has_menu: false },
 { id: 17, slug: 'al-nour-clothes', name_ar: 'ملابس النور', name_en: 'Al Nour Clothing', type: 'clothing', region: 'KhanYunis', address_ar: 'السوق الرئيسي', address_en: 'Main Market', image_url: null, is_open: true, whatsapp: '972590000017', has_menu: false },
 { id: 16, slug: 'al-amal-market', name_ar: 'سوبرماركت الأمل', name_en: 'Al Amal Supermarket', type: 'supermarket', region: 'Nuseirat', address: 'الشارع الرئيسي', image_url: 'assets/img/demo.webp', is_open: false, whatsapp: '972590000016', has_menu: false },
 ];
@@ -662,6 +669,172 @@ try {
 }
 }
 
+const MOCK_WORKSPACES = {
+'vibe-hub': {
+    plan: 'paid',
+    pricesHours: { priceHour: 5, priceHalfDay: 20, priceFullDay: 35, priceWeek: 150, priceMonth: 500, openTime: '08:00', closeTime: '20:00', seatsTotal: 100, seatsAvailable: 42 },
+    services: {
+    drinks: { enabled: true, details: 'موجود كافي كورنر بأسعار رمزية جدا' },
+    electricity: { enabled: true, details: 'متواصلة دون انقطاع أبدا' },
+    printing: { enabled: true, details: 'طباعة باسعار رمزية' },
+    wifi: { enabled: true, details: 'انترنت فائق السرعة' },
+    screens: { enabled: true, details: 'موجود في قاعات الاجتماعات' },
+    private_rooms: { enabled: true, details: 'غرف منفصلة من شخص الى 8 اشخاص' },
+    },
+},
+'work-corner': {
+    plan: 'free',
+    pricesHours: { priceHour: 4, priceHalfDay: null, priceFullDay: 25, priceWeek: null, priceMonth: 300, openTime: '09:00', closeTime: '21:00', seatsTotal: 30, seatsAvailable: 10 },
+    services: {
+    wifi: { enabled: true, details: '' },
+    electricity: { enabled: true, details: '' },
+    printing: { enabled: false, details: '' },
+    },
+},
+};
+
+async function mockGetWorkspace(slug) {
+const mode = getTestMode();
+await delay(mode === 'slow' ? 2500 : 250);
+if (mode === 'error') throw GMShopsError('server', 'Mock server error', 500);
+const ws = MOCK_WORKSPACES[slug];
+if (!ws || mode === 'empty') return { data: { plan: ws ? ws.plan : 'free', pricesHours: {}, services: {} } };
+return { data: ws };
+}
+
+function optionalNumber(value) {
+if (value === null || value === undefined || value === '') return null;
+const n = Number(value);
+return isFinite(n) && n >= 0 ? n : null;
+}
+
+function normalizeWorkspace(json) {
+const data = json && json.data;
+if (!data || typeof data !== 'object') throw GMShopsError('invalid_response', 'Invalid workspace response');
+const ph = data.pricesHours && typeof data.pricesHours === 'object' ? data.pricesHours : {};
+const rawServices = data.services && typeof data.services === 'object' ? data.services : {};
+const time = (v) => (typeof v === 'string' && TIME_RE.test(v) ? v : '');
+const seatsTotal = optionalNumber(ph.seatsTotal);
+const seatsAvailable = optionalNumber(ph.seatsAvailable);
+
+const services = Object.keys(rawServices)
+    .filter((id) => SERVICE_ID_RE.test(id) && rawServices[id] && rawServices[id].enabled === true)
+    .map((id) => ({
+    id: id,
+    details: typeof rawServices[id].details === 'string' ? rawServices[id].details.trim().slice(0, 120) : '',
+    }));
+
+return {
+    plan: data.plan === 'paid' ? 'paid' : 'free',
+    prices: {
+    hour: optionalNumber(ph.priceHour),
+    halfDay: optionalNumber(ph.priceHalfDay),
+    day: optionalNumber(ph.priceFullDay),
+    week: optionalNumber(ph.priceWeek),
+    month: optionalNumber(ph.priceMonth),
+    },
+    hours: { open: time(ph.openTime), close: time(ph.closeTime) },
+    seats: { total: seatsTotal === null ? null : Math.floor(seatsTotal), available: seatsAvailable === null ? null : Math.floor(seatsAvailable) },
+    services: services,
+};
+}
+
+async function getWorkspace(slug) {
+const clean = safeSlug(slug);
+if (!clean) throw GMShopsError('not_found', 'Place not found', 404);
+const json = await memoDetail('workspace:' + clean, () => (USE_MOCK ? mockGetWorkspace(clean) : requestWithRetry('/places/' + encodeURIComponent(clean) + '/workspace')));
+return normalizeWorkspace(json);
+}
+
+function subscriptionWindow() {
+const now = Date.now();
+return { min: gazaDateString(now), max: gazaDateString(now + SUB_MAX_DAYS * 86400000) };
+}
+
+function validateSubscriptionRequest(raw) {
+const src = raw || {};
+const errors = {};
+
+const name = String(src.name || '').replace(/\s+/g, ' ').trim();
+if (name.length < 2 || name.length > 80) errors.name = 'ws.errName';
+
+const code = BOOK_COUNTRY_CODES.indexOf(String(src.countryCode)) !== -1 ? String(src.countryCode) : '970';
+let digits = String(src.phone || '').replace(/\D/g, '');
+if (digits.indexOf('00') === 0) digits = digits.slice(2);
+if (digits.indexOf(code) === 0 && digits.length === code.length + 9) digits = digits.slice(code.length);
+else if (digits.charAt(0) === '0') digits = digits.slice(1);
+if (!BOOK_NATIONAL_RE.test(digits)) errors.phone = 'ws.errWhatsapp';
+
+const duration = String(src.duration || '');
+if (SUB_DURATIONS.indexOf(duration) === -1) errors.duration = 'ws.errDuration';
+
+const date = String(src.date || '');
+if (!isRealDate(date)) {
+    errors.date = 'ws.errDate';
+} else {
+    const win = subscriptionWindow();
+    if (date < win.min) errors.date = 'ws.errPast';
+    else if (date > win.max) errors.date = 'ws.errFar';
+}
+
+if (Object.keys(errors).length) return { errors: errors, payload: null };
+
+return {
+    errors: null,
+    payload: {
+    name: name,
+    countryCode: code,
+    whatsapp: digits,
+    duration: duration,
+    startDate: date,
+    note: String(src.note || '').trim().slice(0, 300),
+    },
+};
+}
+
+function mockSaveSubscriptionRequest(payload) {
+try {
+    const raw = localStorage.getItem(SUB_STORAGE_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    const list = Array.isArray(parsed) ? parsed : [];
+    const record = {
+    id: window.GM_ID.generate('req'),
+    name: payload.name,
+    countryCode: payload.countryCode,
+    whatsapp: payload.whatsapp,
+    duration: payload.duration,
+    startDate: payload.startDate,
+    note: payload.note,
+    createdAt: Date.now(),
+    };
+    list.unshift(record);
+    localStorage.setItem(SUB_STORAGE_KEY, JSON.stringify(list.slice(0, SUB_STORAGE_MAX)));
+    return record.id;
+} catch (err) {
+    return 'mock-' + Date.now().toString(36);
+}
+}
+
+async function mockSubmitSubscriptionRequest(slug, payload) {
+const mode = getTestMode();
+await delay(mode === 'slow' ? 2500 : 700);
+if (mode === 'error') throw GMShopsError('server', 'Mock server error', 500);
+if (mode === 'limit') throw GMShopsError('forbidden', 'Plan does not allow requests', 403, null, 'plan_not_allowed');
+return { data: { id: mockSaveSubscriptionRequest(payload), status: 'pending' } };
+}
+
+async function submitSubscriptionRequest(slug, raw) {
+const clean = safeSlug(slug);
+if (!clean) throw GMShopsError('not_found', 'Place not found', 404);
+const result = validateSubscriptionRequest(raw);
+if (result.errors) throw GMShopsError('validation', 'Invalid subscription request', 422, result.errors);
+const json = USE_MOCK
+    ? await mockSubmitSubscriptionRequest(clean, result.payload)
+    : await request('/places/' + encodeURIComponent(clean) + '/subscription-requests', { method: 'POST', body: result.payload });
+const data = json && json.data;
+return { id: data && data.id !== undefined && data.id !== null ? String(data.id) : '', status: 'pending' };
+}
+
 function mockMatches(place, params) {
 if (params.type === OTHER_TYPE) {
     if (PLACE_TYPES.indexOf(place.type) !== -1) return false;
@@ -859,5 +1032,9 @@ getTables,
 submitReservation,
 validateReservation,
 reservationWindow,
+getWorkspace,
+submitSubscriptionRequest,
+validateSubscriptionRequest,
+subscriptionWindow,
 };
 })();

@@ -31,6 +31,7 @@
 
   var FOOD_TYPES = ['restaurant', 'cafe', 'restaurant-cafe'];
   var BOOKING_TYPES = ['cafe', 'restaurant-cafe'];
+  var WORKSPACE_TYPES = ['workspace'];
   var SLUG_RE = /^[a-z0-9-]{1,80}$/i;
   var SEARCH_DELAY_MS = 120;
 
@@ -39,7 +40,7 @@
     coffee: '<path d="M10 2v2"/><path d="M14 2v2"/><path d="M16 8a1 1 0 0 1 1 1v8a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V9a1 1 0 0 1 1-1h14a4 4 0 1 1 0 8h-1"/><path d="M6 2v2"/>'
   };
 
-  var state = { place: null, menu: null, term: '', searchTimer: 0 };
+  var state = { place: null, menu: null, workspace: null, term: '', searchTimer: 0 };
   var reduceMotion = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : { matches: false };
 
   function t(key) {
@@ -76,6 +77,10 @@
 
   function isFood(place) {
     return !!place && FOOD_TYPES.indexOf(place.type) !== -1;
+  }
+
+  function isWorkspace(place) {
+    return !!place && WORKSPACE_TYPES.indexOf(place.type) !== -1;
   }
 
   function hasBooking(place) {
@@ -132,6 +137,7 @@
     show(headEl, false);
     show(stateEl, false);
     show(menuSection, false);
+    if (window.GMWorkspace) window.GMWorkspace.hide();
   }
 
   function renderHead() {
@@ -320,16 +326,23 @@
     }
 
     setLoading(true);
+    state.workspace = null;
     api.getPlace(slug).then(function (place) {
       state.place = place;
+      if (isWorkspace(place) && window.GMWorkspace && typeof api.getWorkspace === 'function') {
+        return api.getWorkspace(slug).then(function (ws) { return { kind: 'workspace', data: ws }; });
+      }
       if (!isFood(place)) return null;
-      if (!place.has_menu) return { categories: [], items: [] };
-      return api.getMenu(slug);
-    }).then(function (menu) {
+      if (!place.has_menu) return { kind: 'menu', data: { categories: [], items: [] } };
+      return api.getMenu(slug).then(function (menu) { return { kind: 'menu', data: menu }; });
+    }).then(function (result) {
       setLoading(false);
       renderHead();
-      if (menu) {
-        state.menu = menu;
+      if (result && result.kind === 'workspace') {
+        state.workspace = result.data;
+        window.GMWorkspace.show(slug, result.data);
+      } else if (result) {
+        state.menu = result.data;
         show(menuSection, true);
         renderMenu();
       } else {
@@ -360,6 +373,7 @@
     lastLang = lang;
     if (state.place) renderHead();
     if (state.menu && isFood(state.place)) renderMenu();
+    if (state.workspace && window.GMWorkspace) window.GMWorkspace.refresh();
     if (!stateEl.hidden && stateEl.dataset.titleKey) {
       stateTitleEl.textContent = t(stateEl.dataset.titleKey);
       stateSubEl.textContent = t(stateEl.dataset.subKey);

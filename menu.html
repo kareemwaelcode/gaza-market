@@ -1428,6 +1428,23 @@
       </div>
     </section>
 
+    <section class="ws" id="wsSection" aria-labelledby="wsTitle" hidden>
+      <div class="ws__head">
+        <h2 class="ws__title" id="wsTitle" data-i18n="ws.title">Workspace details</h2>
+        <button type="button" class="ws__request" id="wsRequestBtn" data-bs-toggle="modal" data-bs-target="#wsSubModal" hidden>
+          <span id="wsRequestIcon" aria-hidden="true"></span>
+          <span data-i18n="ws.request">Request subscription</span>
+        </button>
+      </div>
+
+      <div class="ws__card" id="wsRows"></div>
+
+      <div class="ws__services" id="wsServicesWrap" hidden>
+        <h3 class="ws__sub" data-i18n="ws.servicesTitle">Available services</h3>
+        <div class="ws-services" id="wsServices"></div>
+      </div>
+    </section>
+
     <section class="shop-discover" id="shopDiscover" aria-labelledby="shopDiscoverTitle">
       <h2 class="shop-discover__title" id="shopDiscoverTitle" data-i18n="shop.discover">Discover more on Gaza Market</h2>
       <div class="shop-discover__grid">
@@ -1582,11 +1599,90 @@
   </div>
 </div>
 
+<div class="modal fade booking-modal" id="wsSubModal" tabindex="-1" aria-labelledby="wsSubModalLabel" aria-hidden="true" role="dialog">
+  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="booking-head">
+        <div class="booking-head__text">
+          <h5 class="booking-title" id="wsSubModalLabel" data-i18n="ws.subTitle">Request a subscription</h5>
+          <p class="booking-sub" data-i18n="ws.subSub">Send your details and the space will contact you on WhatsApp.</p>
+        </div>
+        <button type="button" class="addition-close-btn" data-bs-dismiss="modal" aria-label="Close dialog">
+          <svg width="16" height="16" aria-hidden="true" focusable="false"><use href="#gm-i-x"/></svg>
+        </button>
+      </div>
+
+      <div class="modal-body booking-body">
+        <form class="booking-form" id="wsSubForm" novalidate>
+          <div class="booking-field">
+            <label class="booking-label" for="wsName" data-i18n="ws.fullName">Full name</label>
+            <input class="booking-input" type="text" id="wsName" name="name" maxlength="80" autocomplete="name" data-i18n-placeholder="ws.fullNamePh" placeholder="Your full name" aria-describedby="wsErrName" />
+            <span class="booking-err" id="wsErrName" role="alert"></span>
+          </div>
+
+          <div class="booking-field">
+            <label class="booking-label" for="wsPhone" data-i18n="book.whatsapp">WhatsApp number</label>
+            <div class="booking-phone" dir="ltr">
+              <button type="button" class="booking-code" id="wsCodeBtn" aria-label="Country code +970">
+                <span id="wsCodeText" aria-live="polite">+970</span>
+                <svg width="14" height="14" aria-hidden="true" focusable="false"><use href="#gm-i-arrow-left-right"/></svg>
+              </button>
+              <input type="hidden" id="wsCode" name="countryCode" value="970" />
+              <input class="booking-input" type="tel" id="wsPhone" name="whatsapp" inputmode="tel" maxlength="15" autocomplete="tel-national" placeholder="0599123456" aria-describedby="wsErrPhone" />
+            </div>
+            <span class="booking-err" id="wsErrPhone" role="alert"></span>
+          </div>
+
+          <div class="booking-field">
+            <span class="booking-label" id="wsDurationLabel" data-i18n="ws.type">Subscription type</span>
+            <div class="ws-seg" id="wsDurationGroup" role="group" aria-labelledby="wsDurationLabel" aria-describedby="wsErrDuration">
+              <button type="button" class="ws-seg__btn" data-value="day" aria-pressed="false" data-i18n="ws.daily">Daily</button>
+              <button type="button" class="ws-seg__btn" data-value="week" aria-pressed="false" data-i18n="ws.weekly">Weekly</button>
+              <button type="button" class="ws-seg__btn" data-value="month" aria-pressed="true" data-i18n="ws.monthly">Monthly</button>
+            </div>
+            <span class="booking-err" id="wsErrDuration" role="alert"></span>
+          </div>
+
+          <div class="booking-field">
+            <label class="booking-label" for="wsDate" data-i18n="ws.startDate">Start date</label>
+            <input class="booking-input" type="date" id="wsDate" name="startDate" dir="ltr" aria-describedby="wsErrDate" />
+            <span class="booking-err" id="wsErrDate" role="alert"></span>
+          </div>
+
+          <div class="booking-field">
+            <label class="booking-label" for="wsNote">
+              <span data-i18n="ws.note">Notes</span>
+              <span class="booking-opt" data-i18n="book.optional">(optional)</span>
+            </label>
+            <textarea class="booking-input booking-textarea" id="wsNote" name="note" rows="3" maxlength="300" data-i18n-placeholder="ws.notePh" placeholder="Anything the space should know"></textarea>
+          </div>
+
+          <p class="booking-form-err" id="wsFormErr" role="alert" hidden></p>
+
+          <button type="submit" class="booking-submit" id="wsSubmit">
+            <span id="wsSubmitLabel" data-i18n="ws.submit">Send request</span>
+          </button>
+        </form>
+
+        <div class="booking-done" id="wsSubDone" tabindex="-1" hidden>
+          <div class="price-success-icon mx-auto mb-3">
+            <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M20 6 9 17l-5-5"/></svg>
+          </div>
+          <h5 class="fw-bold mb-2" data-i18n="ws.doneTitle">Request sent</h5>
+          <p class="text-muted mb-4 fs-15" data-i18n="ws.doneDesc">The space will review your request and contact you on WhatsApp.</p>
+          <button type="button" class="booking-submit" data-bs-dismiss="modal" data-i18n="book.done">Done</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script src="js/vendor/bootstrap.bundle.min.js" defer></script>
 <script src="js/translations.js" defer></script>
 <script src="js/i18n.js" defer></script>
 <script src="js/shops-api.js" defer></script>
 <script src="js/booking.js" defer></script>
+<script src="js/workspace.js" defer></script>
 <script src="js/menu.js" defer></script>
 <script src="js/main.js" defer></script>
 <script src="js/auth.js" defer></script>
