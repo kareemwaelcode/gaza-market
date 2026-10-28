@@ -50,6 +50,7 @@
   var LOCKED_FEATURE_LABELS = {
     qrCode: 'كود QR',
     shareWhatsapp: 'المشاركة عبر واتساب',
+    subscriptionRequests: 'طلبات الاشتراك',
     cardPayment: 'إظهار الدفع بالبطاقة للزوار',
     whatsappOrder: 'استقبال الطلبات عبر واتساب',
     installments: 'خدمة التقسيط'
@@ -96,7 +97,16 @@
     if (page) attrs += ' data-page="' + page + '"';
     var action = safeAction(item.action);
     if (action) attrs += ' data-action="' + action + '"';
+    // A nav item tied to a plan-locked feature: applyLockedFeaturesToUI() toggles .is-locked
+    // on it, and the capture-phase click handler opens the upgrade modal instead of navigating.
+    if (typeof item.lockedFeature === 'string' && /^[A-Za-z]{1,32}$/.test(item.lockedFeature)) {
+      attrs += ' data-locked-feature="' + item.lockedFeature + '"';
+    }
     return attrs;
+  }
+
+  function navLockIconHTML(item) {
+    return item.lockedFeature ? '<i data-lucide="lock" class="icon nav-lock-icon"></i>' : '';
   }
 
   function renderSidebarNav() {
@@ -115,6 +125,7 @@
             '<span class="label-sub">' + escapeHtml(item.sub) + '</span>' +
           '</span>' +
           badge +
+          navLockIconHTML(item) +
           '<i data-lucide="chevron-left" class="icon nav-item-chevron"></i>' +
         '</a>'
       );

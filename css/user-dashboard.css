@@ -812,6 +812,11 @@ html[dir="ltr"] .nav-item:hover .nav-item-chevron { transform: scaleX(-1) transl
 .feature-lock-overlay { position: absolute; inset: 0; z-index: 2; display: flex; align-items: center; justify-content: center; }
 .feature-lock-chip { display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px; border-radius: 999px; background: var(--card-bg); border: 1px solid var(--border); box-shadow: var(--shadow-card); color: var(--db-text-secondary); font-size: 12.5px; font-weight: 700; }
 .feature-lock-chip .icon { width: 16px; height: 16px; }
+.nav-lock-icon { display: none; width: 14px; height: 14px; color: var(--db-text-tertiary); flex-shrink: 0; }
+.nav-item.is-locked .nav-lock-icon { display: inline-block; }
+.nav-item.is-locked .nav-item-text,
+.mobile-nav-item.is-locked,
+.quick-card.is-locked[data-locked-feature="subscriptionRequests"] { opacity: 0.7; }
 .stat-grid.is-locked:focus-visible { outline: 2px solid var(--db-accent-text); outline-offset: 4px; border-radius: var(--radius-md); }
 
 .stat-card { padding: 18px; display: flex; align-items: center; gap: 14px; }

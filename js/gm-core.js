@@ -28,9 +28,15 @@
     return cfg.USE_MOCK !== false && (isLocalDevHost() || cfg.ALLOW_MOCK_ON_ANY_HOST === true);
   }
 
+  // MOCK ONLY: the one demo workspace that the (single) mock dashboard owner "owns".
+  // Used until the backend exists, so the public page and the dashboard agree on whose
+  // plan and whose subscription requests they show. Removed when the API is connected.
+  var MOCK_OWNER_SLUG = 'vibe-hub';
+
   window.GM_ENV = Object.freeze({
     isLocalDevHost: isLocalDevHost,
-    isMockAllowed: isMockAllowed
+    isMockAllowed: isMockAllowed,
+    mockOwnerSlug: MOCK_OWNER_SLUG
   });
 })();
 

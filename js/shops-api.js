@@ -95,6 +95,8 @@ whatsapp: 'phone',
 phone: 'phone',
 datetime: 'date',
 date: 'date',
+startDate: 'date',
+duration: 'duration',
 time: 'time',
 peopleCount: 'people',
 people: 'people',
@@ -109,7 +111,8 @@ Object.keys(raw).forEach((key) => {
     const field = BOOK_ERROR_FIELDS[key];
     let value = raw[key];
     if (Array.isArray(value)) value = value[0];
-    if (!field || typeof value !== 'string' || !/^book\.err[A-Za-z]+$/.test(value)) return;
+    // Accept the booking keys (book.err*) and the workspace subscription keys (ws.err*) only.
+    if (!field || typeof value !== 'string' || !/^(book|ws)\.err[A-Za-z]+$/.test(value)) return;
     const target = key === 'datetime' && value === 'book.errTime' ? 'time' : field;
     if (!out[target]) out[target] = value;
 });
@@ -693,13 +696,32 @@ const MOCK_WORKSPACES = {
 },
 };
 
+// MOCK ONLY. The real backend returns `plan` inside the workspace response of each place.
+// Here the owner's real plan lives in the dashboard (localStorage 'gm-store-plan'), and it
+// applies ONLY to the demo workspace the mock owner owns (GM_ENV.mockOwnerSlug), so one
+// owner's plan never leaks onto another workspace. Anything else is 'free' (the default).
+const MOCK_OWNER_PLAN_KEY = 'gm-store-plan';
+
+function mockWorkspacePlan(slug) {
+if (slug === window.GM_ENV.mockOwnerSlug) {
+    try {
+    return localStorage.getItem(MOCK_OWNER_PLAN_KEY) === 'paid' ? 'paid' : 'free';
+    } catch (err) {
+    return 'free';
+    }
+}
+const ws = MOCK_WORKSPACES[slug];
+return ws && ws.plan === 'paid' ? 'paid' : 'free';
+}
+
 async function mockGetWorkspace(slug) {
 const mode = getTestMode();
 await delay(mode === 'slow' ? 2500 : 250);
 if (mode === 'error') throw GMShopsError('server', 'Mock server error', 500);
 const ws = MOCK_WORKSPACES[slug];
-if (!ws || mode === 'empty') return { data: { plan: ws ? ws.plan : 'free', pricesHours: {}, services: {} } };
-return { data: ws };
+const plan = mockWorkspacePlan(slug);
+if (!ws || mode === 'empty') return { data: { plan: plan, pricesHours: {}, services: {} } };
+return { data: Object.assign({}, ws, { plan: plan }) };
 }
 
 function optionalNumber(value) {
@@ -792,13 +814,14 @@ return {
 };
 }
 
-function mockSaveSubscriptionRequest(payload) {
+function mockSaveSubscriptionRequest(slug, payload) {
 try {
     const raw = localStorage.getItem(SUB_STORAGE_KEY);
     const parsed = raw ? JSON.parse(raw) : [];
     const list = Array.isArray(parsed) ? parsed : [];
     const record = {
     id: window.GM_ID.generate('req'),
+    slug: slug,
     name: payload.name,
     countryCode: payload.countryCode,
     whatsapp: payload.whatsapp,
@@ -811,7 +834,8 @@ try {
     localStorage.setItem(SUB_STORAGE_KEY, JSON.stringify(list.slice(0, SUB_STORAGE_MAX)));
     return record.id;
 } catch (err) {
-    return 'mock-' + Date.now().toString(36);
+    // Do not pretend the request was saved: the visitor must see an error, not a fake success.
+    throw GMShopsError('server', 'Could not save the mock request', 500);
 }
 }
 
@@ -819,8 +843,11 @@ async function mockSubmitSubscriptionRequest(slug, payload) {
 const mode = getTestMode();
 await delay(mode === 'slow' ? 2500 : 700);
 if (mode === 'error') throw GMShopsError('server', 'Mock server error', 500);
-if (mode === 'limit') throw GMShopsError('forbidden', 'Plan does not allow requests', 403, null, 'plan_not_allowed');
-return { data: { id: mockSaveSubscriptionRequest(payload), status: 'pending' } };
+// Same rule the backend enforces: only a workspace on the paid plan accepts requests.
+if (mode === 'limit' || mockWorkspacePlan(slug) !== 'paid') {
+    throw GMShopsError('forbidden', 'Plan does not allow requests', 403, null, 'plan_not_allowed');
+}
+return { data: { id: mockSaveSubscriptionRequest(slug, payload), status: 'pending' } };
 }
 
 async function submitSubscriptionRequest(slug, raw) {

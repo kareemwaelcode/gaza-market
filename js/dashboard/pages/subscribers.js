@@ -58,6 +58,37 @@
     } catch (err) { handleStorageError(err); }
   }
 
+  // WhatsApp numbers are stored as the 9-digit national number (starts with 5, e.g. 592194533),
+  // with the country code (970 or 972) kept in its own field. Same rule as the public request form.
+  // Returns the 9 digits, or '' when the input is not a valid number.
+  var WHATSAPP_NATIONAL_RE = /^5[0-9]{8}$/;
+
+  function normalizeWhatsappNumber(raw, countryCode) {
+    var code = String(countryCode || '970');
+    var digits = String(raw == null ? '' : raw).replace(/\D/g, '');
+    if (digits.indexOf('00') === 0) digits = digits.slice(2);
+    if (digits.indexOf(code) === 0 && digits.length === code.length + 9) digits = digits.slice(code.length);
+    else if (digits.charAt(0) === '0') digits = digits.slice(1);
+    return WHATSAPP_NATIONAL_RE.test(digits) ? digits : '';
+  }
+
+  // Display value for a stored item: old entries saved with a leading 0 (059...) are shown
+  // correctly instead of as +970059...
+  function whatsappForDisplay(item) {
+    var normalized = normalizeWhatsappNumber(item.whatsapp, item.countryCode);
+    return '+' + (item.countryCode || '970') + (normalized || item.whatsapp);
+  }
+
+  // MOCK ONLY: the shared localStorage list holds requests for every demo workspace, so the
+  // dashboard shows only the ones sent to the workspace this owner owns. With the real API
+  // the backend returns only the authenticated owner's requests and this filter goes away.
+  function getVisibleSubscriptionRequests() {
+    var ownerSlug = window.GM_ENV && window.GM_ENV.mockOwnerSlug;
+    return getStoredSubscriptionRequests().filter(function (r) {
+      return !r.slug || !ownerSlug || r.slug === ownerSlug;
+    });
+  }
+
   function generateRequestId() {
     return window.GM_ID.generate('req');
   }
@@ -120,8 +151,9 @@
     var dataWrap = document.getElementById('req-data-wrap');
     var emptyState = document.getElementById('req-empty-state');
     if (!tbody) return;
+    if (isSubscriptionRequestsLocked()) return;
 
-    var list = getStoredSubscriptionRequests();
+    var list = getVisibleSubscriptionRequests();
 
     var rowsHtml = '';
     var cardsHtml = '';
@@ -131,6 +163,8 @@
       var avatarLetter = escapeHtml((req.name || '').trim().charAt(0) || '؟');
       var durationLabel = DURATION_LABELS[req.duration] || req.duration;
       var dateLabel = formatRequestDateTime(req.createdAt);
+      var startParsed = req.startDate ? parseISODate(req.startDate) : null;
+      var startLabel = startParsed && !isNaN(startParsed.getTime()) ? formatDisplayDate(startParsed) : '—';
 
       rowsHtml +=
         '<tr>' +
@@ -152,6 +186,7 @@
               '<span class="mono">' + escapeHtml(whatsappDisplay) + '</span>' +
             '</div></td>' +
           '<td>' + durationLabel + '</td>' +
+          '<td>' + escapeHtml(startLabel) + '</td>' +
           '<td class="mono" style="direction:ltr;text-align:right;">' + dateLabel + '</td>' +
           '<td>' +
             '<div class="flex gap-8">' +
@@ -172,6 +207,7 @@
             '<span>' + escapeHtml(whatsappDisplay) + '</span>' +
           '</div>' +
           '<div class="sub-card-row">' + durationLabel + ' \u00b7 ' + dateLabel + '</div>' +
+          '<div class="sub-card-row">\u0627\u0644\u0628\u062f\u0621 \u0627\u0644\u0645\u0637\u0644\u0648\u0628: ' + escapeHtml(startLabel) + '</div>' +
           (req.note ? '<div class="sub-card-note">' + escapeHtml(req.note) + '</div>' : '') +
           '<div class="sub-card-actions" style="grid-template-columns:repeat(2,1fr);">' +
             '<button type="button" class="btn btn-primary btn-sm" data-action="approve-request" data-id="' + escapeHtml(req.id) + '">' +
@@ -332,7 +368,7 @@
       }
 
       var statusBadge = buildSubscriberStatusBadge(sub, expired);
-      var whatsappDisplay = '+' + (sub.countryCode || '970') + sub.whatsapp;
+      var whatsappDisplay = whatsappForDisplay(sub);
       var avatarLetter = escapeHtml((sub.name || '').trim().charAt(0) || '؟');
       var todayForDiff = parseISODate(getTodayISODate());
       var diffDays = Math.round((expiryDate.getTime() - todayForDiff.getTime()) / 86400000);
@@ -480,7 +516,7 @@
 
     function fillFormFromSubscriber(sub) {
       if (nameInput) nameInput.value = sub.name || '';
-      if (whatsappInput) whatsappInput.value = sub.whatsapp || '';
+      if (whatsappInput) whatsappInput.value = normalizeWhatsappNumber(sub.whatsapp, sub.countryCode) || sub.whatsapp || '';
       setCountryCode(sub.countryCode || '970');
       if (amountInput) amountInput.value = sub.amount != null ? sub.amount : '';
       if (noteInput) noteInput.value = sub.note || '';
@@ -554,6 +590,13 @@
 
         if (!name) { if (nameInput) nameInput.focus(); return; }
         if (!whatsapp) { if (whatsappInput) whatsappInput.focus(); return; }
+
+        whatsapp = normalizeWhatsappNumber(whatsapp, getCountryCode());
+        if (!whatsapp) {
+          showToast('رقم الواتساب غير صحيح. اكتب 9 أرقام تبدأ بـ 5، مثل 592194533', { icon: 'x', danger: true });
+          if (whatsappInput) whatsappInput.focus();
+          return;
+        }
 
         var list = getStoredSubscribers();
 
@@ -672,8 +715,32 @@
     }
   });
 
+  // Subscription requests are a paid-plan feature. A free-plan owner who opens this page
+  // directly (typed URL, bookmark) sees an upgrade message instead of the requests.
+  function isSubscriptionRequestsLocked() {
+    return typeof GM.isFeatureLockedForPlan === 'function' && GM.isFeatureLockedForPlan('subscriptionRequests');
+  }
+
+  function showSubscriptionRequestsLockedState() {
+    var dataWrap = document.getElementById('req-data-wrap');
+    var emptyState = document.getElementById('req-empty-state');
+    if (dataWrap) dataWrap.style.display = 'none';
+    if (!emptyState) return;
+    emptyState.style.display = '';
+    emptyState.innerHTML =
+      '<i data-lucide="lock" class="icon"></i>' +
+      '<div class="title">طلبات الاشتراك متاحة في الباقة المدفوعة</div>' +
+      '<div class="sub">اشترك بالباقة المدفوعة ليظهر زر «اطلب اشتراك» في صفحة مساحتك وتوصلك الطلبات هون.</div>' +
+      '<a href="packages.html" class="btn btn-primary btn-sm">اشترك بالباقة المدفوعة</a>';
+    bootIcons();
+  }
+
   GM.registerPage('subscription-requests', {
     init: function () {
+      if (isSubscriptionRequestsLocked()) {
+        showSubscriptionRequestsLockedState();
+        return;
+      }
       renderSubscriptionRequestsPage();
       initSubscriptionRequestActions();
     }

@@ -1263,13 +1263,13 @@ window.GMStoreTypeConfig = (function () {
       id: 'cowork',
       label: 'مساحة عمل',
       fallbackAvatarLetter: 'م',
-      lockedFeatures: { free: ['qrCode'], paid: [] },
+      lockedFeatures: { free: ['qrCode', 'subscriptionRequests'], paid: [] },
       sidebar: [
         { page: 'dashboard', href: 'dashboard.html', icon: 'layout-grid', label: 'الرئيسية', sub: 'نظرة عامة على مساحتك' },
         { action: 'open-prices-edit', href: '#', icon: 'tag', label: 'الأسعار والأوقات', sub: 'أسعار الساعة/اليوم، مواعيد العمل' },
         { action: 'open-services-edit', href: '#', icon: 'wrench', label: 'الخدمات المتاحة', sub: 'واي فاي، كهرباء، طباعة، مشروبات' },
         { page: 'subscribers', href: 'subscribers.html', icon: 'users', label: 'المشتركين', sub: 'إضافة، تجديد، إنهاء الاشتراك' },
-        { page: 'subscription-requests', href: 'subscription-requests.html', icon: 'thumbs-up', label: 'طلبات الاشتراك', sub: 'طلبات وصلتك أونلاين للموافقة' },
+        { page: 'subscription-requests', href: 'subscription-requests.html', icon: 'thumbs-up', label: 'طلبات الاشتراك', sub: 'طلبات وصلتك أونلاين للموافقة', lockedFeature: 'subscriptionRequests' },
         { page: 'ads', href: 'ads.html', icon: 'megaphone', label: 'الإعلانات', sub: 'فعاليات، ورش، وظائف، عروض' },
         { page: 'packages', href: 'packages.html', icon: 'layers', label: 'الباقات', sub: 'اختر باقة مساحتك' },
         { page: 'profile', href: 'profile.html', icon: 'store', label: 'بروفايل المساحة', sub: 'تعديل المعلومات والصورة' }
@@ -1279,7 +1279,7 @@ window.GMStoreTypeConfig = (function () {
         { action: 'open-prices-edit', href: '#', icon: 'tag', label: 'الأسعار والأوقات' },
         { action: 'open-services-edit', href: '#', icon: 'wrench', label: 'الخدمات المتاحة' },
         { page: 'subscribers', href: 'subscribers.html', icon: 'users', label: 'المشتركين' },
-        { page: 'subscription-requests', href: 'subscription-requests.html', icon: 'thumbs-up', label: 'طلبات الاشتراك' },
+        { page: 'subscription-requests', href: 'subscription-requests.html', icon: 'thumbs-up', label: 'طلبات الاشتراك', lockedFeature: 'subscriptionRequests' },
         { page: 'ads', href: 'ads.html', icon: 'megaphone', label: 'الإعلانات' }
       ],
       services: [
@@ -1293,7 +1293,7 @@ window.GMStoreTypeConfig = (function () {
       dashboardCards: [
         { action: 'open-services-edit', href: '#', icon: 'wifi', label: 'الخدمات المتاحة', sub: 'واي فاي، كهرباء' },
         { action: 'open-prices-edit', href: '#', icon: 'tag', label: 'الأسعار والأوقات', sub: 'أسعار، مواعيد' },
-        { page: 'subscription-requests', href: 'subscription-requests.html', icon: 'thumbs-up', label: 'طلبات الاشتراك', sub: 'للموافقة أونلاين' },
+        { page: 'subscription-requests', href: 'subscription-requests.html', icon: 'thumbs-up', label: 'طلبات الاشتراك', sub: 'للموافقة أونلاين', lockedFeature: 'subscriptionRequests' },
         { page: 'subscribers', href: 'subscribers.html', icon: 'users', label: 'المشتركين', sub: 'إضافة، تجديد' }
       ],
       pageCopy: {
