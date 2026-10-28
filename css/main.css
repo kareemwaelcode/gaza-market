@@ -530,7 +530,6 @@ html {
   border: none;
   padding: 6px 8px;
   background: transparent;
-  color: var(--text);
 }
 
 .navbar-toggler:focus {
@@ -917,6 +916,10 @@ text-align: justify;
   background-color: #eaeaea4d;
   animation: fadeUp 0.55s var(--transition) both;
   transition: background var(--transition);
+}
+
+body.dark-mode .region-selector-section {
+  background-color: transparent;
 }
 @keyframes fadeUp {
   from {

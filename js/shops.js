@@ -42,7 +42,8 @@
     'restaurant-cafe': 'typeRestCafe',
     'workspace': 'typeCowork',
     'supermarket': 'typeSupermarket',
-    'pharmacy': 'shops.filterPharmacy'
+    'pharmacy': 'shops.filterPharmacy',
+    'misc': 'shops.filterMisc'
   };
 
   const ICONS = {
@@ -287,11 +288,11 @@
     const type = el('span', 'shops-card__type');
     type.dataset.t = TYPE_LABELS[place.type] || 'shops.filterMisc';
 
-    const ref = encodeURIComponent(place.slug || place.id);
+    const ref = place.ref ? encodeURIComponent(place.ref) : '';
     const row = el('div', 'shops-card__row');
     const heading = el('h2', 'shops-card__name');
     const link = el('a', 'shops-card__link');
-    link.href = 'menu.html?id=' + ref;
+    if (ref) link.href = 'menu.html?id=' + ref;
     heading.appendChild(link);
 
     const where = el('p', 'shops-card__where');
@@ -308,10 +309,12 @@
     if (place.whatsapp) {
       actions.appendChild(actionLink('shops-btn--wa', 'https://wa.me/' + place.whatsapp, 'wa', 'shops.whatsapp', true));
     }
-    if (place.has_menu) {
-      actions.appendChild(actionLink('shops-btn--menu', 'menu.html?id=' + ref + '#menu', 'book', 'shops.menu', false));
-    } else {
-      actions.appendChild(actionLink('shops-btn--menu', 'menu.html?id=' + ref, 'tag', 'shops.prices', false));
+    if (ref) {
+      if (place.has_menu) {
+        actions.appendChild(actionLink('shops-btn--menu', 'menu.html?id=' + ref + '#menu', 'book', 'shops.menu', false));
+      } else {
+        actions.appendChild(actionLink('shops-btn--menu', 'menu.html?id=' + ref, 'tag', 'shops.prices', false));
+      }
     }
 
     body.appendChild(type);
@@ -442,7 +445,7 @@
 
   function queryFor(cursor) {
     return {
-      type: state.type === 'all' || state.type === 'misc' ? null : state.type,
+      type: state.type === 'all' ? null : state.type,
       region: state.region === 'all' ? null : state.region,
       open: state.open,
       cursor: cursor || null,

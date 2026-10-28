@@ -13,8 +13,8 @@ const CONFIG = Object.assign({}, DEFAULTS, window.GM_CONFIG || {});
 const USE_MOCK = window.GM_ENV.isMockAllowed();
 const API_BASE = String(CONFIG.API_BASE).replace(/\/+$/, '');
 
-const CACHE_KEY = 'gm_shops_cache_v3';
-const LEGACY_CACHE_KEYS = ['gm_shops_cache_v2'];
+const CACHE_KEY = 'gm_shops_cache_v4';
+const LEGACY_CACHE_KEYS = ['gm_shops_cache_v2', 'gm_shops_cache_v3'];
 const CACHE_MAX_KEYS = 12;
 const CACHE_MAX_ITEMS = 24;
 const FRESH_MS = 60 * 1000;
@@ -31,6 +31,7 @@ const BOOK_MAX_PEOPLE = 10;
 const BOOK_COUNTRY_CODES = ['970', '972'];
 const BOOK_NATIONAL_RE = /^5[0-9]{8}$/;
 const SAFE_ID_RE = /^[A-Za-z0-9_-]{1,64}$/;
+const SLUG_RE = /^[a-z0-9-]{1,80}$/i;
 
 const REGIONS = [
 { code: 'Nuseirat', value: 'Nuseirat' },
@@ -53,7 +54,8 @@ const REGIONS = [
 ];
 
 const PLACE_TYPES = ['restaurant', 'cafe', 'restaurant-cafe', 'workspace', 'supermarket', 'pharmacy'];
-const FILTER_TYPES = PLACE_TYPES.slice();
+const OTHER_TYPE = 'misc';
+const FILTER_TYPES = PLACE_TYPES.concat(OTHER_TYPE);
 
 const regionLookup = (function () {
 const squash = (s) => String(s).toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -160,7 +162,9 @@ return null;
 
 function normalizePhone(value) {
 if (value === null || value === undefined) return '';
-const digits = String(value).replace(/\D/g, '');
+const raw = String(value).trim();
+if (!/^\+?[\d\s\-()]+$/.test(raw)) return '';
+const digits = raw.replace(/\D/g, '');
 return digits.length >= 10 && digits.length <= 15 ? digits : '';
 }
 
@@ -171,17 +175,24 @@ const nameAr = typeof raw.name_ar === 'string' ? raw.name_ar.trim() : '';
 const nameEn = typeof raw.name_en === 'string' ? raw.name_en.trim() : '';
 if (!nameAr && !nameEn) return null;
 
-const type = typeof raw.type === 'string' ? raw.type.trim().toLowerCase() : '';
-if (PLACE_TYPES.indexOf(type) === -1) return null;
+const rawType = typeof raw.type === 'string' ? raw.type.trim().toLowerCase() : '';
+if (!rawType) return null;
+const type = PLACE_TYPES.indexOf(rawType) === -1 ? OTHER_TYPE : rawType;
 
 const text = (v) => (typeof v === 'string' ? v.trim() : '');
 const address = text(raw.address) || text(raw.address_ar) || text(raw.address_en);
 const addressAr = text(raw.address_ar);
 const addressEn = text(raw.address_en);
 
+const idText = String(raw.id);
+const slugText = text(raw.slug);
+const slug = SLUG_RE.test(slugText) ? slugText : null;
+const ref = slug || (SLUG_RE.test(idText) ? idText : null);
+
 return {
-    id: String(raw.id),
-    slug: typeof raw.slug === 'string' && raw.slug.trim() ? raw.slug.trim() : null,
+    id: idText,
+    slug: slug,
+    ref: ref,
     name_ar: nameAr,
     name_en: nameEn,
     type,
@@ -190,7 +201,7 @@ return {
     address_ar: addressAr || address || addressEn,
     address_en: addressEn || address || addressAr,
     image_url: safeImageUrl(raw.image_url),
-    image_thumb: safeImageUrl(raw.image_thumb_url),
+    image_thumb: safeImageUrl(raw.image_thumb_url || raw.image_thumb),
     is_open: raw.is_open === true || raw.is_open === 1 || raw.is_open === '1',
     whatsapp: normalizePhone(raw.whatsapp),
     phone: normalizePhone(raw.phone),
@@ -323,6 +334,7 @@ const MOCK_PLACES = [
 { id: 13, slug: 'jabalia-shawarma', name_ar: 'شاورما جباليا', name_en: 'Jabalia Shawarma', type: 'restaurant', region: 'Jabalia', address: 'دوار الصفطاوي', image_url: null, is_open: false, whatsapp: '972590000013', has_menu: false },
 { id: 14, slug: 'beit-lahia-cafe', name_ar: 'كافيه بيت لاهيا', name_en: 'Beit Lahia Cafe', type: 'cafe', region: 'BeitLahia', address: 'الشارع الرئيسي', image_url: 'assets/img/demo.webp', is_open: true, whatsapp: '972590000014', has_menu: true },
 { id: 15, slug: 'work-corner', name_ar: 'ركن العمل', name_en: 'Work Corner', type: 'workspace', region: 'Alrimal', address: 'قرب الجامعة', image_url: 'assets/img/demo.webp', is_open: true, whatsapp: '972590000015', has_menu: false },
+{ id: 17, slug: 'al-nour-clothes', name_ar: 'ملابس النور', name_en: 'Al Nour Clothing', type: 'clothing', region: 'KhanYunis', address_ar: 'السوق الرئيسي', address_en: 'Main Market', image_url: null, is_open: true, whatsapp: '972590000017', has_menu: false },
 { id: 16, slug: 'al-amal-market', name_ar: 'سوبرماركت الأمل', name_en: 'Al Amal Supermarket', type: 'supermarket', region: 'Nuseirat', address: 'الشارع الرئيسي', image_url: 'assets/img/demo.webp', is_open: false, whatsapp: '972590000016', has_menu: false },
 ];
 
@@ -445,7 +457,7 @@ return pending;
 }
 
 function safeSlug(slug) {
-return typeof slug === 'string' && /^[a-z0-9-]{1,80}$/i.test(slug) ? slug : '';
+return typeof slug === 'string' && SLUG_RE.test(slug) ? slug : '';
 }
 
 async function getPlace(slug) {
@@ -651,7 +663,9 @@ try {
 }
 
 function mockMatches(place, params) {
-if (params.type) {
+if (params.type === OTHER_TYPE) {
+    if (PLACE_TYPES.indexOf(place.type) !== -1) return false;
+} else if (params.type) {
     const t = params.type;
     const ok = t === place.type || (place.type === 'restaurant-cafe' && (t === 'restaurant' || t === 'cafe'));
     if (!ok) return false;
