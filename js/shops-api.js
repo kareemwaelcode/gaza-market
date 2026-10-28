@@ -370,7 +370,8 @@ groups.forEach((group, gi) => {
     const categoryId = 'c' + (gi + 1);
     categories.push({ id: categoryId, name: group[0] });
     group[1].forEach((row, ri) => {
-    items.push({ id: categoryId + '-' + (ri + 1), categoryId, name: row[0], price: row[1], image: mockItemImage(), available: row[2] !== false, discount: row[3] === true });
+    const extra = row[4] || {};
+    items.push({ id: categoryId + '-' + (ri + 1), categoryId, name: row[0], price: row[1], image: extra.noImage === true ? null : mockItemImage(), available: row[2] !== false, discount: row[3] === true, details: extra.details || '', attributes: extra.attributes || [] });
     });
 });
 return { plan, categories, items };
@@ -402,8 +403,26 @@ const MOCK_MENUS = {
     ['الخدمات المتاحة', [['كشفية', null], ['تحاليل مخبرية', null], ['أشعة', null], ['تطعيمات', null]]],
 ]),
 'al-nour-clothes': mockMenu('free', [
-    ['قمصان', [['قميص قطن رجالي', 60], ['قميص كلاسيك', 85]]],
-    ['بناطيل', [['بنطلون جينز', 90], ['بنطلون قماش', 75]]],
+    ['قمصان', [
+    ['قميص قطن رجالي', 60, true, false, { details: 'قطن 100% بقصة عادية', attributes: [{ key: 'brand', value: 'النور' }, { key: 'size', value: 'M - XL' }, { key: 'color', value: 'أبيض' }, { key: 'season', value: 'صيفي' }] }],
+    ['قميص كلاسيك', 85, true, true, { details: 'قماش ناعم مناسب للدوام والمناسبات', attributes: [{ key: 'brand', value: 'النور' }, { key: 'size', value: 'L - XXL' }, { key: 'color', value: 'سماوي' }] }],
+    ]],
+    ['بناطيل', [
+    ['بنطلون جينز', 90, true, false, { details: 'جينز مرن بقصة مستقيمة', attributes: [{ key: 'brand', value: 'دنم برو' }, { key: 'size', value: '30 - 38' }, { key: 'color', value: 'أزرق غامق' }] }],
+    ['بنطلون قماش', 75, false, false, { details: 'قماش قطني خفيف', attributes: [{ key: 'size', value: '32 - 40' }, { key: 'color', value: 'رمادي' }, { key: 'season', value: 'صيفي' }] }],
+    ]],
+    ['ملابس أطفال', [
+    ['بيجامة أطفال', 35, true, false, { details: 'قطن ناعم بدون خياطات خشنة', attributes: [{ key: 'size', value: '4 - 8' }, { key: 'age_group', value: '2 - 6 سنوات' }, { key: 'color', value: 'أزرق' }] }],
+    ['طقم أطفال صيفي', 45, true, true, { attributes: [{ key: 'age_group', value: '1 - 4 سنوات' }, { key: 'season', value: 'صيفي' }], noImage: true }],
+    ]],
+    ['أحذية', [
+    ['حذاء رياضي', 120, true, false, { details: 'نعل طبي مريح للمشي', attributes: [{ key: 'brand', value: 'سبورت لاين' }, { key: 'size', value: '40 - 45' }, { key: 'color', value: 'أسود' }] }],
+    ['صندل جلد', 65, true, false, { attributes: [{ key: 'size', value: '39 - 44' }, { key: 'color', value: 'بني' }, { key: 'season', value: 'صيفي' }] }],
+    ]],
+    ['جاكيتات', [
+    ['جاكيت شتوي', 150, true, true, { details: 'بطانة داخلية دافئة ومقاوم للمطر', attributes: [{ key: 'brand', value: 'النور' }, { key: 'size', value: 'M - XXL' }, { key: 'color', value: 'كحلي' }, { key: 'season', value: 'شتوي' }] }],
+    ['جاكيت جلد', 220, true, false, { attributes: [{ key: 'size', value: 'L - XL' }, { key: 'color', value: 'أسود' }, { key: 'season', value: 'شتوي' }] }],
+    ]],
 ]),
 'saada-shafout': mockMenu('paid', [
     ['الوجبات', [['شفاعوط بالدجاج', 28], ['شفاعوط باللحمة', 32], ['وجبة عائلية', 90]]],

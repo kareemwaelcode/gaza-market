@@ -10107,8 +10107,8 @@ body.dark-mode .shops-page {
   display: grid;
   place-items: center;
   flex-shrink: 0;
-  width: 72px;
-  height: 72px;
+  width: 96px;
+  height: 96px;
   overflow: hidden;
   border: 1px solid var(--border-color);
   border-radius: 50%;
@@ -10345,6 +10345,15 @@ body.dark-mode .shops-page {
   font-weight: 700;
 }
 
+.shop-item__meta {
+  flex-basis: 100%;
+  font-size: 0.74rem;
+  font-weight: 500;
+  line-height: 1.5;
+  color: var(--gm-muted);
+  overflow-wrap: anywhere;
+}
+
 .shop-item__price {
   flex-shrink: 0;
   font-size: 0.95rem;
@@ -10365,6 +10374,7 @@ body.dark-mode .shop-item__price {
 
 .shop-item.is-unavailable .shop-item__thumb,
 .shop-item.is-unavailable .shop-item__name,
+.shop-item.is-unavailable .shop-item__meta,
 .shop-item.is-unavailable .shop-item__price {
   opacity: 0.5;
 }
@@ -10468,8 +10478,8 @@ body.dark-mode .shop-item__price {
   }
 
   .shop-avatar {
-    width: 60px;
-    height: 60px;
+    width: 76px;
+    height: 76px;
   }
 
   .shop-name {
@@ -11022,7 +11032,9 @@ body.dark-mode .booking-select__opt[aria-selected="true"] {
 .booking-form[hidden] {
   display: none;
 }
-
+.booking-done p {
+  color: var(--text-muted) !important;
+}
 .booking-err {
   display: none;
   color: var(--gm-red);

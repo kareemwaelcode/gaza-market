@@ -159,16 +159,16 @@
       var img = document.createElement('img');
       img.src = place.image_url;
       img.alt = '';
-      img.width = 72;
-      img.height = 72;
+      img.width = 96;
+      img.height = 96;
       img.decoding = 'async';
       img.addEventListener('error', function () {
         avatarEl.textContent = '';
-        avatarEl.appendChild(icon(itemIconName(), 30));
+        avatarEl.appendChild(icon(itemIconName(), 40));
       });
       avatarEl.appendChild(img);
     } else {
-      avatarEl.appendChild(icon(itemIconName(), 30));
+      avatarEl.appendChild(icon(itemIconName(), 40));
     }
 
     statusEl.classList.toggle('is-open', place.is_open);
