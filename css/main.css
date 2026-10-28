@@ -11352,3 +11352,62 @@ body.dark-mode .booking-select__opt[aria-selected="true"] {
     padding: 0.75rem 0.9rem;
   }
 }
+
+
+/* Store products layout: flat category columns with small round thumbs (stores only) */
+.shop-menu__grid--store {
+  column-gap: 2.25rem;
+}
+
+.shop-menu__grid--store .shop-cat {
+  margin-bottom: 1.5rem;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.shop-menu__grid--store .shop-cat__title {
+  padding: 0 0 0.65rem;
+  border-bottom: 1px solid var(--border-color);
+  font-size: 1.05rem;
+  color: #168a4b;
+}
+
+body.dark-mode .shop-menu__grid--store .shop-cat__title {
+  color: #3ddc84;
+}
+
+.shop-menu__grid--store .shop-item {
+  gap: 0.75rem;
+  padding: 0.6rem 0;
+}
+
+.shop-menu__grid--store .shop-item__thumb {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+}
+
+.shop-menu__grid--store .shop-item__name {
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+/* Discount badge next to the item price */
+.shop-item__discount {
+  flex-shrink: 0;
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, #168a4b 14%, transparent);
+  color: #168a4b;
+  font-size: 0.7rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+body.dark-mode .shop-item__discount {
+  background: color-mix(in srgb, #3ddc84 16%, transparent);
+  color: #3ddc84;
+}

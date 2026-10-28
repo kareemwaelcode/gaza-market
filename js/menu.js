@@ -37,6 +37,7 @@
 
   var ICONS = {
     utensils: '<path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/>',
+    store: '<path d="M15 21v-5a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v5"/><path d="M17.774 10.31a1.12 1.12 0 0 0-1.549 0 2.5 2.5 0 0 1-3.451 0 1.12 1.12 0 0 0-1.548 0 2.5 2.5 0 0 1-3.452 0 1.12 1.12 0 0 0-1.549 0 2.5 2.5 0 0 1-3.77-3.248l2.889-4.184A2 2 0 0 1 7 2h10a2 2 0 0 1 1.653.873l2.895 4.192a2.5 2.5 0 0 1-3.774 3.244"/><path d="M4 10.95V19a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8.05"/>',
     coffee: '<path d="M10 2v2"/><path d="M14 2v2"/><path d="M16 8a1 1 0 0 1 1 1v8a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V9a1 1 0 0 1 1-1h14a4 4 0 1 1 0 8h-1"/><path d="M6 2v2"/>'
   };
 
@@ -83,11 +84,17 @@
     return !!place && WORKSPACE_TYPES.indexOf(place.type) !== -1;
   }
 
+  // Any place that is not a restaurant, cafe, restaurant + cafe or workspace is a store.
+  function isStore(place) {
+    return !!place && !isFood(place) && !isWorkspace(place);
+  }
+
   function hasBooking(place) {
     return !!place && BOOKING_TYPES.indexOf(place.type) !== -1;
   }
 
   function itemIconName() {
+    if (isStore(state.place)) return 'store';
     return state.place && state.place.type === 'cafe' ? 'coffee' : 'utensils';
   }
 
@@ -251,6 +258,8 @@
     if (!item.available) info.appendChild(el('span', 'shop-item__badge', t('shop.unavailable')));
     row.appendChild(info);
 
+    if (item.discount) row.appendChild(el('span', 'shop-item__discount', t('shop.hasDiscount')));
+
     if (item.price !== null) {
       var price = el('span', 'shop-item__price');
       price.setAttribute('dir', 'ltr');
@@ -261,8 +270,23 @@
     return row;
   }
 
+  function applyMenuLabels() {
+    var store = isStore(state.place);
+    var searchKey = store ? 'shop.searchProducts' : 'shop.searchMenu';
+    var titleEl = document.getElementById('shopMenuTitle');
+    searchEl.setAttribute('data-i18n-placeholder', searchKey);
+    searchEl.placeholder = t(searchKey);
+    searchEl.setAttribute('aria-label', t(searchKey));
+    gridEl.classList.toggle('shop-menu__grid--store', store);
+    if (titleEl) {
+      titleEl.setAttribute('data-i18n', store ? 'shops.products' : 'shops.menu');
+      titleEl.textContent = t(store ? 'shops.products' : 'shops.menu');
+    }
+  }
+
   function renderMenu() {
     if (!state.menu) return;
+    applyMenuLabels();
     var hasAny = state.menu.items.length > 0;
     var groups = hasAny ? groupMenu() : [];
 
@@ -271,8 +295,8 @@
     show(searchWrapEl, hasAny);
 
     if (!hasAny) {
-      emptyTitleEl.textContent = t('shop.noMenu');
-      emptySubEl.textContent = t('shop.noMenuSub');
+      emptyTitleEl.textContent = t(isStore(state.place) ? 'shop.noProducts' : 'shop.noMenu');
+      emptySubEl.textContent = t(isStore(state.place) ? 'shop.noProductsSub' : 'shop.noMenuSub');
       show(emptyEl, true);
       show(gridEl, false);
       return;
@@ -332,8 +356,7 @@
       if (isWorkspace(place) && window.GMWorkspace && typeof api.getWorkspace === 'function') {
         return api.getWorkspace(slug).then(function (ws) { return { kind: 'workspace', data: ws }; });
       }
-      if (!isFood(place)) return null;
-      if (!place.has_menu) return { kind: 'menu', data: { categories: [], items: [] } };
+      if (isFood(place) && !place.has_menu) return { kind: 'menu', data: { categories: [], items: [] } };
       return api.getMenu(slug).then(function (menu) { return { kind: 'menu', data: menu }; });
     }).then(function (result) {
       setLoading(false);
@@ -372,7 +395,7 @@
     if (lang === lastLang) return;
     lastLang = lang;
     if (state.place) renderHead();
-    if (state.menu && isFood(state.place)) renderMenu();
+    if (state.menu && (isFood(state.place) || isStore(state.place))) renderMenu();
     if (state.workspace && window.GMWorkspace) window.GMWorkspace.refresh();
     if (!stateEl.hidden && stateEl.dataset.titleKey) {
       stateTitleEl.textContent = t(stateEl.dataset.titleKey);

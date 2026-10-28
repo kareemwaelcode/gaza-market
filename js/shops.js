@@ -31,9 +31,7 @@
     'cafe': 'shops.filterCafes',
     'restaurant-cafe': 'typeRestCafe',
     'workspace': 'shops.filterWorkspaces',
-    'supermarket': 'shops.filterSupermarkets',
-    'pharmacy': 'shops.filterPharmacy',
-    'misc': 'shops.filterMisc'
+    'store': 'shops.filterStores'
   };
 
   const TYPE_LABELS = {
@@ -41,9 +39,7 @@
     'cafe': 'typeCafe',
     'restaurant-cafe': 'typeRestCafe',
     'workspace': 'typeCowork',
-    'supermarket': 'typeSupermarket',
-    'pharmacy': 'shops.filterPharmacy',
-    'misc': 'shops.filterMisc'
+    'store': 'typeStore'
   };
 
   const ICONS = {
@@ -138,7 +134,9 @@
     } catch (err) {
       return;
     }
-    const type = params.get('type');
+    const LEGACY_STORE_TYPES = ['supermarket', 'pharmacy', 'misc'];
+    const rawType = params.get('type');
+    const type = LEGACY_STORE_TYPES.indexOf(rawType) !== -1 ? 'store' : rawType;
     const region = params.get('region');
     const areaCode = toRegionCode(params.get('area'));
     if (type && isTypeFilter(type)) state.type = type;
@@ -207,6 +205,11 @@
 
     col.querySelector('.shops-card__link').textContent = placeName(place);
     paintTexts(col);
+
+    if (place.type === 'store') {
+      const categoryText = currentLang() === 'ar' ? place.category_ar : place.category_en;
+      if (categoryText) col.querySelector('.shops-card__type').textContent = categoryText;
+    }
 
     const regionText = place.region ? t(place.region) : '';
     const address = placeAddress(place);
@@ -286,7 +289,7 @@
     const body = el('div', 'shops-card__body');
 
     const type = el('span', 'shops-card__type');
-    type.dataset.t = TYPE_LABELS[place.type] || 'shops.filterMisc';
+    type.dataset.t = TYPE_LABELS[place.type] || 'typeStore';
 
     const ref = place.ref ? encodeURIComponent(place.ref) : '';
     const row = el('div', 'shops-card__row');
@@ -310,7 +313,9 @@
       actions.appendChild(actionLink('shops-btn--wa', 'https://wa.me/' + place.whatsapp, 'wa', 'shops.whatsapp', true));
     }
     if (ref) {
-      if (place.has_menu) {
+      if (place.type === 'store') {
+        actions.appendChild(actionLink('shops-btn--menu', 'menu.html?id=' + ref + '#menu', 'tag', 'shops.products', false));
+      } else if (place.has_menu) {
         actions.appendChild(actionLink('shops-btn--menu', 'menu.html?id=' + ref + '#menu', 'book', 'shops.menu', false));
       } else {
         actions.appendChild(actionLink('shops-btn--menu', 'menu.html?id=' + ref, 'tag', 'shops.prices', false));
@@ -439,7 +444,7 @@
   function signature(places) {
     return places.map(function (p) {
       return [p.id, p.type, p.region, p.name_ar, p.name_en, p.address_ar, p.address_en,
-        p.image_thumb, p.image_url, p.is_open, p.whatsapp, p.has_menu].join('~');
+        p.image_thumb, p.image_url, p.is_open, p.whatsapp, p.has_menu, p.category_ar, p.category_en].join('~');
     }).join('|');
   }
 

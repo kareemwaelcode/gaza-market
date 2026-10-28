@@ -13,8 +13,8 @@ const CONFIG = Object.assign({}, DEFAULTS, window.GM_CONFIG || {});
 const USE_MOCK = window.GM_ENV.isMockAllowed();
 const API_BASE = String(CONFIG.API_BASE).replace(/\/+$/, '');
 
-const CACHE_KEY = 'gm_shops_cache_v4';
-const LEGACY_CACHE_KEYS = ['gm_shops_cache_v2', 'gm_shops_cache_v3'];
+const CACHE_KEY = 'gm_shops_cache_v5';
+const LEGACY_CACHE_KEYS = ['gm_shops_cache_v2', 'gm_shops_cache_v3', 'gm_shops_cache_v4'];
 const CACHE_MAX_KEYS = 12;
 const CACHE_MAX_ITEMS = 24;
 const FRESH_MS = 60 * 1000;
@@ -59,9 +59,9 @@ const REGIONS = [
 { code: 'Jabalia', value: 'Jabalia' },
 ];
 
-const PLACE_TYPES = ['restaurant', 'cafe', 'restaurant-cafe', 'workspace', 'supermarket', 'pharmacy'];
-const OTHER_TYPE = 'misc';
-const FILTER_TYPES = PLACE_TYPES.concat(OTHER_TYPE);
+const PLACE_TYPES = ['restaurant', 'cafe', 'restaurant-cafe', 'workspace', 'store'];
+const STORE_TYPE = 'store';
+const FILTER_TYPES = PLACE_TYPES;
 
 const regionLookup = (function () {
 const squash = (s) => String(s).toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -186,12 +186,14 @@ if (!nameAr && !nameEn) return null;
 
 const rawType = typeof raw.type === 'string' ? raw.type.trim().toLowerCase() : '';
 if (!rawType) return null;
-const type = PLACE_TYPES.indexOf(rawType) === -1 ? OTHER_TYPE : rawType;
+const type = PLACE_TYPES.indexOf(rawType) === -1 ? STORE_TYPE : rawType;
 
 const text = (v) => (typeof v === 'string' ? v.trim() : '');
 const address = text(raw.address) || text(raw.address_ar) || text(raw.address_en);
 const addressAr = text(raw.address_ar);
 const addressEn = text(raw.address_en);
+const categoryAr = text(raw.category_ar);
+const categoryEn = text(raw.category_en);
 
 const idText = String(raw.id);
 const slugText = text(raw.slug);
@@ -209,6 +211,8 @@ return {
     address: address,
     address_ar: addressAr || address || addressEn,
     address_en: addressEn || address || addressAr,
+    category_ar: categoryAr || categoryEn,
+    category_en: categoryEn || categoryAr,
     image_url: safeImageUrl(raw.image_url),
     image_thumb: safeImageUrl(raw.image_thumb_url || raw.image_thumb),
     is_open: raw.is_open === true || raw.is_open === 1 || raw.is_open === '1',
@@ -344,8 +348,9 @@ const MOCK_PLACES = [
 { id: 14, slug: 'beit-lahia-cafe', name_ar: 'كافيه بيت لاهيا', name_en: 'Beit Lahia Cafe', type: 'cafe', region: 'BeitLahia', address: 'الشارع الرئيسي', image_url: 'assets/img/demo.webp', is_open: true, whatsapp: '972590000014', has_menu: true },
 { id: 15, slug: 'work-corner', name_ar: 'ركن العمل', name_en: 'Work Corner', type: 'workspace', region: 'Alrimal', address: 'قرب الجامعة', image_url: 'assets/img/demo.webp', is_open: true, whatsapp: '972590000015', has_menu: false },
 { id: 18, slug: 'vibe-hub', name_ar: 'فايب هب', name_en: 'Vibe Hub', type: 'workspace', region: 'Alrimal', address_ar: 'عمارة كاظم، الطابق الثاني', address_en: 'Kazem Building, 2nd floor', image_url: 'assets/img/demo.webp', is_open: true, whatsapp: '972590000018', has_menu: false },
-{ id: 17, slug: 'al-nour-clothes', name_ar: 'ملابس النور', name_en: 'Al Nour Clothing', type: 'clothing', region: 'KhanYunis', address_ar: 'السوق الرئيسي', address_en: 'Main Market', image_url: null, is_open: true, whatsapp: '972590000017', has_menu: false },
-{ id: 16, slug: 'al-amal-market', name_ar: 'سوبرماركت الأمل', name_en: 'Al Amal Supermarket', type: 'supermarket', region: 'Nuseirat', address: 'الشارع الرئيسي', image_url: 'assets/img/demo.webp', is_open: false, whatsapp: '972590000016', has_menu: false },
+{ id: 17, slug: 'al-nour-clothes', name_ar: 'ملابس النور', name_en: 'Al Nour Clothing', type: 'store', category_ar: 'ملابس', category_en: 'Clothing', region: 'KhanYunis', address_ar: 'السوق الرئيسي', address_en: 'Main Market', image_url: null, is_open: true, whatsapp: '972590000017', has_menu: false },
+{ id: 19, slug: 'al-shifa-clinic', name_ar: 'عيادة الشفاء', name_en: 'Al Shifa Clinic', type: 'store', category_ar: 'عيادة وطب', category_en: 'Clinic & Medicine', region: 'KhanYunis', address_ar: 'شارع الجلاء', address_en: 'Al Jalaa Street', image_url: 'assets/img/demo.webp', is_open: true, whatsapp: '972590000019', has_menu: false },
+{ id: 16, slug: 'al-amal-market', name_ar: 'سوبرماركت الأمل', name_en: 'Al Amal Supermarket', type: 'store', category_ar: 'سوبرماركت', category_en: 'Supermarket', region: 'Nuseirat', address: 'الشارع الرئيسي', image_url: 'assets/img/demo.webp', is_open: false, whatsapp: '972590000016', has_menu: false },
 ];
 
 const MENU_FREE_LIMITS = { categories: 5, items: 10 };
@@ -361,7 +366,7 @@ groups.forEach((group, gi) => {
     const categoryId = 'c' + (gi + 1);
     categories.push({ id: categoryId, name: group[0] });
     group[1].forEach((row, ri) => {
-    items.push({ id: categoryId + '-' + (ri + 1), categoryId, name: row[0], price: row[1], image: mockItemImage(), available: row[2] !== false });
+    items.push({ id: categoryId + '-' + (ri + 1), categoryId, name: row[0], price: row[1], image: mockItemImage(), available: row[2] !== false, discount: row[3] === true });
     });
 });
 return { plan, categories, items };
@@ -383,6 +388,18 @@ const MOCK_MENUS = {
     ['الحلويات', [['كيك شوكولاتة', 14], ['تشيز كيك', 15], ['وافل', 16]]],
     ['الساندويتشات', [['ساندويتش جبنة', 12], ['ساندويتش دجاج', 15]]],
     ['الأراجيل', [['أرجيلة تفاحتين', 25], ['أرجيلة نعنع', 25]]],
+]),
+'al-amal-market': mockMenu('paid', [
+    ['فواكه', [['خوخ', 16], ['بطيخ', 7], ['شمام', 8, true, true], ['انجاص', 15], ['كيوي', 16], ['ليمون', 9], ['أفوكادو', 12]]],
+    ['تسالي', [['شيبس تاكس', 3], ['كراكر مالح', 1.5, true, true], ['شيبس جبنة', 2], ['شيبس قرطيس', 3], ['شيبس ستاكس', 8], ['شيبس بونكي', 3, false]]],
+    ['مخللات', [['مخلل خيار مواسم 1 كغ', 16], ['فلفل أحمر 660 غ', 18], ['فلفل أحمر 350 غ', 10, true, true], ['فلفل أصفر 660 غ', 12]]],
+]),
+'al-shifa-clinic': mockMenu('paid', [
+    ['الخدمات المتاحة', [['كشفية', null], ['تحاليل مخبرية', null], ['أشعة', null], ['تطعيمات', null]]],
+]),
+'al-nour-clothes': mockMenu('free', [
+    ['قمصان', [['قميص قطن رجالي', 60], ['قميص كلاسيك', 85]]],
+    ['بناطيل', [['بنطلون جينز', 90], ['بنطلون قماش', 75]]],
 ]),
 'saada-shafout': mockMenu('paid', [
     ['الوجبات', [['شفاعوط بالدجاج', 28], ['شفاعوط باللحمة', 32], ['وجبة عائلية', 90]]],
@@ -438,6 +455,7 @@ const items = data.items
         price: it.price === null || it.price === undefined || it.price === '' || !isFinite(price) || price < 0 ? null : price,
         image: safeImageUrl(it.image),
         available: it.available !== false,
+        discount: it.discount === true || it.discount === 1 || it.discount === '1',
     };
     });
 return { categories, items };
@@ -863,9 +881,7 @@ return { id: data && data.id !== undefined && data.id !== null ? String(data.id)
 }
 
 function mockMatches(place, params) {
-if (params.type === OTHER_TYPE) {
-    if (PLACE_TYPES.indexOf(place.type) !== -1) return false;
-} else if (params.type) {
+if (params.type) {
     const t = params.type;
     const ok = t === place.type || (place.type === 'restaurant-cafe' && (t === 'restaurant' || t === 'cafe'));
     if (!ok) return false;
