@@ -247,6 +247,15 @@
     thumb.appendChild(img);
   }
 
+  function itemMetaText(item) {
+    var parts = [];
+    if (item.details) parts.push(item.details);
+    (item.attributes || []).forEach(function (attr) {
+      parts.push(t('shop.attr.' + attr.key) + ': ' + attr.value);
+    });
+    return parts.join(' · ');
+  }
+
   function buildItem(item) {
     var row = el('li', 'shop-item' + (item.available ? '' : ' is-unavailable'));
     var thumb = el('span', 'shop-item__thumb');
@@ -256,6 +265,8 @@
     var info = el('span', 'shop-item__info');
     info.appendChild(el('span', 'shop-item__name', item.name));
     if (!item.available) info.appendChild(el('span', 'shop-item__badge', t('shop.unavailable')));
+    var meta = itemMetaText(item);
+    if (meta) info.appendChild(el('span', 'shop-item__meta', meta));
     row.appendChild(info);
 
     if (item.discount) row.appendChild(el('span', 'shop-item__discount', t('shop.hasDiscount')));

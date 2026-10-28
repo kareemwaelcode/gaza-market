@@ -354,6 +354,10 @@ const MOCK_PLACES = [
 ];
 
 const MENU_FREE_LIMITS = { categories: 5, items: 10 };
+const MENU_ATTR_KEYS = ['unit', 'brand', 'size', 'color', 'season', 'age_group', 'gender'];
+const MENU_ATTR_MAX = 8;
+const MENU_ATTR_VALUE_MAX = 40;
+const MENU_DETAILS_MAX = 160;
 
 function mockItemImage() {
 return 'assets/img/demo.webp';
@@ -436,6 +440,30 @@ const visible = mockApplyPlan(menu);
 return { data: { categories: visible.categories, items: visible.items } };
 }
 
+function cleanMenuText(value, max) {
+if (typeof value === 'number' && isFinite(value)) value = String(value);
+if (typeof value !== 'string') return '';
+const v = value.replace(/\s+/g, ' ').trim();
+return v.length > max ? v.slice(0, max).trim() : v;
+}
+
+function normalizeItemAttributes(list) {
+if (!Array.isArray(list)) return [];
+const seen = new Set();
+const out = [];
+for (let i = 0; i < list.length && out.length < MENU_ATTR_MAX; i += 1) {
+    const a = list[i];
+    if (!a || typeof a !== 'object') continue;
+    const key = typeof a.key === 'string' ? a.key.trim().toLowerCase() : '';
+    if (MENU_ATTR_KEYS.indexOf(key) === -1 || seen.has(key)) continue;
+    const value = cleanMenuText(a.value, MENU_ATTR_VALUE_MAX);
+    if (!value) continue;
+    seen.add(key);
+    out.push({ key: key, value: value });
+}
+return out;
+}
+
 function normalizeMenu(json) {
 const data = json && json.data;
 if (!data || !Array.isArray(data.categories) || !Array.isArray(data.items)) {
@@ -456,6 +484,8 @@ const items = data.items
         image: safeImageUrl(it.image),
         available: it.available !== false,
         discount: it.discount === true || it.discount === 1 || it.discount === '1',
+        details: cleanMenuText(it.details, MENU_DETAILS_MAX),
+        attributes: normalizeItemAttributes(it.attributes),
     };
     });
 return { categories, items };
