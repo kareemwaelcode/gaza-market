@@ -24,7 +24,63 @@
   const moreLabel = document.getElementById('shopsMoreLabel');
   const clearChip = document.getElementById('shopsClear');
   const typeItems = Array.from(document.querySelectorAll('[data-shops-type]'));
+  const regionMenu = document.getElementById('shopsRegionMenu');
+
+  // Builds the region dropdown from the shared list (js/regions-api.js), so a new region
+  // never needs an HTML edit. The "All regions" item and the group headers keep their i18n keys.
+  function renderRegionMenu() {
+    if (!regionMenu || !window.GMRegions) return;
+    const lang = typeof i18n !== 'undefined' ? i18n.getLang() : 'ar';
+    const known = function (key) { return typeof i18n !== 'undefined' && i18n.t(key) !== key; };
+    const frag = document.createDocumentFragment();
+
+    function addItem(value, key, text) {
+      const li = document.createElement('li');
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'dropdown-item';
+      btn.setAttribute('data-shops-region', value);
+      if (known(key)) btn.setAttribute('data-i18n', key);
+      btn.textContent = text;
+      li.appendChild(btn);
+      frag.appendChild(li);
+    }
+
+    addItem('all', 'AllRegions', 'All regions');
+    const divider = document.createElement('li');
+    const hr = document.createElement('hr');
+    hr.className = 'dropdown-divider';
+    divider.appendChild(hr);
+    frag.appendChild(divider);
+
+    window.GMRegions.grouped().forEach(function (entry) {
+      const li = document.createElement('li');
+      const h = document.createElement('h6');
+      h.className = 'dropdown-header';
+      h.setAttribute('data-i18n', entry.group.i18n);
+      h.textContent = entry.group.i18n;
+      li.appendChild(h);
+      frag.appendChild(li);
+      entry.regions.forEach(function (r) {
+        addItem(r.code, r.code, lang === 'en' ? r.name_en : r.name_ar);
+      });
+    });
+
+    regionMenu.textContent = '';
+    regionMenu.appendChild(frag);
+  }
+
+  renderRegionMenu();
+
   const regionItems = Array.from(document.querySelectorAll('[data-shops-region]'));
+
+  // Region name for a code: translation key if it exists, otherwise the name from the API list.
+  function regionName(code) {
+    const translated = typeof i18n !== 'undefined' ? i18n.t(code) : code;
+    if (translated !== code) return translated;
+    if (!window.GMRegions) return code;
+    return window.GMRegions.label(code, currentLang());
+  }
 
   const TYPE_FILTERS = {
     'restaurant': 'shops.filterRestaurants',
@@ -211,7 +267,7 @@
       if (categoryText) col.querySelector('.shops-card__type').textContent = categoryText;
     }
 
-    const regionText = place.region ? t(place.region) : '';
+    const regionText = place.region ? regionName(place.region) : '';
     const address = placeAddress(place);
     const sep = currentLang() === 'ar' ? '، ' : ', ';
     col.querySelector('.shops-card__region').textContent = regionText;
@@ -588,7 +644,7 @@
 
     const regionActive = state.region !== 'all';
     regionBtn.classList.toggle('is-active', regionActive);
-    regionLabel.textContent = regionActive ? t(state.region) : t('AllRegions');
+    regionLabel.textContent = regionActive ? regionName(state.region) : t('AllRegions');
   }
 
   function apply(patch) {

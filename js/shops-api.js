@@ -39,43 +39,14 @@ const SUB_STORAGE_MAX = 200;
 const TIME_RE = /^([01][0-9]|2[0-3]):[0-5][0-9]$/;
 const SERVICE_ID_RE = /^[a-z][a-z_]{0,31}$/;
 
-const REGIONS = [
-{ code: 'Nuseirat', value: 'Nuseirat' },
-{ code: 'Breij', value: 'Breij' },
-{ code: 'Maghazi', value: 'Maghazi' },
-{ code: 'Zawayda', value: 'Zawayda' },
-{ code: 'DeirBalah', value: 'Deir al-Balah' },
-{ code: 'KhanYunis', value: 'Khan Yunis' },
-{ code: 'Rafah', value: 'Rafah' },
-{ code: 'MawasiKhanYunis', value: 'Mawasi Khan Yunis' },
-{ code: 'MawasiQarara', value: 'Mawasi al-Qarara' },
-{ code: 'Alrimal', value: 'Alrimal' },
-{ code: 'Alshaati', value: 'Alshaati' },
-{ code: 'SheikhRadwan', value: 'Sheikh Radwan' },
-{ code: 'Saftawi', value: 'Saftawi' },
-{ code: 'BeitHanoun', value: 'Beit Hanoun' },
-{ code: 'BeitLahia', value: 'Beit Lahia' },
-{ code: 'TalHawa', value: 'Tal Al-Hawa' },
-{ code: 'Jabalia', value: 'Jabalia' },
-];
-
 const PLACE_TYPES = ['restaurant', 'cafe', 'restaurant-cafe', 'workspace', 'store'];
 const STORE_TYPE = 'store';
 const FILTER_TYPES = PLACE_TYPES;
 
-const regionLookup = (function () {
-const squash = (s) => String(s).toLowerCase().replace(/[^a-z0-9]/g, '');
-const map = new Map();
-REGIONS.forEach((r) => {
-    map.set(squash(r.code), r.code);
-    map.set(squash(r.value), r.code);
-});
-return { squash, map };
-})();
-
+// Region codes and legacy spellings come from the shared js/regions-api.js (GMRegions).
 function normalizeRegion(raw) {
 if (raw === null || raw === undefined || raw === '') return null;
-return regionLookup.map.get(regionLookup.squash(raw)) || null;
+return window.GMRegions ? window.GMRegions.normalize(raw) : null;
 }
 
 function GMShopsError(code, message, status, errors, reason) {

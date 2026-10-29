@@ -1482,7 +1482,6 @@ body.dark-mode .region-selector-section {
   border: none;
   border-radius: var(--border-radius);
   background: var(--primary);
-  color: var(--text);
   font-size: 16px;
   font-weight: 700;
   font-family: var(--en-font);

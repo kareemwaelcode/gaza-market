@@ -1440,30 +1440,7 @@
               <span id="shopsRegionLabel">All regions</span>
               <svg class="shops-icon shops-chip__chev" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m6 9 6 6 6-6"/></svg>
             </button>
-            <ul class="dropdown-menu shops-menu" aria-labelledby="shopsRegionBtn">
-          <li><button type="button" class="dropdown-item" data-shops-region="all" data-i18n="AllRegions">All regions</button></li>
-          <li><hr class="dropdown-divider" /></li>
-          <li><h6 class="dropdown-header" data-i18n="CentralGaza">Central Gaza</h6></li>
-          <li><button type="button" class="dropdown-item" data-shops-region="Nuseirat" data-i18n="Nuseirat">Nuseirat</button></li>
-          <li><button type="button" class="dropdown-item" data-shops-region="Breij" data-i18n="Breij">Breij</button></li>
-          <li><button type="button" class="dropdown-item" data-shops-region="Maghazi" data-i18n="Maghazi">Maghazi</button></li>
-          <li><button type="button" class="dropdown-item" data-shops-region="Zawayda" data-i18n="Zawayda">Zawayda</button></li>
-          <li><button type="button" class="dropdown-item" data-shops-region="DeirBalah" data-i18n="DeirBalah">Deir al-Balah</button></li>
-          <li><h6 class="dropdown-header" data-i18n="SouthGaza">South Gaza</h6></li>
-          <li><button type="button" class="dropdown-item" data-shops-region="KhanYunis" data-i18n="KhanYunis">Khan Yunis</button></li>
-          <li><button type="button" class="dropdown-item" data-shops-region="Rafah" data-i18n="Rafah">Rafah</button></li>
-          <li><button type="button" class="dropdown-item" data-shops-region="MawasiKhanYunis" data-i18n="MawasiKhanYunis">Mawasi Khan Yunis</button></li>
-          <li><button type="button" class="dropdown-item" data-shops-region="MawasiQarara" data-i18n="MawasiQarara">Mawasi al-Qarara</button></li>
-          <li><h6 class="dropdown-header" data-i18n="NorthGaza">North Gaza</h6></li>
-          <li><button type="button" class="dropdown-item" data-shops-region="Alrimal" data-i18n="Alrimal">Al-Rimal</button></li>
-          <li><button type="button" class="dropdown-item" data-shops-region="Alshaati" data-i18n="Alshaati">Al-Shaati</button></li>
-          <li><button type="button" class="dropdown-item" data-shops-region="SheikhRadwan" data-i18n="SheikhRadwan">Sheikh Radwan</button></li>
-          <li><button type="button" class="dropdown-item" data-shops-region="Saftawi" data-i18n="Saftawi">Saftawi</button></li>
-          <li><button type="button" class="dropdown-item" data-shops-region="BeitHanoun" data-i18n="BeitHanoun">Beit Hanoun</button></li>
-          <li><button type="button" class="dropdown-item" data-shops-region="BeitLahia" data-i18n="BeitLahia">Beit Lahia</button></li>
-          <li><button type="button" class="dropdown-item" data-shops-region="TalHawa" data-i18n="TalHawa">Tal Al-Hawa</button></li>
-          <li><button type="button" class="dropdown-item" data-shops-region="Jabalia" data-i18n="Jabalia">Jabalia</button></li>
-            </ul>
+            <ul class="dropdown-menu shops-menu" id="shopsRegionMenu" aria-labelledby="shopsRegionBtn"></ul>
           </div>
 
           <button type="button" class="shops-chip" data-shops-open aria-pressed="false">
@@ -1591,6 +1568,7 @@
 <script src="js/vendor/bootstrap.bundle.min.js" defer></script>
 <script src="js/translations.js" defer></script>
 <script src="js/i18n.js" defer></script>
+<script src="js/regions-api.js" defer></script>
 <script src="js/shops-api.js" defer></script>
 <script src="js/shops.js" defer></script>
 <script src="js/main.js" defer></script>
