@@ -11478,8 +11478,6 @@ body.dark-mode .shop-menu__grid--store .shop-cat__title {
   font-size: 0.9rem;
   font-weight: 700;
 }
-
-/* Discount badge next to the item price */
 .shop-item__discount {
   flex-shrink: 0;
   padding: 0.1rem 0.5rem;

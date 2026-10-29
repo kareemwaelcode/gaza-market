@@ -1033,11 +1033,84 @@
     ['#mobile-nav-slot', 'mobile-nav.html']
   ];
 
+  var ADD_STORE_PAGE_URL = new URL('../add-store.html', PROFILE_PAGE_URL).href;
+  var LOGIN_PAGE_URL = new URL('auth/login.html', PROFILE_PAGE_URL).href;
+  // MOCK ONLY: with no saved place request, keep the old localStorage values so local testing still works.
+  // Live mode never uses this: no place means redirect to the add-store page. Remove when the backend is connected.
+  var MOCK_ALLOWS_NO_PLACE = true;
+
+  function waitForPlaceRetry() {
+    return new Promise(function (resolve) {
+      var box = document.createElement('div');
+      box.id = 'gm-place-error';
+      box.className = 'empty-state';
+      box.setAttribute('role', 'alert');
+      box.style.cssText = 'max-width:420px;margin:80px auto;';
+
+      var title = document.createElement('div');
+      title.className = 'title';
+      title.textContent = 'تعذّر التحميل';
+
+      var text = document.createElement('p');
+      text.textContent = 'لم نتمكن من تحميل بيانات نشاطك. تحقق من الاتصال ثم أعد المحاولة.';
+
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'btn btn-primary';
+      btn.textContent = 'إعادة المحاولة';
+      btn.addEventListener('click', function () {
+        box.remove();
+        resolve();
+      }, { once: true });
+
+      box.appendChild(title);
+      box.appendChild(text);
+      box.appendChild(btn);
+      document.body.appendChild(box);
+      btn.focus();
+    });
+  }
+
+  function fetchMyPlace() {
+    var api = window.GMAddStoreApi;
+    if (!api || typeof api.getMine !== 'function') return Promise.resolve({ ok: false, code: 'NETWORK' });
+    return api.getMine().then(function (res) { return res; }, function () { return { ok: false, code: 'NETWORK' }; });
+  }
+
+  // Loads the owner's place before anything is drawn and hands it to GMStoreTypeConfig (display only;
+  // the server enforces the plan). Returns true when the page may continue.
+  async function loadPlaceState() {
+    var store = window.GMStoreTypeConfig;
+    if (!store || typeof store.hydrateFromPlace !== 'function' || store.hasPlaceState()) return true;
+
+    for (;;) {
+      var res = await fetchMyPlace();
+
+      if (res && res.ok) {
+        var mine = res.data ? res.data.mine : null;
+        if (mine && mine.status === 'approved' && mine.activated === true) {
+          if (store.hydrateFromPlace(mine)) return true;
+        } else if (!mine && MOCK_ALLOWS_NO_PLACE && window.GMAddStoreApi.mode === 'mock') {
+          return true;
+        } else {
+          window.location.replace(ADD_STORE_PAGE_URL);
+          return false;
+        }
+      } else if (res && res.code === 'UNAUTHENTICATED') {
+        window.location.replace(LOGIN_PAGE_URL);
+        return false;
+      }
+
+      await waitForPlaceRetry();
+    }
+  }
+
   async function boot(opts) {
     opts = opts || {};
     if (window.GMAuth && typeof window.GMAuth.whenReady === 'function') {
       if (!(await window.GMAuth.whenReady())) return false;
     }
+    if (!(await loadPlaceState())) return false;
     if (!guardPageForStoreType()) return false;
     if (typeof opts.beforePartials === 'function') opts.beforePartials();
     ensureMobileNavHost();
