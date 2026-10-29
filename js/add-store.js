@@ -5,14 +5,14 @@
       restaurant: "Restaurant",
       cafe: "Cafe",
       "restaurant-cafe": "Restaurant & Cafe",
-      cowork: "Coworking Space",
+      workspace: "Coworking Space",
       store: "Store",
     },
     ar: {
       restaurant: "مطعم",
       cafe: "كافيه",
       "restaurant-cafe": "مطعم وكافيه",
-      cowork: "مساحة عمل مشتركة",
+      workspace: "مساحة عمل مشتركة",
       store: "متجر",
     },
   };

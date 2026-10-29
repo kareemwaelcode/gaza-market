@@ -3,7 +3,7 @@ window.GMStoreTypeConfig = (function () {
 
   var STORAGE_KEY = 'gm-store-type';
   var PLAN_STORAGE_KEY = 'gm-store-plan';
-  var DEFAULT_TYPE = 'cowork';
+  var DEFAULT_TYPE = 'workspace';
   var DEFAULT_PLAN = 'free';
   var PLAN_IDS = ['free', 'paid'];
 
@@ -54,7 +54,7 @@ window.GMStoreTypeConfig = (function () {
   var SUBCATEGORY_ID_KEY = 'gm-store-subcategory-id';
   var SUBCATEGORY_LABEL_KEY = 'gm-store-subcategory';
 
-  var STORE_BASE_FREE_LIMITS = { products: 10, productCategories: 8, ads: 3 };
+  var STORE_BASE_FREE_LIMITS = { products: 10, productCategories: 8, discountedProducts: 5, ads: 3 };
 
   var STORE_VARIANTS = {
     general: { key: 'general', freeLimits: {}, hasDiscounts: false, hasAppointments: false, hasProducts: true, hiddenServices: [] },
@@ -1119,6 +1119,27 @@ window.GMStoreTypeConfig = (function () {
     }
   };
 
+  // Unified product form: every store sub-type that sells products shares the same
+  // fields (name, category, price, image, status, details, discount).
+  // Only clothing and shoes add a size ("نمرة") field.
+  // This overrides the older per-variant productFields / productExtraFields above.
+  var SIZED_VARIANT_KEYS = ['menswear', 'womenswear', 'kidswear', 'shoes'];
+
+  Object.keys(STORE_VARIANTS).forEach(function (variantKey) {
+    var variant = STORE_VARIANTS[variantKey];
+    if (variant.hasProducts === false) return;
+    var sized = SIZED_VARIANT_KEYS.indexOf(variantKey) !== -1;
+    var oldHints = variant.productHints || {};
+    var hints = {};
+    if (oldHints.name) hints.name = oldHints.name;
+    if (oldHints.details) hints.details = oldHints.details;
+    if (sized && oldHints.size) hints.size = oldHints.size;
+    variant.hasDiscounts = true;
+    variant.productFields = sized ? ['details', 'size'] : ['details'];
+    variant.productExtraFields = [];
+    variant.productHints = hints;
+  });
+
   var STORE_SUBCATEGORY_VARIANT = {
     'General Grocery': 'grocery',
     'Supermarket': 'grocery',
@@ -1237,7 +1258,7 @@ window.GMStoreTypeConfig = (function () {
   function buildStoreLimits(variant) {
     var free = {};
     Object.keys(STORE_BASE_FREE_LIMITS).forEach(function (key) {
-      if (variant.hasProducts === false && (key === 'products' || key === 'productCategories')) return;
+      if (variant.hasProducts === false && (key === 'products' || key === 'productCategories' || key === 'discountedProducts')) return;
       free[key] = STORE_BASE_FREE_LIMITS[key];
     });
     Object.keys(variant.freeLimits).forEach(function (key) { free[key] = variant.freeLimits[key]; });
@@ -1259,8 +1280,8 @@ window.GMStoreTypeConfig = (function () {
 
   var TYPES = {
 
-    cowork: {
-      id: 'cowork',
+    workspace: {
+      id: 'workspace',
       label: 'مساحة عمل',
       fallbackAvatarLetter: 'م',
       lockedFeatures: { free: ['qrCode', 'subscriptionRequests'], paid: [] },
