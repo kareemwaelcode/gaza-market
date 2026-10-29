@@ -28,14 +28,23 @@
     validation: "VALIDATION",
     number_taken: "NUMBER_TAKEN",
     rate_limited: "RATE_LIMITED",
+    already_has_place: "ALREADY_HAS_PLACE",
   };
 
+  // Request statuses the page knows how to show.
+  const MINE_STATUSES = ["pending", "approved", "rejected"];
+
   // Mock mode only: ?gm_test=unauth|validation|phone|whatsapp|limit|network|error|slow
+  // Mock mode only: ?gm_status=none|pending|approved|activated|rejected previews the status screen.
   let testMode = "";
+  let statusPreview = "";
   try {
-    testMode = new URLSearchParams(window.location.search).get("gm_test") || "";
+    const params = new URLSearchParams(window.location.search);
+    testMode = params.get("gm_test") || "";
+    statusPreview = params.get("gm_status") || "";
   } catch (err) {
     testMode = "";
+    statusPreview = "";
   }
 
   const ok = (data) => ({ ok: true, data: data || {} });
@@ -68,6 +77,31 @@
     const retryAfter = Number(payload.retry_after) > 0 ? Number(payload.retry_after) : 0;
 
     return fail(code, { fields: fields, field: field, retryAfter: retryAfter });
+  }
+
+  // Turns the server's "my place" object into the small shape the page needs.
+  // Returns null when the object is missing or has a status the page does not know.
+  function normalizeMine(d) {
+    if (!d || typeof d !== "object" || MINE_STATUSES.indexOf(d.status) === -1) return null;
+    return {
+      id: typeof d.id === "string" || typeof d.id === "number" ? String(d.id) : "",
+      status: d.status,
+      name: typeof d.name === "string" ? d.name.slice(0, 80) : "",
+      type: typeof d.type === "string" ? d.type : "",
+      activated: d.activated === true,
+      rejectionReason: typeof d.rejection_reason === "string" ? d.rejection_reason.slice(0, 300) : "",
+    };
+  }
+
+  // GET /api/places/mine: 200 with data:null = the user has no place yet.
+  function mineToResult(res) {
+    if (res.status >= 200 && res.status < 300) {
+      const body = res.payload && typeof res.payload === "object" ? res.payload : {};
+      if (body.data === null || body.data === undefined) return ok({ mine: null });
+      const mine = normalizeMine(body.data);
+      return mine ? ok({ mine: mine }) : fail("SERVER");
+    }
+    return fail(codeFromStatus(res.status));
   }
 
   function createLiveDriver() {
@@ -139,6 +173,31 @@
         });
     }
 
+    function fetchMine() {
+      const controller = typeof AbortController === "function" ? new AbortController() : null;
+      const timer = controller ? window.setTimeout(() => controller.abort(), CONFIG.TIMEOUT_MS) : null;
+
+      return fetch(API_BASE + "/places/mine", {
+        method: "GET",
+        headers: { Accept: "application/json", "X-Requested-With": "XMLHttpRequest" },
+        credentials: "same-origin",
+        cache: "no-store",
+        signal: controller ? controller.signal : undefined,
+      })
+        .then(
+          (response) =>
+            response.json().then(
+              (body) => ({ status: response.status, payload: body }),
+              () => ({ status: response.status, payload: {} })
+            ),
+          () => ({ status: 0, payload: {} })
+        )
+        .then((res) => {
+          window.clearTimeout(timer);
+          return res;
+        });
+    }
+
     return {
       submit: function (payload) {
         return send(payload)
@@ -148,6 +207,10 @@
             return res;
           })
           .then(toResult);
+      },
+
+      getMine: function () {
+        return fetchMine().then(mineToResult);
       },
     };
   }
@@ -222,6 +285,37 @@
           return ok({ id: id, status: "pending" });
         });
       },
+
+      // Mock: the newest saved request counts as "my place". ?gm_status=... previews each state.
+      getMine: function () {
+        return delay(300).then(() => {
+          if (testMode === "network") return fail("NETWORK");
+          if (!isLoggedIn()) return fail("UNAUTHENTICATED");
+          if (statusPreview === "none") return ok({ mine: null });
+
+          const list = read();
+          const last = list.length ? list[list.length - 1] : null;
+          const previews = {
+            pending: { status: "pending" },
+            approved: { status: "approved", activated: false },
+            activated: { status: "approved", activated: true },
+            rejected: { status: "rejected", rejection_reason: "الصورة غير واضحة، أعد تصوير المكان بوضوح أكبر." },
+          };
+
+          if (previews[statusPreview]) {
+            const base = Object.assign(
+              { id: "plc_preview", name: (last && last.name) || "Vibe Hub", type: (last && last.type) || "cafe" },
+              previews[statusPreview]
+            );
+            return ok({ mine: normalizeMine(base) });
+          }
+
+          if (!last) return ok({ mine: null });
+          return ok({
+            mine: normalizeMine({ id: last.id, status: last.status || "pending", name: last.name, type: last.type }),
+          });
+        });
+      },
     };
   }
 
@@ -230,5 +324,6 @@
   window.GMAddStoreApi = Object.freeze({
     mode: USE_MOCK ? "mock" : "live",
     submit: driver.submit,
+    getMine: driver.getMine,
   });
 })();

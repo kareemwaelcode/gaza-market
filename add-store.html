@@ -1548,6 +1548,34 @@
         </a>
       </div>
     </section>
+
+    <section class="gm-step gm-step--hidden" id="gmStatus" aria-live="polite">
+      <div class="gm-success gm-status" id="gmStatusBox" data-state="pending">
+        <div class="gm-success-anim">
+          <div class="gm-success-ring"></div>
+          <div class="gm-success-circle gm-status-circle">
+            <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="gm-status-icon gm-status-icon--pending"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+            <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="gm-status-icon gm-status-icon--approved"><path d="M20 6 9 17l-5-5"/></svg>
+            <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="gm-status-icon gm-status-icon--rejected"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg>
+          </div>
+        </div>
+        <h2 class="gm-success-title" id="gmStatusTitle" data-i18n="statusPendingTitle">Your request is under review</h2>
+        <p class="gm-status-name" id="gmStatusName" hidden></p>
+        <p class="gm-success-desc" id="gmStatusDesc" data-i18n="statusPendingDesc">
+          Our team is reviewing your place. We will send you the activation details on WhatsApp once it is approved.
+        </p>
+        <div class="gm-status-reason" id="gmStatusReason" hidden>
+          <strong data-i18n="statusReasonLabel">Reason</strong>
+          <span id="gmStatusReasonText"></span>
+        </div>
+        <a href="dashboard-users/auth/login.html" class="gm-success-btn" id="gmStatusPrimary" hidden>
+          <span data-i18n="btnOpenDashboard">Open dashboard</span>
+        </a>
+        <a href="home.html" class="gm-status-secondary">
+          <span data-i18n="btnBackHome">Back To Home</span>
+        </a>
+      </div>
+    </section>
   </main>
 
   <div class="auth-overlay" id="authOverlay" aria-hidden="true">

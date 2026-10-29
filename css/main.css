@@ -2414,6 +2414,79 @@ body.dark-mode .region-selector-section {
   box-shadow: 0 8px 32px rgba(29, 110, 245, 0.4);
 }
 
+/* ---- add-store: status screen (pending / approved / rejected) and "checking" state ---- */
+body.gm-checking #gmStepsIndicator,
+body.gm-checking #gmMain {
+  visibility: hidden;
+}
+
+#gmStatus [hidden] {
+  display: none !important;
+}
+
+.gm-status-icon {
+  display: none;
+}
+.gm-status[data-state="pending"] .gm-status-icon--pending,
+.gm-status[data-state="approved"] .gm-status-icon--approved,
+.gm-status[data-state="rejected"] .gm-status-icon--rejected {
+  display: block;
+}
+
+.gm-status[data-state="pending"] .gm-status-circle {
+  background: #d98a00;
+  box-shadow: 0 8px 32px rgba(217, 138, 0, 0.28);
+}
+.gm-status[data-state="pending"] .gm-success-ring {
+  background: rgba(217, 138, 0, 0.12);
+}
+
+.gm-status[data-state="rejected"] .gm-status-circle {
+  background: var(--gm-red);
+  box-shadow: 0 8px 32px rgba(217, 48, 37, 0.28);
+}
+.gm-status[data-state="rejected"] .gm-success-ring {
+  background: var(--gm-red-s);
+}
+
+.gm-status-name {
+  margin: 0 auto 10px;
+  max-width: 320px;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--gm-text);
+  overflow-wrap: anywhere;
+}
+
+.gm-status-reason {
+  max-width: 360px;
+  margin: -12px auto 24px;
+  padding: 12px 16px;
+  border-radius: var(--border-radius);
+  background: var(--gm-red-s);
+  color: var(--gm-text);
+  font-size: 13.5px;
+  line-height: 1.7;
+  text-align: start;
+  overflow-wrap: anywhere;
+}
+.gm-status-reason strong {
+  margin-inline-end: 6px;
+}
+
+.gm-status-secondary {
+  display: block;
+  margin-top: 16px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--gm-muted);
+  text-decoration: none;
+}
+.gm-status-secondary:hover {
+  color: var(--gm-text);
+  text-decoration: underline;
+}
+
 .auth-overlay {
   position: fixed;
   inset: 0;

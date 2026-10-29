@@ -48,6 +48,14 @@
       /[0-9]/.test(value);
   }
 
+  // Reset flow and first-time activation flow share the same steps (request code, verify code, set password)
+  // but use separate endpoints so the backend can apply different eligibility rules.
+  function flowPaths(purpose) {
+    return purpose === 'activate'
+      ? { request: '/activation/request-code', verify: '/activation/verify-code', set: '/activation/set-password', tokenField: 'activation_token' }
+      : { request: '/password/forgot', verify: '/password/verify-code', set: '/password/reset', tokenField: 'reset_token' };
+  }
+
   function createLiveDriver() {
     var csrfPromise = null;
 
@@ -150,8 +158,8 @@
         });
       },
 
-      requestResetCode: function (whatsapp) {
-        return post('/password/forgot', { whatsapp: whatsapp }).then(function (res) {
+      requestResetCode: function (whatsapp, purpose) {
+        return post(flowPaths(purpose).request, { whatsapp: whatsapp }).then(function (res) {
           return toResult(res, function (d) {
             var now = Date.now();
             return {
@@ -162,24 +170,27 @@
         });
       },
 
-      verifyResetCode: function (whatsapp, code) {
-        return post('/password/verify-code', { whatsapp: whatsapp, code: code }).then(function (res) {
+      verifyResetCode: function (whatsapp, code, purpose) {
+        var paths = flowPaths(purpose);
+        return post(paths.verify, { whatsapp: whatsapp, code: code }).then(function (res) {
           return toResult(res, function (d) {
             return {
-              token: d.reset_token,
+              token: d[paths.tokenField],
               expiresAt: Date.now() + (d.expires_in || 900) * 1000
             };
           });
         });
       },
 
-      resetPassword: function (whatsapp, resetToken, password, passwordConfirmation) {
-        return post('/password/reset', {
+      resetPassword: function (whatsapp, resetToken, password, passwordConfirmation, purpose) {
+        var paths = flowPaths(purpose);
+        var body = {
           whatsapp: whatsapp,
-          reset_token: resetToken,
           password: password,
           password_confirmation: passwordConfirmation
-        }).then(function (res) {
+        };
+        body[paths.tokenField] = resetToken;
+        return post(paths.set, body).then(function (res) {
           return toResult(res);
         });
       },
@@ -219,6 +230,10 @@
 
     var DEMO_USER = { whatsapp: '970591234567', password: 'Test1234' };
 
+    // Mock list of owners whose business was approved by the admin but who have not activated yet.
+    var APPROVED_KEY = 'gmMockApprovedBusinesses';
+    var DEMO_APPROVED = '972591111111';
+
     function read(store, key, fallback) {
       try {
         var raw = window[store].getItem(key);
@@ -252,6 +267,16 @@
     function seedDemoUser() {
       if (getUsers().length) return;
       setUsers([{ whatsapp: DEMO_USER.whatsapp, password: DEMO_USER.password }]);
+    }
+
+    function getApproved() {
+      var list = read('localStorage', APPROVED_KEY, []);
+      return Array.isArray(list) ? list : [];
+    }
+
+    function seedApproved() {
+      if (read('localStorage', APPROVED_KEY, null) !== null) return;
+      write('localStorage', APPROVED_KEY, [DEMO_APPROVED]);
     }
 
     function findUser(whatsapp) {
@@ -305,6 +330,7 @@
     }
 
     seedDemoUser();
+    seedApproved();
 
     return {
       login: function (whatsapp, password) {
@@ -337,19 +363,31 @@
         });
       },
 
-      requestResetCode: function (whatsapp) {
+      requestResetCode: function (whatsapp, purpose) {
         return later(function () {
           if (!WHATSAPP_PATTERN.test(whatsapp)) return fail('INVALID_PHONE');
 
           var now = Date.now();
-          var registered = !!findUser(whatsapp);
+          var flow = purpose === 'activate' ? 'activate' : 'reset';
+          // Same answer whether or not the number is eligible, so the page never reveals which numbers exist.
+          var eligible = flow === 'activate'
+            ? (getApproved().indexOf(whatsapp) !== -1 && !findUser(whatsapp))
+            : !!findUser(whatsapp);
           var state = {
             whatsapp: whatsapp,
-            code: registered ? generateResetCode() : null,
+            purpose: flow,
+            code: eligible ? generateResetCode() : null,
             expiresAt: now + CODE_TTL_MS,
             attempts: 0
           };
           write('sessionStorage', MOCK_REQUEST_KEY, state);
+
+          // Mock only (never runs against the real server): shows the code in the Console for testing.
+          if (window.console && console.info) {
+            console.info(eligible
+              ? '[GM mock] ' + flow + ' code for ' + whatsapp + ': ' + state.code
+              : '[GM mock] no code sent: ' + whatsapp + ' is not eligible for ' + flow);
+          }
 
           return ok({
             expiresAt: state.expiresAt,
@@ -358,11 +396,14 @@
         });
       },
 
-      verifyResetCode: function (whatsapp, code) {
+      verifyResetCode: function (whatsapp, code, purpose) {
         return later(function () {
           var state = read('sessionStorage', MOCK_REQUEST_KEY, null);
+          var flow = purpose === 'activate' ? 'activate' : 'reset';
 
-          if (!state || state.whatsapp !== whatsapp) return fail('REQUEST_NOT_FOUND');
+          if (!state || state.whatsapp !== whatsapp || (state.purpose || 'reset') !== flow) {
+            return fail('REQUEST_NOT_FOUND');
+          }
           if (Date.now() > state.expiresAt) return fail('CODE_EXPIRED');
           if (state.attempts >= MAX_CODE_ATTEMPTS) return fail('TOO_MANY_ATTEMPTS');
 
@@ -374,6 +415,7 @@
 
           var tokenData = {
             whatsapp: whatsapp,
+            purpose: flow,
             token: generateResetTokenValue(),
             expiresAt: Date.now() + RESET_TOKEN_TTL_MS
           };
@@ -384,18 +426,30 @@
         });
       },
 
-      resetPassword: function (whatsapp, resetToken, password, passwordConfirmation) {
+      resetPassword: function (whatsapp, resetToken, password, passwordConfirmation, purpose) {
         return later(function () {
           var stored = read('sessionStorage', MOCK_TOKEN_KEY, null);
+          var flow = purpose === 'activate' ? 'activate' : 'reset';
 
           if (!stored || stored.token !== resetToken || stored.whatsapp !== whatsapp ||
-              Date.now() > stored.expiresAt) {
+              (stored.purpose || 'reset') !== flow || Date.now() > stored.expiresAt) {
             return fail('INVALID_TOKEN');
           }
           if (password !== passwordConfirmation) return fail('PASSWORD_MISMATCH');
           if (!isValidPassword(password)) return fail('WEAK_PASSWORD');
 
           var users = getUsers();
+
+          if (flow === 'activate') {
+            var approved = getApproved();
+            if (approved.indexOf(whatsapp) === -1 || findUser(whatsapp)) return fail('INVALID_TOKEN');
+            users.push({ whatsapp: whatsapp, password: password });
+            setUsers(users);
+            write('localStorage', APPROVED_KEY, approved.filter(function (n) { return n !== whatsapp; }));
+            remove('sessionStorage', MOCK_TOKEN_KEY);
+            return ok();
+          }
+
           var found = false;
           for (var i = 0; i < users.length; i++) {
             if (users[i].whatsapp === whatsapp) {

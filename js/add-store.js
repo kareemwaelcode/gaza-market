@@ -437,6 +437,106 @@
     } catch (e) {}
   }
 
+  // ---------- Status screen: a user who already has a place sees its status instead of the form ----------
+  const STATUS_CHECK_TIMEOUT_MS = 4000;
+  const ACTIVATE_URL = "dashboard-users/auth/forgot-password.html?mode=activate";
+  const LOGIN_URL = "dashboard-users/auth/login.html";
+  const STATUS_VIEWS = {
+    pending: { title: "statusPendingTitle", desc: "statusPendingDesc" },
+    approved: { title: "statusApprovedTitle", desc: "statusApprovedDescNew", descActive: "statusApprovedDescActive" },
+    rejected: { title: "statusRejectedTitle", desc: "statusRejectedDesc" },
+  };
+
+  function setI18nText(el, key) {
+    if (!el) return;
+    // data-i18n keeps the text in the right language if the user switches language.
+    el.setAttribute("data-i18n", key);
+    el.textContent = typeof i18n !== "undefined" ? i18n.t(key) : key;
+  }
+
+  function isLoggedInLocally() {
+    try {
+      const user = JSON.parse(localStorage.getItem(window.GM_STORAGE_KEYS.user) || "null");
+      return !!(user && user.name);
+    } catch (err) {
+      return false;
+    }
+  }
+
+  function showStatus(mine) {
+    const view = STATUS_VIEWS[mine && mine.status];
+    const section = $("#gmStatus");
+    const box = $("#gmStatusBox");
+    if (!view || !section || !box) return;
+
+    $$(".gm-step").forEach((step) => step.classList.toggle("gm-step--hidden", step !== section));
+    const indicator = $("#gmStepsIndicator");
+    if (indicator) indicator.style.display = "none";
+    $$(".gm-back-btn").forEach((btn) => (btn.style.display = "none"));
+
+    const activated = mine.status === "approved" && mine.activated === true;
+    box.setAttribute("data-state", mine.status);
+    setI18nText($("#gmStatusTitle"), view.title);
+    setI18nText($("#gmStatusDesc"), activated ? view.descActive : view.desc);
+
+    // Server text is always inserted with textContent, never as HTML.
+    const nameEl = $("#gmStatusName");
+    if (nameEl) {
+      nameEl.textContent = mine.name || "";
+      nameEl.hidden = !mine.name;
+    }
+
+    const reasonBox = $("#gmStatusReason");
+    const reasonText = $("#gmStatusReasonText");
+    const showReason = mine.status === "rejected" && !!mine.rejectionReason;
+    if (reasonBox) reasonBox.hidden = !showReason;
+    if (reasonText) reasonText.textContent = showReason ? mine.rejectionReason : "";
+
+    const primary = $("#gmStatusPrimary");
+    if (primary) {
+      if (mine.status === "approved") {
+        primary.hidden = false;
+        primary.setAttribute("href", activated ? LOGIN_URL : ACTIVATE_URL);
+        setI18nText(primary.querySelector("span"), activated ? "btnOpenDashboard" : "btnActivateAccount");
+      } else {
+        primary.hidden = true;
+      }
+    }
+
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  // Asks the API for the user's place. Guests skip the call and simply see the form.
+  function loadStatus(onDone) {
+    const api = window.GMAddStoreApi;
+    if (!api || typeof api.getMine !== "function" || !isLoggedInLocally()) {
+      onDone();
+      return;
+    }
+
+    let settled = false;
+    const finish = (mine) => {
+      if (settled) return;
+      settled = true;
+      window.clearTimeout(timer);
+      if (mine) showStatus(mine);
+      onDone();
+    };
+    // If the answer is slow, show the form rather than a blank page.
+    const timer = window.setTimeout(() => finish(null), STATUS_CHECK_TIMEOUT_MS);
+
+    api.getMine().then(
+      (res) => finish(res && res.ok && res.data ? res.data.mine : null),
+      () => finish(null)
+    );
+  }
+
+  function initStatusCheck() {
+    // The form stays hidden until the answer arrives, so it never flashes before the status screen.
+    document.body.classList.add("gm-checking");
+    loadStatus(() => document.body.classList.remove("gm-checking"));
+  }
+
   function setSubmitError(key) {
     const el = $("#gmErrSubmit");
     if (!el) {
@@ -506,6 +606,11 @@
         setSubmitError(which === "whatsapp" ? "errSubmitWaTaken" : "errSubmitPhoneTaken");
         break;
       }
+      case "ALREADY_HAS_PLACE":
+        // One place per user: show the existing request's status instead of the form.
+        setSubmitError("errSubmitHasPlace");
+        loadStatus(() => {});
+        break;
       case "RATE_LIMITED":
         setSubmitError("errSubmitRateLimited");
         break;
@@ -609,6 +714,7 @@
     updateStepIndicator(1);
     $$(".gm-back-btn").forEach((btn) => (btn.style.display = "none"));
     initNavbar();
+    initStatusCheck();
   }
 
   document.readyState === "loading"

@@ -7,6 +7,40 @@
 
   var DASHBOARD_PAGE_URL = '../dashboard.html';
   var RESET_PASSWORD_PAGE_URL = 'reset-password.html';
+  var FORGOT_PASSWORD_PAGE_URL = 'forgot-password.html';
+
+  // "?mode=activate" turns the forgot/reset pages into the first-time account activation flow.
+  // Any other value keeps the normal password-reset flow.
+  var MODE = (function () {
+    try {
+      return new URLSearchParams(window.location.search).get('mode') === 'activate' ? 'activate' : 'reset';
+    } catch (err) {
+      return 'reset';
+    }
+  })();
+  var IS_ACTIVATE = MODE === 'activate';
+
+  var ACTIVATE_TEXTS = {
+    pageTitle: 'تفعيل الحساب — سوق غزة',
+    forgotTitle: 'تفعيل حسابك',
+    forgotPhoneText: 'أدخل رقم الواتساب الذي سجّلت به نشاطك، وسنرسل لك كود تفعيل لإنشاء كلمة المرور لأول مرة.',
+    forgotCodeLead: 'إذا كان الرقم مرتبطاً بنشاط تم قبوله، أرسلنا كوداً من 6 أرقام إلى واتساب',
+    resetTitle: 'إنشاء كلمة المرور',
+    resetFormLead: 'اختر كلمة مرور لحساب',
+    successTitle: 'تم تفعيل حسابك',
+    successText: 'يمكنك الآن تسجيل الدخول إلى لوحة التحكم بكلمة المرور التي أنشأتها.',
+    expiredTitle: 'انتهت جلسة التفعيل',
+    expiredText: 'الجلسة غير صالحة أو انتهت مدتها. اطلب كود تفعيل جديد للمتابعة.'
+  };
+
+  var ACTIVATE_ERRORS = {
+    REQUEST_NOT_FOUND: 'انتهت جلسة التفعيل. أدخل رقم الواتساب لإرسال كود جديد.',
+    INVALID_TOKEN: 'انتهت جلسة التفعيل. اطلب كوداً جديداً.'
+  };
+
+  function withMode(url) {
+    return IS_ACTIVATE ? url + '?mode=activate' : url;
+  }
 
   var WHATSAPP_PATTERN = /^(970|972)\d{9}$/;
 
@@ -59,11 +93,15 @@
     } catch (err) {}
   }
 
+  // A request/token created in one flow (reset or activate) is never picked up by the other.
   function getResetRequest() {
-    return readJson('sessionStorage', RESET_REQUEST_STORAGE_KEY, null);
+    var data = readJson('sessionStorage', RESET_REQUEST_STORAGE_KEY, null);
+    if (data && (data.purpose || 'reset') !== MODE) return null;
+    return data;
   }
 
   function setResetRequest(request) {
+    request.purpose = MODE;
     writeJson('sessionStorage', RESET_REQUEST_STORAGE_KEY, request);
   }
 
@@ -77,10 +115,12 @@
       removeKey('sessionStorage', RESET_TOKEN_STORAGE_KEY);
       return null;
     }
+    if ((data.purpose || 'reset') !== MODE) return null;
     return data;
   }
 
   function setResetToken(tokenData) {
+    tokenData.purpose = MODE;
     writeJson('sessionStorage', RESET_TOKEN_STORAGE_KEY, tokenData);
   }
 
@@ -96,6 +136,7 @@
   }
 
   function errorMessage(res) {
+    if (IS_ACTIVATE && ACTIVATE_ERRORS[res.code]) return ACTIVATE_ERRORS[res.code];
     if (res.code === 'RATE_LIMITED' && res.data && res.data.retryAfter > 0) {
       return 'محاولات كثيرة. حاول مرة ثانية بعد ' + formatMinutes(Math.ceil(res.data.retryAfter / 60)) + '.';
     }
@@ -205,6 +246,32 @@
         if (toast.parentNode) toast.parentNode.removeChild(toast);
       }, 250);
     }, options.duration || 2600);
+  }
+
+  function setText(id, text) {
+    var el = document.getElementById(id);
+    if (el) el.textContent = text;
+  }
+
+  // Swaps the visible wording of the forgot/reset pages when they run in activation mode.
+  function applyActivateTexts() {
+    if (!IS_ACTIVATE) return;
+    document.title = ACTIVATE_TEXTS.pageTitle;
+    setText('forgot-title', ACTIVATE_TEXTS.forgotTitle);
+    setText('forgot-phone-text', ACTIVATE_TEXTS.forgotPhoneText);
+    setText('forgot-code-lead', ACTIVATE_TEXTS.forgotCodeLead);
+    setText('reset-title', ACTIVATE_TEXTS.resetTitle);
+    setText('reset-form-lead', ACTIVATE_TEXTS.resetFormLead);
+    setText('reset-success-title', ACTIVATE_TEXTS.successTitle);
+    setText('reset-success-text', ACTIVATE_TEXTS.successText);
+    setText('reset-expired-title', ACTIVATE_TEXTS.expiredTitle);
+    setText('reset-expired-text', ACTIVATE_TEXTS.expiredText);
+
+    var help = document.getElementById('forgot-activate-help');
+    if (help) help.hidden = false;
+
+    var expiredLink = document.getElementById('reset-expired-link');
+    if (expiredLink) expiredLink.setAttribute('href', withMode(FORGOT_PASSWORD_PAGE_URL));
   }
 
   function maskWhatsapp(whatsapp) {
@@ -463,7 +530,7 @@
       phoneSubmitBtn.disabled = true;
       phoneSubmitBtn.textContent = 'جارِ إرسال الكود…';
 
-      window.GMAuthApi.requestResetCode(whatsapp).then(function (res) {
+      window.GMAuthApi.requestResetCode(whatsapp, MODE).then(function (res) {
         resetSubmitState();
 
         if (!res.ok) {
@@ -570,7 +637,7 @@
       codeSubmitBtn.disabled = true;
       codeSubmitBtn.textContent = 'جارِ التحقق…';
 
-      window.GMAuthApi.verifyResetCode(request.whatsapp, entered).then(function (res) {
+      window.GMAuthApi.verifyResetCode(request.whatsapp, entered, MODE).then(function (res) {
         if (res.ok) {
           setResetToken({
             whatsapp: request.whatsapp,
@@ -578,7 +645,7 @@
             expiresAt: res.data.expiresAt
           });
           clearResetRequest();
-          window.location.replace(RESET_PASSWORD_PAGE_URL);
+          window.location.replace(withMode(RESET_PASSWORD_PAGE_URL));
           return;
         }
 
@@ -594,7 +661,7 @@
       resending = true;
       resendBtn.disabled = true;
 
-      window.GMAuthApi.requestResetCode(request.whatsapp).then(function (res) {
+      window.GMAuthApi.requestResetCode(request.whatsapp, MODE).then(function (res) {
         resending = false;
 
         if (!res.ok) {
@@ -758,7 +825,7 @@
       submitBtn.disabled = true;
       submitBtn.textContent = 'جارِ الحفظ…';
 
-      window.GMAuthApi.resetPassword(current.whatsapp, current.token, password, confirmation).then(function (res) {
+      window.GMAuthApi.resetPassword(current.whatsapp, current.token, password, confirmation, MODE).then(function (res) {
         if (!res.ok) {
           resetSubmitState();
           handleResetError(res);
@@ -788,6 +855,7 @@
       console.error('auth-api.js must be loaded before dashboard-auth.js');
       return;
     }
+    applyActivateTexts();
     wireThemeToggle();
     wirePasswordToggle();
     wireLoginForm();
