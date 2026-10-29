@@ -7,6 +7,10 @@ window.GMStoreTypeConfig = (function () {
   var DEFAULT_PLAN = 'free';
   var PLAN_IDS = ['free', 'paid'];
 
+  // The place data the server reported (type, sub-category, plan). It lives in memory only and is
+  // set once per page load by hydrateFromPlace(). Once set, it wins over the old localStorage values.
+  var placeState = null;
+
   var ALLOWED_ICON_NAMES = [
     'activity', 'air-vent', 'alert-circle', 'alert-triangle', 'app-window', 'armchair',
     'arrow-left', 'arrow-left-right', 'arrow-right', 'baby', 'badge-check', 'ban',
@@ -1812,6 +1816,7 @@ window.GMStoreTypeConfig = (function () {
   }
 
   function getStoreSubcategoryId() {
+    if (placeState) return placeState.subCategory;
     try {
       var storedId = window.localStorage.getItem(SUBCATEGORY_ID_KEY);
       if (storedId) return storedId;
@@ -1849,6 +1854,7 @@ window.GMStoreTypeConfig = (function () {
   }
 
   function getCurrentType() {
+    if (placeState) return placeState.type;
     try {
       var stored = window.localStorage.getItem(STORAGE_KEY);
       if (stored && hasOwn(TYPES, stored)) return stored;
@@ -1862,6 +1868,29 @@ window.GMStoreTypeConfig = (function () {
     } catch (e) { }
   }
 
+  // Takes the normalized "my place" object ({ type, subCategory, plan }) from GMAddStoreApi.getMine().
+  // Returns true when the data was accepted. It works once per page load: later calls are ignored,
+  // so the values cannot be swapped after the page has started. An unknown type is rejected.
+  // Display only. The server must enforce the plan limits, because anything in the browser can be edited.
+  function hydrateFromPlace(mine) {
+    if (placeState) return false;
+    if (!mine || typeof mine !== 'object' || typeof mine.type !== 'string' || !hasOwn(TYPES, mine.type)) return false;
+    var sub = null;
+    if (mine.type === 'store' && typeof mine.subCategory === 'string' && hasOwn(STORE_SUBCATEGORY_VARIANT, mine.subCategory)) {
+      sub = mine.subCategory;
+    }
+    placeState = {
+      type: mine.type,
+      subCategory: sub,
+      plan: mine.plan === 'paid' ? 'paid' : 'free'
+    };
+    return true;
+  }
+
+  function hasPlaceState() {
+    return placeState !== null;
+  }
+
   function getConfig(typeId) {
     var id = typeId || getCurrentType();
     if (id === 'store') return getStoreConfig();
@@ -1869,6 +1898,7 @@ window.GMStoreTypeConfig = (function () {
   }
 
   function getCurrentPlan() {
+    if (placeState) return placeState.plan;
     try {
       var stored = window.localStorage.getItem(PLAN_STORAGE_KEY);
       if (stored && PLAN_IDS.indexOf(stored) !== -1) return stored;
@@ -1944,7 +1974,7 @@ window.GMStoreTypeConfig = (function () {
     return match && PAGE_LOOKUP[match[1]] === true ? value : '#';
   }
 
-  return {
+  return Object.freeze({
     STORAGE_KEY: STORAGE_KEY,
     PLAN_STORAGE_KEY: PLAN_STORAGE_KEY,
     SUBCATEGORY_ID_KEY: SUBCATEGORY_ID_KEY,
@@ -1960,10 +1990,12 @@ window.GMStoreTypeConfig = (function () {
     getLimitStatus: getLimitStatus,
     isFeatureLocked: isFeatureLocked,
     getConfig: getConfig,
+    hydrateFromPlace: hydrateFromPlace,
+    hasPlaceState: hasPlaceState,
     isAllowedIcon: isAllowedIcon,
     safeIcon: safeIcon,
     isAllowedPage: isAllowedPage,
     isAllowedAction: isAllowedAction,
     safeHref: safeHref
-  };
+  });
 })();
