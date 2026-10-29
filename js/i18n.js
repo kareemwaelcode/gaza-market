@@ -146,8 +146,15 @@ const i18n = (() => {
     return (storeTags[currentLang] && storeTags[currentLang][val]) || val;
   }
 
+  // Legacy display names first, then region codes (translations.js), then the shared list
+  // (regions-api.js) for regions that only exist in the API.
   function regionLabel(val) {
-    return (regionOptions[currentLang] && regionOptions[currentLang][val]) || val;
+    const legacy = regionOptions[currentLang] && regionOptions[currentLang][val];
+    if (legacy) return legacy;
+    const byCode = t(val);
+    if (byCode !== val) return byCode;
+    if (window.GMRegions && window.GMRegions.isValid(val)) return window.GMRegions.label(val, currentLang);
+    return val;
   }
 
   function productCategoryLabel(val) {

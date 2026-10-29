@@ -1,5 +1,5 @@
 const CACHE_PREFIX = 'gm-';
-const CACHE_VERSION = 'gm-v21';
+const CACHE_VERSION = 'gm-v22';
 const SCOPE = self.registration.scope;
 
 const PRECACHE = [
@@ -80,7 +80,6 @@ const DASHBOARD_PRECACHE = [
   'dashboard-users/partials/menu-category-panel.html',
   'dashboard-users/partials/menu-item-edit-panel.html',
   'dashboard-users/partials/mobile-nav.html',
-  'dashboard-users/partials/orders.html',
   'dashboard-users/partials/prices-hours-edit-panel.html',
   'dashboard-users/partials/product-category-panel.html',
   'dashboard-users/partials/product-item-edit-panel.html',

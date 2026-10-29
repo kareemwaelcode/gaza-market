@@ -229,6 +229,51 @@
     $("#gmBack2")?.addEventListener("click", () => goToStep(1));
   }
 
+  // Region groups in the order this page shows them. Titles reuse the existing i18n keys.
+  const REGION_GROUPS = [
+    { code: "north",   i18n: "regionNorth",   fallback: "Northern Gaza" },
+    { code: "central", i18n: "regionCentral", fallback: "Central Gaza" },
+    { code: "south",   i18n: "regionSouth",   fallback: "Southern Gaza" },
+  ];
+
+  // Builds the region options from the shared list (js/regions-api.js). Each option's data-val
+  // is the stable region code (e.g. DeirBalah), which is what the page sends to the server.
+  function renderRegionOptions(panel) {
+    const api = window.GMRegions;
+    if (!api) return;
+    const regions = api.list();
+    const frag = document.createDocumentFragment();
+
+    REGION_GROUPS.forEach((g) => {
+      const items = regions.filter((r) => r.group === g.code);
+      if (!items.length) return;
+
+      const group = document.createElement("div");
+      group.className = "gm-region-group";
+
+      const title = document.createElement("div");
+      title.className = "gm-region-group-title";
+      title.setAttribute("data-i18n", g.i18n);
+      const translated = typeof i18n !== "undefined" ? i18n.t(g.i18n) : g.i18n;
+      title.textContent = translated !== g.i18n ? translated : g.fallback;
+      group.appendChild(title);
+
+      items.forEach((r) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "gm-region-opt";
+        btn.setAttribute("role", "option");
+        btn.dataset.val = r.code;
+        btn.textContent = typeof i18n !== "undefined" ? i18n.regionLabel(r.code) : r.name_en;
+        group.appendChild(btn);
+      });
+      frag.appendChild(group);
+    });
+
+    panel.textContent = "";
+    panel.appendChild(frag);
+  }
+
   function initRegionPicker() {
     const trigger  = $("#gmRegionTrigger");
     const panel    = $("#gmRegionPanel");
@@ -267,18 +312,36 @@
 
     valueEl.classList.add("placeholder");
 
-    $$(".gm-region-opt").forEach((opt) => {
-      opt.addEventListener("click", () => {
-        const val = opt.dataset.val;
-        hiddenIn.value      = val;
-        valueEl.textContent = typeof i18n !== "undefined" ? i18n.regionLabel(val) : val;
-        valueEl.classList.remove("placeholder");
-        $$(".gm-region-opt").forEach((o) => o.classList.remove("selected"));
-        opt.classList.add("selected");
-        $("#gmRegionTrigger")?.classList.remove("invalid");
-        showError("e2Region", false);
-        closePanel();
-      });
+    const selectRegion = (opt) => {
+      const val = opt.dataset.val;
+      hiddenIn.value      = val;
+      valueEl.textContent = typeof i18n !== "undefined" ? i18n.regionLabel(val) : val;
+      valueEl.classList.remove("placeholder");
+      $$(".gm-region-opt").forEach((o) => o.classList.toggle("selected", o === opt));
+      $("#gmRegionTrigger")?.classList.remove("invalid");
+      showError("e2Region", false);
+      closePanel();
+    };
+
+    panel.addEventListener("click", (e) => {
+      const opt = e.target.closest(".gm-region-opt");
+      if (opt && panel.contains(opt)) selectRegion(opt);
+    });
+
+    const syncSelection = () => {
+      const chosen = hiddenIn.value;
+      if (!chosen) return;
+      const opt = $$(".gm-region-opt").find((o) => o.dataset.val === chosen);
+      if (opt) opt.classList.add("selected");
+      valueEl.textContent = typeof i18n !== "undefined" ? i18n.regionLabel(chosen) : chosen;
+    };
+
+    renderRegionOptions(panel);
+
+    // A fresher list from the API (regions-api.js) replaces the options; the selection is kept.
+    document.addEventListener("gmRegionsUpdated", () => {
+      renderRegionOptions(panel);
+      syncSelection();
     });
   }
 
