@@ -1,5 +1,5 @@
 const CACHE_PREFIX = 'gm-';
-const CACHE_VERSION = 'gm-v19';
+const CACHE_VERSION = 'gm-v20';
 const SCOPE = self.registration.scope;
 
 const PRECACHE = [
@@ -32,6 +32,7 @@ const PRECACHE = [
   'js/prices-api.js',
   'js/profile.js',
   'js/add-store.js',
+  'js/add-store-api.js',
   'js/guide.js',
   'assets/fonts/cairo-arabic-400-normal.woff2',
   'assets/fonts/cairo-arabic-600-normal.woff2',

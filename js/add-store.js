@@ -23,7 +23,22 @@
     step: 1,
     type: null,
     storeSubCat: null,
-    imageDataUrl: null,
+    imageFile: null,
+    imagePreviewUrl: null,
+    submitting: false,
+  };
+
+  // Which wizard step each server-reported field lives in.
+  const FIELD_STEP = { type: 1, sub_category: 1, name: 2, region: 2, address: 2, image: 2, phone: 3, whatsapp: 3 };
+  const FIELD_INPUT = { name: "#f2Name", address: "#f2Address", phone: "#f3Phone", whatsapp: "#f3Wa" };
+  const FIELD_ERR = {
+    type: "gmErrType",
+    sub_category: "gmErrCat",
+    name: "e2Name",
+    region: "e2Region",
+    address: "e2Address",
+    phone: "e3Phone",
+    whatsapp: "e3Wa",
   };
 
   const $ = (sel, ctx = document) => ctx.querySelector(sel);
@@ -160,22 +175,22 @@
       imgInput.addEventListener("change", function () {
         const file = this.files[0];
         if (!file) return;
-        if (!/^image\/(png|jpe?g|webp|gif)$/i.test(file.type)) {
+        if (!/^image\/(png|jpe?g|webp)$/i.test(file.type)) {
           alert(getLang() === "ar" ? "نوع الملف غير مدعوم، اختر صورة PNG أو JPG أو WEBP" : "Unsupported file type. Choose a PNG, JPG or WEBP image.");
           this.value = "";
           return;
         }
         if (file.size > 5 * 1024 * 1024) {
           alert(getLang() === "ar" ? "يجب أن تكون الصورة أقل من 5MB" : "Image must be under 5MB.");
+          this.value = "";
           return;
         }
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          state.imageDataUrl = e.target.result;
-          imgPreview.src = state.imageDataUrl;
-          imgUpload.classList.add("has-img");
-        };
-        reader.readAsDataURL(file);
+        // The file itself is kept for the upload; the object URL is only used for the preview.
+        if (state.imagePreviewUrl) URL.revokeObjectURL(state.imagePreviewUrl);
+        state.imageFile = file;
+        state.imagePreviewUrl = URL.createObjectURL(file);
+        imgPreview.src = state.imagePreviewUrl;
+        imgUpload.classList.add("has-img");
       });
     }
 
@@ -330,8 +345,8 @@
     const rvImg = $("#rvImg");
     const rvPh  = $("#rvImgPh");
     if (rvImg && rvPh) {
-      const hasImg = Boolean(state.imageDataUrl);
-      rvImg.src           = hasImg ? state.imageDataUrl : "";
+      const hasImg = Boolean(state.imagePreviewUrl);
+      rvImg.src           = hasImg ? state.imagePreviewUrl : "";
       rvImg.style.display = hasImg ? "block" : "none";
       rvPh.style.display  = hasImg ? "none"  : "flex";
     }
@@ -359,10 +374,126 @@
     } catch (e) {}
   }
 
+  function setSubmitError(key) {
+    const el = $("#gmErrSubmit");
+    if (!el) {
+      // Outdated add-store.html (no message box): never fail silently.
+      if (key) alert(typeof i18n !== "undefined" ? i18n.t(key) : key);
+      return;
+    }
+    if (!key) {
+      el.classList.remove("show");
+      el.removeAttribute("data-i18n");
+      el.textContent = "";
+      return;
+    }
+    // data-i18n keeps the message in the right language if the user switches language.
+    el.setAttribute("data-i18n", key);
+    el.textContent = typeof i18n !== "undefined" ? i18n.t(key) : key;
+    el.classList.add("show");
+  }
+
+  function setSubmitting(isSubmitting) {
+    state.submitting = isSubmitting;
+    const btn = $("#gmSubmit");
+    const label = btn?.querySelector("span");
+    const key = isSubmitting ? "btnSending" : "btnSubmit";
+
+    if (btn) {
+      btn.disabled = isSubmitting;
+      btn.setAttribute("aria-busy", isSubmitting ? "true" : "false");
+      btn.style.opacity = isSubmitting ? "0.65" : "";
+      btn.style.cursor = isSubmitting ? "wait" : "";
+    }
+    if (label) {
+      label.setAttribute("data-i18n", key);
+      label.textContent = typeof i18n !== "undefined" ? i18n.t(key) : label.textContent;
+    }
+    const back = $("#gmBack4");
+    if (back) back.disabled = isSubmitting;
+  }
+
+  function showFieldErrors(fields) {
+    let firstStep = 4;
+    fields.forEach((f) => {
+      const input = $(FIELD_INPUT[f] || "#__none__");
+      if (input) setInvalid(input, true);
+      if (f === "region") $("#gmRegionTrigger")?.classList.add("invalid");
+      if (FIELD_ERR[f]) showError(FIELD_ERR[f], true);
+      if (FIELD_STEP[f] && FIELD_STEP[f] < firstStep) firstStep = FIELD_STEP[f];
+    });
+    if (firstStep < 4) goToStep(firstStep);
+  }
+
+  function handleSubmitFailure(res) {
+    switch (res.code) {
+      case "UNAUTHENTICATED":
+        setSubmitError("errSubmitLogin");
+        // Opens the existing login modal when it is available (logged-out navbar button).
+        document.getElementById("loginBtn")?.click();
+        break;
+      case "VALIDATION":
+        if (res.fields.indexOf("image") !== -1) setSubmitError("errSubmitImage");
+        else if (res.fields.length) showFieldErrors(res.fields);
+        else setSubmitError("errSubmitValidation");
+        break;
+      case "NUMBER_TAKEN": {
+        const which = res.field === "whatsapp" ? "whatsapp" : "phone";
+        setInvalid($(FIELD_INPUT[which]), true);
+        setSubmitError(which === "whatsapp" ? "errSubmitWaTaken" : "errSubmitPhoneTaken");
+        break;
+      }
+      case "RATE_LIMITED":
+        setSubmitError("errSubmitRateLimited");
+        break;
+      case "NETWORK":
+        setSubmitError("errSubmitNetwork");
+        break;
+      default:
+        setSubmitError("errSubmitServer");
+    }
+  }
+
   function initStep4() {
     $("#gmSubmit")?.addEventListener("click", () => {
-      persistTypeForDashboard();
-      goToStep("success");
+      if (state.submitting) return;
+      const api = window.GMAddStoreApi;
+      if (!api) {
+        setSubmitError("errSubmitServer");
+        return;
+      }
+
+      setSubmitError(null);
+      setSubmitting(true);
+
+      api
+        .submit({
+          type: state.type,
+          subCategory: state.storeSubCat,
+          name: $("#f2Name")?.value.trim() || "",
+          region: $("#f2Region")?.value.trim() || "",
+          address: $("#f2Address")?.value.trim() || "",
+          phone: $("#f3Phone")?.value.trim() || "",
+          whatsapp: $("#f3Wa")?.value.trim() || "",
+          imageFile: state.imageFile,
+        })
+        .then(
+          (res) => {
+            setSubmitting(false);
+            if (res && res.ok) {
+              // Mock mode only: the old dashboard still reads the type from localStorage.
+              // In live mode the type comes from the API (separate stage).
+              if (api.mode === "mock") persistTypeForDashboard();
+              goToStep("success");
+            } else {
+              handleSubmitFailure(res || { code: "SERVER", fields: [] });
+            }
+          },
+          () => {
+            setSubmitting(false);
+            handleSubmitFailure({ code: "NETWORK", fields: [] });
+          }
+        );
     });
 
     $("#gmBack4")?.addEventListener("click", () => goToStep(3));
