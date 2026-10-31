@@ -1096,11 +1096,6 @@ const translations = {
     "priceSuccess.addAnother": "أضف شي تاني",
     "priceSuccess.addMore":    "أضف شيئاً آخر",
 
-    "listingSuccess.title":      "تم نشر الإعلان بنجاح",
-    "listingSuccess.desc":       "شكراً لك، إعلانك الحين مباشر بالسوق ورح يقدر يشوفه الناس القريبين منك.",
-    "listingSuccess.backHome":   "العودة للرئيسية",
-    "listingSuccess.addAnother": "انشر إعلان تاني",
-
     "npwSuccess.title":      "تم إرسال اقتراح المنتج بنجاح",
     "npwSuccess.desc":       "شكراً لمساهمتك. رح تتم مراجعة المنتج الجديد وإضافته للسوق قريباً.",
     "npwSuccess.backHome":   "العودة للرئيسية",

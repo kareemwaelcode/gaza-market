@@ -24,10 +24,6 @@ const TRANSLATIONS = {
     "addPrice.submit":             "إرسال السعر",
     "addPrice.cancel":             "إلغاء",
     "addPrice.note":               "شكراً لمساهمتك في مساعدة المجتمع",
-    "listingSuccess.title":        "تم نشر الإعلان بنجاح",
-    "listingSuccess.desc":         "شكراً لك، إعلانك أصبح الآن متاحاً في السوق وسيتمكن الأشخاص القريبون من رؤيته.",
-    "listingSuccess.backHome":     "العودة للرئيسية",
-    "listingSuccess.addAnother":   "نشر إعلان آخر",
     "addListing.phone":            "رقم هاتف المعلن",
     "addListing.phonePlaceholder": "05XX XXX XXX",
     "addListing.whatsapp":         "رقم الواتساب",
@@ -76,10 +72,6 @@ const TRANSLATIONS = {
     "addPrice.submit":             "Submit Price",
     "addPrice.cancel":             "Cancel",
     "addPrice.note":               "Thank you for helping the community",
-    "listingSuccess.title":        "Ad Posted Successfully",
-    "listingSuccess.desc":         "Thank you—your ad is now live in the marketplace and people nearby will be able to see it.",
-    "listingSuccess.backHome":     "Back to Home",
-    "listingSuccess.addAnother":   "Post another ad",
     "addListing.phone":            "Advertiser Phone Number",
     "addListing.phonePlaceholder": "05XX XXX XXX",
     "addListing.whatsapp":         "WhatsApp Number",
@@ -551,15 +543,6 @@ window.gmRequireAuthThenRun = gmRequireAuthThenRun;
 
 document.addEventListener("DOMContentLoaded", () => {
 
-  const applyListingSuccessTranslations = () => {
-    document.querySelectorAll("#listingSuccessModal [data-i18n]").forEach(el => {
-      const key = el.getAttribute("data-i18n");
-      if (key) el.textContent = translate(key);
-    });
-  };
-  applyListingSuccessTranslations();
-  document.addEventListener("languageChanged", applyListingSuccessTranslations);
-
   document.getElementById("additionModal")?.addEventListener("shown.bs.modal", () => {
     document.querySelectorAll(".addition-option, .addition-note").forEach((el, i) => {
       el.style.opacity    = "0";
@@ -1003,6 +986,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const MAX_IMAGE_BYTES = MAX_IMAGE_MB * 1024 * 1024;
   const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
   const MAX_LISTING_IMAGES = 3;
+  const LISTING_PAGE = "listing.html";
 
   function t(key, fallback) {
     try {
@@ -1688,6 +1672,10 @@ document.addEventListener("DOMContentLoaded", () => {
     const categoryErr = document.getElementById("listingCategoryErr");
     const descriptionErr = document.getElementById("listingDescriptionErr");
     const phoneErr = document.getElementById("listingPhoneErr");
+    const whatsappErr = document.getElementById("listingWhatsappErr");
+    const regionGrid = document.getElementById("listingRegionGrid");
+    const regionErr = document.getElementById("listingRegionErr");
+    const submitErr = document.getElementById("listingSubmitErr");
 
     const images = initMultiImageUpload({
       gridId: "listingImageGrid",
@@ -1716,6 +1704,35 @@ document.addEventListener("DOMContentLoaded", () => {
       selectedCategoryLabel = btn.textContent?.trim() || "";
       clearFieldError(categoryErr, categoryGrid);
     });
+
+    let selectedRegion = null;
+    let selectedRegionLabel = "";
+
+    regionGrid?.addEventListener("click", (e) => {
+      const btn = e.target.closest(".npw-region-btn");
+      if (!btn) return;
+
+      regionGrid.querySelectorAll(".npw-region-btn").forEach((b) => {
+        b.classList.remove("active");
+        b.setAttribute("aria-pressed", "false");
+      });
+
+      btn.classList.add("active");
+      btn.setAttribute("aria-pressed", "true");
+
+      selectedRegion = btn.dataset.value;
+      selectedRegionLabel = btn.textContent?.trim() || "";
+      clearFieldError(regionErr, regionGrid);
+    });
+
+    function clearRegionSelection() {
+      selectedRegion = null;
+      selectedRegionLabel = "";
+      regionGrid?.querySelectorAll(".npw-region-btn").forEach((b) => {
+        b.classList.remove("active");
+        b.setAttribute("aria-pressed", "false");
+      });
+    }
 
     function clearCategorySelection() {
       selectedCategory = null;
@@ -1759,15 +1776,37 @@ document.addEventListener("DOMContentLoaded", () => {
         return { valid: true };
       }
       if (step === 7) {
-        const phoneOk = !!phoneInput?.value?.trim();
-        phoneOk ? clearFieldError(phoneErr, phoneInput) : showFieldError(phoneErr, phoneInput);
-        if (!phoneOk) return { valid: false, focusEl: phoneInput };
+        const regionOk = !!selectedRegion && (!window.GMRegions || window.GMRegions.isValid(selectedRegion));
+        regionOk ? clearFieldError(regionErr, regionGrid) : showFieldError(regionErr, regionGrid);
+        if (!regionOk) return { valid: false, focusEl: regionGrid };
+        return { valid: true };
+      }
+      if (step === 8) {
+        const phoneValue = phoneInput?.value?.trim() || "";
+        const whatsappValue = whatsappInput?.value?.trim() || "";
+        const check = window.GMMarket ? window.GMMarket.validate({ phone: phoneValue, whatsapp: whatsappValue }).errors : {};
+
+        const phoneKey = !phoneValue || check.phone === "required" ? "addListing.errRequired" : (check.phone ? "addListing.errPhoneInvalid" : "");
+        if (phoneKey) {
+          phoneErr?.setAttribute("data-i18n", phoneKey);
+          if (phoneErr) phoneErr.textContent = t(phoneKey, phoneKey === "addListing.errRequired" ? "هذا الحقل مطلوب" : "أدخل رقم هاتف صحيح");
+          showFieldError(phoneErr, phoneInput);
+        } else {
+          clearFieldError(phoneErr, phoneInput);
+        }
+
+        const whatsappOk = !whatsappValue || !check.whatsapp;
+        whatsappOk ? clearFieldError(whatsappErr, whatsappInput) : showFieldError(whatsappErr, whatsappInput);
+
+        if (phoneKey) return { valid: false, focusEl: phoneInput };
+        if (!whatsappOk) return { valid: false, focusEl: whatsappInput };
         return { valid: true };
       }
       return { valid: true };
     }
 
     function populateReview(step, total) {
+      clearSubmitError();
       if (step !== total) return;
       const list = document.getElementById("addListingReviewList");
       if (!list) return;
@@ -1781,6 +1820,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const values = {
         title: nameInput?.value?.trim() || "—",
         type: typeText || "—",
+        region: selectedRegionLabel || "—",
         price: priceInput?.value ? `₪${priceInput.value}${negotiableInput?.checked ? " (قابل للتفاوض)" : ""}` : "غير محدد",
         images: images?.count ? `${images.count} صورة` : "بدون صور",
         phone: phoneInput?.value?.trim() || "—",
@@ -1793,26 +1833,90 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     }
 
-    function submitForm(btn) {
-      const payload = {
+    function showSubmitError(key, fallback) {
+      if (!submitErr) return;
+      submitErr.setAttribute("data-i18n", key);
+      submitErr.textContent = t(key, fallback);
+      submitErr.classList.add("show");
+    }
+
+    function clearSubmitError() {
+      submitErr?.classList.remove("show");
+    }
+
+    const FIELD_STEPS = {
+      title: 1, category: 2, condition: 3, description: 4, price: 5, negotiable: 5,
+      images: 6, region: 7, phone: 8, whatsapp: 8,
+    };
+
+    function collectPayload() {
+      return {
         title: nameInput?.value?.trim() || "",
         category: selectedCategory || "",
         condition: conditionGroup?.querySelector(".condition-btn.active")?.dataset.value || "new",
         description: descriptionInput?.value?.trim() || "",
         price: priceInput?.value || "",
         negotiable: !!negotiableInput?.checked,
+        region: selectedRegion || "",
         phone: phoneInput?.value?.trim() || "",
         whatsapp: whatsappInput?.value?.trim() || "",
-        imageCount: images?.count || 0,
         images: images?.getFiles() || [],
       };
+    }
 
+    function reopenFormIfHidden() {
+      if (modalEl.classList.contains("show")) return;
+      modalEl.setAttribute("data-gm-suppress-reset", "1");
+      showModal("addListingModal");
+    }
+
+    function handleSubmitError(err) {
+      reopenFormIfHidden();
+      const code = err && err.code;
+
+      if (code === "unauthorized") {
+        showSubmitError("addListing.errSessionExpired", "انتهت جلستك، سجّل دخولك من جديد");
+        return;
+      }
+      if (code === "rate_limited") {
+        showSubmitError("addListing.errRateLimited", "محاولات كثيرة، انتظر قليلاً وحاول مرة أخرى");
+        return;
+      }
+      if (code === "network" || code === "timeout") {
+        showSubmitError("addListing.errNetwork", "في مشكلة بالاتصال، تأكد من الإنترنت وحاول مرة أخرى");
+        return;
+      }
+      if (code === "validation" && err.errors && typeof err.errors === "object") {
+        const firstField = Object.keys(err.errors).find((field) => FIELD_STEPS[field]);
+        if (firstField) wizard?.goTo(FIELD_STEPS[firstField]);
+      }
+      showSubmitError("addListing.errSubmit", "تعذر إرسال الإعلان، حاول مرة أخرى");
+    }
+
+    async function sendListing(btn, payload) {
       setBtnLoading(btn, true);
-      setTimeout(() => {
+      clearSubmitError();
+
+      try {
+        if (!window.GMMarket) throw new Error("GMMarket missing");
+        const item = await window.GMMarket.create(payload);
+        hideModal("addListingModal");
+        window.location.href = LISTING_PAGE + "?id=" + encodeURIComponent(item.listing_id);
+      } catch (err) {
         setBtnLoading(btn, false);
-        console.log("New listing payload:", payload);
-        switchModal("addListingModal", "listingSuccessModal");
-      }, 700);
+        handleSubmitError(err);
+      }
+    }
+
+    function submitForm(btn) {
+      const payload = collectPayload();
+      const run = () => sendListing(btn, payload);
+
+      if (typeof gmRequireAuthThenRun === "function") {
+        gmRequireAuthThenRun(run, "addListingModal");
+      } else {
+        run();
+      }
     }
 
     function goBackToAdditionMenu() {
@@ -1828,8 +1932,13 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     function resetForm() {
+      if (modalEl.hasAttribute("data-gm-suppress-reset")) {
+        modalEl.removeAttribute("data-gm-suppress-reset");
+        return;
+      }
       [nameInput, priceInput, phoneInput, whatsappInput].forEach((el) => { if (el) el.value = ""; });
       clearCategorySelection();
+      clearRegionSelection();
       if (descriptionInput) descriptionInput.value = "";
       if (negotiableInput) negotiableInput.checked = false;
       conditionGroup?.querySelectorAll(".condition-btn").forEach((b, i) => {
@@ -1837,18 +1946,13 @@ document.addEventListener("DOMContentLoaded", () => {
         b.setAttribute("aria-pressed", i === 0 ? "true" : "false");
       });
       images?.reset();
-      [nameErr, categoryErr, descriptionErr, phoneErr].forEach((el) => el?.classList.remove("show"));
+      [nameErr, categoryErr, descriptionErr, phoneErr, whatsappErr, regionErr, submitErr].forEach((el) => el?.classList.remove("show"));
       modalEl.querySelectorAll(".gm-invalid-input").forEach((el) => el.classList.remove("gm-invalid-input"));
       modalEl.querySelectorAll(".gm-form-card.gm-invalid").forEach((el) => el.classList.remove("gm-invalid"));
       wizard?.reset();
     }
 
     modalEl.addEventListener("show.bs.modal", resetForm);
-
-    document.getElementById("listingAddAnotherBtn")?.addEventListener("click", (e) => {
-      e.preventDefault();
-      switchModal("listingSuccessModal", "addListingModal");
-    });
   }
 
   function initSuggestProductModal() {
