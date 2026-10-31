@@ -1,5 +1,5 @@
 const CACHE_PREFIX = 'gm-';
-const CACHE_VERSION = 'gm-v30';
+const CACHE_VERSION = 'gm-v31';
 const SCOPE = self.registration.scope;
 
 const PRECACHE = [
@@ -10,6 +10,8 @@ const PRECACHE = [
   'profile.html',
   'add-store.html',
   'guide.html',
+  'market.html',
+  'market-details.html',
   'css/vendor/bootstrap.min.css',
   'css/main.css',
   'css/prices.css',
@@ -31,6 +33,8 @@ const PRECACHE = [
   'js/exchange-rates.js',
   'js/prices-api.js',
   'js/market-api.js',
+  'js/market.js',
+  'js/market-details.js',
   'js/profile.js',
   'js/add-store.js',
   'js/add-store-api.js',

@@ -986,7 +986,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const MAX_IMAGE_BYTES = MAX_IMAGE_MB * 1024 * 1024;
   const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
   const MAX_LISTING_IMAGES = 3;
-  const LISTING_PAGE = "listing.html";
+  const LISTING_PAGE = "market-details.html";
 
   function t(key, fallback) {
     try {
