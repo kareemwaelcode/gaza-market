@@ -416,7 +416,7 @@ const translations = {
 
     "sidebar.menu":     "Menu",
     "sidebar.home":     "Home",
-    "sidebar.shops":    "Shops",
+    "sidebar.shops":    "Places",
     "sidebar.market":   "Market",
     "sidebar.delivery": "Delivery",
     "sidebar.profile":  "Profile",
@@ -1137,7 +1137,7 @@ const translations = {
 
     "sidebar.menu":     "القائمة",
     "sidebar.home":     "الرئيسية",
-    "sidebar.shops":    "المحلات",
+    "sidebar.shops":    "أماكن",
     "sidebar.market":   "السوق",
     "sidebar.delivery": "توصيل",
     "sidebar.profile":  "الملف الشخصي",
@@ -1277,7 +1277,7 @@ const translations = {
 
 
 
-    "shops.title":             "المحلات",
+    "shops.title":             "أماكن",
     "shops.subtitle":          "مطاعم وكافيهات وأكثر في أنحاء غزة",
     "shops.filterAll":         "الكل",
     "shops.filterRestaurants": "مطاعم",
@@ -1300,7 +1300,7 @@ const translations = {
     "shops.loadMoreFailed":    "ما قدرنا نحمّل محلات أكثر، جرّب مرة ثانية.",
     "shops.filterCategory":    "التصنيف",
     "shops.allTypes":          "كل الأنواع",
-    "shops.popularTypes":      "أنواع المحلات الشائعة",
+    "shops.popularTypes":      "أنواع الأمكان الشائعة",
     "shops.whatsapp":          "واتساب",
     "shops.menu":              "المنيو",
     "shops.products":          "المنتجات",
