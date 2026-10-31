@@ -1,5 +1,5 @@
 const CACHE_PREFIX = 'gm-';
-const CACHE_VERSION = 'gm-v29';
+const CACHE_VERSION = 'gm-v30';
 const SCOPE = self.registration.scope;
 
 const PRECACHE = [
@@ -30,6 +30,7 @@ const PRECACHE = [
   'js/workspace.js',
   'js/exchange-rates.js',
   'js/prices-api.js',
+  'js/market-api.js',
   'js/profile.js',
   'js/add-store.js',
   'js/add-store-api.js',
