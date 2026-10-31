@@ -1,208 +1,0 @@
-warning: LF will be replaced by CRLF in dashboard-users/menu.html.
-The file will have its original line endings in your working directory
-add-store.html:35: trailing whitespace.
-[32m+[m[32m  <script src="js/vendor/lucide.min.js" defer></script>[m[41m[m
-add-store.html:1712: trailing whitespace.
-[32m+[m[32m  <script src="js/vendor/bootstrap.bundle.min.js" defer></script>[m[41m[m
-add-store.html:1713: trailing whitespace.
-[32m+[m[32m  <script src="js/translations.js" defer></script>[m[41m[m
-add-store.html:1714: trailing whitespace.
-[32m+[m[32m  <script src="js/i18n.js" defer></script>[m[41m[m
-add-store.html:1715: trailing whitespace.
-[32m+[m[32m  <script src="js/add-store.js" defer></script>[m[41m[m
-add-store.html:1716: trailing whitespace.
-[32m+[m[32m  <script src="js/main.js" defer></script>[m[41m[m
-add-store.html:1717: trailing whitespace.
-[32m+[m[32m  <script src="js/auth.js" defer></script>[m[41m[m
-add-store.html:1718: trailing whitespace.
-[32m+[m[32m  <script src="js/offline.js" defer></script>[m[41m[m
-dashboard-users/ads.html:9: trailing whitespace.
-[32m+[m[32m<script src="auth/auth-api.js" defer></script>[m[41m[m
-dashboard-users/ads.html:10: trailing whitespace.
-[32m+[m[32m<script src="auth/auth-guard.js" defer></script>[m[41m[m
-dashboard-users/ads.html:81: trailing whitespace.
-[32m+[m[32m  <script src="../js/vendor/lucide.min.js" defer></script>[m[41m[m
-dashboard-users/ads.html:82: trailing whitespace.
-[32m+[m[32m  <script src="../js/store-type-config.js" defer></script>[m[41m[m
-dashboard-users/ads.html:83: trailing whitespace.
-[32m+[m[32m  <script src="../js/usere-dashboard.js" defer></script>[m[41m[m
-dashboard-users/auth/forgot-password.html:100: trailing whitespace.
-[32m+[m[32m  <script src="../../js/vendor/lucide.min.js" defer></script>[m[41m[m
-dashboard-users/auth/forgot-password.html:101: trailing whitespace.
-[32m+[m[32m  <script src="auth-api.js" defer></script>[m[41m[m
-dashboard-users/auth/forgot-password.html:102: trailing whitespace.
-[32m+[m[32m  <script src="auth.js" defer></script>[m[41m[m
-dashboard-users/auth/login.html:90: trailing whitespace.
-[32m+[m[32m  <script src="../../js/vendor/lucide.min.js" defer></script>[m[41m[m
-dashboard-users/auth/login.html:91: trailing whitespace.
-[32m+[m[32m  <script src="auth-api.js" defer></script>[m[41m[m
-dashboard-users/auth/login.html:92: trailing whitespace.
-[32m+[m[32m  <script src="auth.js" defer></script>[m[41m[m
-dashboard-users/auth/reset-password.html:120: trailing whitespace.
-[32m+[m[32m  <script src="../../js/vendor/lucide.min.js" defer></script>[m[41m[m
-dashboard-users/auth/reset-password.html:121: trailing whitespace.
-[32m+[m[32m  <script src="auth-api.js" defer></script>[m[41m[m
-dashboard-users/auth/reset-password.html:122: trailing whitespace.
-[32m+[m[32m  <script src="auth.js" defer></script>[m[41m[m
-dashboard-users/dashboard.html:9: trailing whitespace.
-[32m+[m[32m<script src="auth/auth-api.js" defer></script>[m[41m[m
-dashboard-users/dashboard.html:10: trailing whitespace.
-[32m+[m[32m<script src="auth/auth-guard.js" defer></script>[m[41m[m
-dashboard-users/dashboard.html:303: trailing whitespace.
-[32m+[m[32m  <script src="../js/vendor/lucide.min.js" defer></script>[m[41m[m
-dashboard-users/dashboard.html:304: trailing whitespace.
-[32m+[m[32m  <script src="../js/vendor/qrcode.js" defer></script>[m[41m[m
-dashboard-users/dashboard.html:305: trailing whitespace.
-[32m+[m[32m  <script src="../js/store-type-config.js" defer></script>[m[41m[m
-dashboard-users/dashboard.html:306: trailing whitespace.
-[32m+[m[32m  <script src="../js/usere-dashboard.js" defer></script>[m[41m[m
-dashboard-users/packages.html:9: trailing whitespace.
-[32m+[m[32m<script src="auth/auth-api.js" defer></script>[m[41m[m
-dashboard-users/packages.html:10: trailing whitespace.
-[32m+[m[32m<script src="auth/auth-guard.js" defer></script>[m[41m[m
-dashboard-users/packages.html:205: trailing whitespace.
-[32m+[m[32m  <script src="../js/vendor/lucide.min.js" defer></script>[m[41m[m
-dashboard-users/packages.html:206: trailing whitespace.
-[32m+[m[32m  <script src="../js/store-type-config.js" defer></script>[m[41m[m
-dashboard-users/packages.html:207: trailing whitespace.
-[32m+[m[32m  <script src="../js/usere-dashboard.js" defer></script>[m[41m[m
-dashboard-users/partials/orders.html:9: trailing whitespace.
-[32m+[m[32m<script src="../auth/auth-api.js" defer></script>[m[41m[m
-dashboard-users/partials/orders.html:10: trailing whitespace.
-[32m+[m[32m<script src="../auth/auth-guard.js" defer></script>[m[41m[m
-dashboard-users/partials/orders.html:92: trailing whitespace.
-[32m+[m[32m  <script src="../../js/vendor/lucide.min.js" defer></script>[m[41m[m
-dashboard-users/partials/orders.html:93: trailing whitespace.
-[32m+[m[32m  <script src="../../js/usere-dashboard.js" defer></script>[m[41m[m
-dashboard-users/partials/reviews.html:9: trailing whitespace.
-[32m+[m[32m<script src="../auth/auth-api.js" defer></script>[m[41m[m
-dashboard-users/partials/reviews.html:10: trailing whitespace.
-[32m+[m[32m<script src="../auth/auth-guard.js" defer></script>[m[41m[m
-dashboard-users/partials/reviews.html:76: trailing whitespace.
-[32m+[m[32m  <script src="../../js/vendor/lucide.min.js" defer></script>[m[41m[m
-dashboard-users/partials/reviews.html:77: trailing whitespace.
-[32m+[m[32m  <script src="../../js/store-type-config.js" defer></script>[m[41m[m
-dashboard-users/partials/reviews.html:78: trailing whitespace.
-[32m+[m[32m  <script src="../js/usere-dashboard.js" defer></script>[m[41m[m
-dashboard-users/partials/settings.html:9: trailing whitespace.
-[32m+[m[32m<script src="../auth/auth-api.js" defer></script>[m[41m[m
-dashboard-users/partials/settings.html:10: trailing whitespace.
-[32m+[m[32m<script src="../auth/auth-guard.js" defer></script>[m[41m[m
-dashboard-users/partials/settings.html:101: trailing whitespace.
-[32m+[m[32m  <script src="../../js/vendor/lucide.min.js" defer></script>[m[41m[m
-dashboard-users/partials/settings.html:102: trailing whitespace.
-[32m+[m[32m  <script src="../../js/store-type-config.js" defer></script>[m[41m[m
-dashboard-users/partials/settings.html:103: trailing whitespace.
-[32m+[m[32m  <script src="../js/usere-dashboard.js" defer></script>[m[41m[m
-dashboard-users/prices.html:9: trailing whitespace.
-[32m+[m[32m<script src="auth/auth-api.js" defer></script>[m[41m[m
-dashboard-users/prices.html:10: trailing whitespace.
-[32m+[m[32m<script src="auth/auth-guard.js" defer></script>[m[41m[m
-dashboard-users/prices.html:113: trailing whitespace.
-[32m+[m[32m  <script src="../js/vendor/lucide.min.js" defer></script>[m[41m[m
-dashboard-users/prices.html:114: trailing whitespace.
-[32m+[m[32m  <script src="../js/store-type-config.js" defer></script>[m[41m[m
-dashboard-users/prices.html:115: trailing whitespace.
-[32m+[m[32m  <script src="../js/usere-dashboard.js" defer></script>[m[41m[m
-dashboard-users/profile.html:9: trailing whitespace.
-[32m+[m[32m<script src="auth/auth-api.js" defer></script>[m[41m[m
-dashboard-users/profile.html:10: trailing whitespace.
-[32m+[m[32m<script src="auth/auth-guard.js" defer></script>[m[41m[m
-dashboard-users/profile.html:116: trailing whitespace.
-[32m+[m[32m  <script src="../js/vendor/lucide.min.js" defer></script>[m[41m[m
-dashboard-users/profile.html:117: trailing whitespace.
-[32m+[m[32m  <script src="../js/store-type-config.js" defer></script>[m[41m[m
-dashboard-users/profile.html:118: trailing whitespace.
-[32m+[m[32m  <script src="../js/usere-dashboard.js" defer></script>[m[41m[m
-dashboard-users/services.html:9: trailing whitespace.
-[32m+[m[32m<script src="auth/auth-api.js" defer></script>[m[41m[m
-dashboard-users/services.html:10: trailing whitespace.
-[32m+[m[32m<script src="auth/auth-guard.js" defer></script>[m[41m[m
-dashboard-users/services.html:106: trailing whitespace.
-[32m+[m[32m  <script src="../js/vendor/lucide.min.js" defer></script>[m[41m[m
-dashboard-users/services.html:107: trailing whitespace.
-[32m+[m[32m  <script src="../js/store-type-config.js" defer></script>[m[41m[m
-dashboard-users/services.html:108: trailing whitespace.
-[32m+[m[32m  <script src="../js/usere-dashboard.js" defer></script>[m[41m[m
-dashboard-users/subscribers.html:9: trailing whitespace.
-[32m+[m[32m<script src="auth/auth-api.js" defer></script>[m[41m[m
-dashboard-users/subscribers.html:10: trailing whitespace.
-[32m+[m[32m<script src="auth/auth-guard.js" defer></script>[m[41m[m
-dashboard-users/subscribers.html:99: trailing whitespace.
-[32m+[m[32m  <script src="../js/vendor/lucide.min.js" defer></script>[m[41m[m
-dashboard-users/subscribers.html:100: trailing whitespace.
-[32m+[m[32m  <script src="../js/store-type-config.js" defer></script>[m[41m[m
-dashboard-users/subscribers.html:101: trailing whitespace.
-[32m+[m[32m  <script src="../js/usere-dashboard.js" defer></script>[m[41m[m
-dashboard-users/subscription-requests.html:9: trailing whitespace.
-[32m+[m[32m<script src="auth/auth-api.js" defer></script>[m[41m[m
-dashboard-users/subscription-requests.html:10: trailing whitespace.
-[32m+[m[32m<script src="auth/auth-guard.js" defer></script>[m[41m[m
-dashboard-users/subscription-requests.html:77: trailing whitespace.
-[32m+[m[32m  <script src="../js/vendor/lucide.min.js" defer></script>[m[41m[m
-dashboard-users/subscription-requests.html:78: trailing whitespace.
-[32m+[m[32m  <script src="../js/store-type-config.js" defer></script>[m[41m[m
-dashboard-users/subscription-requests.html:79: trailing whitespace.
-[32m+[m[32m  <script src="../js/usere-dashboard.js" defer></script>[m[41m[m
-guide.html:32: trailing whitespace.
-[32m+[m[32m  <script src="js/vendor/lucide.min.js" defer></script>[m[41m[m
-guide.html:521: trailing whitespace.
-[32m+[m[32m<script src="js/guide.js" defer></script>[m[41m[m
-guide.html:522: trailing whitespace.
-[32m+[m[32m<script src="js/translations.js" defer></script>[m[41m[m
-guide.html:523: trailing whitespace.
-[32m+[m[32m<script src="js/i18n.js" defer></script>[m[41m[m
-guide.html:524: trailing whitespace.
-[32m+[m[32m<script src="js/main.js" defer></script>[m[41m[m
-guide.html:525: trailing whitespace.
-[32m+[m[32m<script src="js/offline.js" defer></script>[m[41m[m
-home.html:34: trailing whitespace.
-[32m+[m[32m  <script src="js/vendor/lucide.min.js" defer></script>[m[41m[m
-home.html:1915: trailing whitespace.
-[32m+[m[32m<script src="js/vendor/bootstrap.bundle.min.js" defer></script>[m[41m[m
-home.html:1917: trailing whitespace.
-[32m+[m[32m<script src="js/translations.js" defer></script>[m[41m[m
-home.html:1918: trailing whitespace.
-[32m+[m[32m<script src="js/i18n.js" defer></script>[m[41m[m
-home.html:1919: trailing whitespace.
-[32m+[m[32m<script src="js/exchange-rates.js" defer></script>[m[41m[m
-home.html:1920: trailing whitespace.
-[32m+[m[32m<script src="js/prices-api.js" defer></script>[m[41m[m
-home.html:1921: trailing whitespace.
-[32m+[m[32m<script src="js/home.js" defer></script>[m[41m[m
-home.html:1922: trailing whitespace.
-[32m+[m[32m<script src="js/main.js" defer></script>[m[41m[m
-home.html:1923: trailing whitespace.
-[32m+[m[32m<script src="js/auth.js" defer></script>[m[41m[m
-home.html:1924: trailing whitespace.
-[32m+[m[32m<script src="js/offline.js" defer></script>[m[41m[m
-index.html:32: trailing whitespace.
-[32m+[m[32m  <script src="js/vendor/lucide.min.js" defer></script>[m[41m[m
-index.html:1414: trailing whitespace.
-[32m+[m[32m<script src="js/vendor/bootstrap.bundle.min.js" defer></script>[m[41m[m
-index.html:1415: trailing whitespace.
-[32m+[m[32m<script src="js/translations.js" defer></script>[m[41m[m
-index.html:1416: trailing whitespace.
-[32m+[m[32m<script src="js/i18n.js" defer></script>[m[41m[m
-index.html:1417: trailing whitespace.
-[32m+[m[32m<script src="js/main.js" defer></script>[m[41m[m
-index.html:1418: trailing whitespace.
-[32m+[m[32m<script src="js/auth.js" defer></script>[m[41m[m
-index.html:1419: trailing whitespace.
-[32m+[m[32m<script src="js/offline.js" defer></script>[m[41m[m
-profile.html:15: trailing whitespace.
-[32m+[m[32m<script src="js/vendor/lucide.min.js" defer></script>[m[41m[m
-profile.html:1592: trailing whitespace.
-[32m+[m[32m<script src="js/vendor/bootstrap.bundle.min.js" defer></script>[m[41m[m
-profile.html:1593: trailing whitespace.
-[32m+[m[32m<script src="js/translations.js" defer></script>[m[41m[m
-profile.html:1594: trailing whitespace.
-[32m+[m[32m<script src="js/i18n.js" defer></script>[m[41m[m
-profile.html:1595: trailing whitespace.
-[32m+[m[32m<script src="js/main.js" defer></script>[m[41m[m
-profile.html:1596: trailing whitespace.
-[32m+[m[32m<script src="js/profile.js" defer></script>[m[41m[m
-profile.html:1597: trailing whitespace.
-[32m+[m[32m<script src="js/auth.js" defer></script>[m[41m[m
-profile.html:1598: trailing whitespace.
-[32m+[m[32m<script src="js/offline.js" defer></script>[m[41m[m
