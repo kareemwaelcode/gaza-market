@@ -58,9 +58,6 @@
     } catch (err) { handleStorageError(err); }
   }
 
-  // WhatsApp numbers are stored as the 9-digit national number (starts with 5, e.g. 592194533),
-  // with the country code (970 or 972) kept in its own field. Same rule as the public request form.
-  // Returns the 9 digits, or '' when the input is not a valid number.
   var WHATSAPP_NATIONAL_RE = /^5[0-9]{8}$/;
 
   function normalizeWhatsappNumber(raw, countryCode) {
@@ -72,16 +69,11 @@
     return WHATSAPP_NATIONAL_RE.test(digits) ? digits : '';
   }
 
-  // Display value for a stored item: old entries saved with a leading 0 (059...) are shown
-  // correctly instead of as +970059...
   function whatsappForDisplay(item) {
     var normalized = normalizeWhatsappNumber(item.whatsapp, item.countryCode);
     return '+' + (item.countryCode || '970') + (normalized || item.whatsapp);
   }
 
-  // MOCK ONLY: the shared localStorage list holds requests for every demo workspace, so the
-  // dashboard shows only the ones sent to the workspace this owner owns. With the real API
-  // the backend returns only the authenticated owner's requests and this filter goes away.
   function getVisibleSubscriptionRequests() {
     var ownerSlug = window.GM_ENV && window.GM_ENV.mockOwnerSlug;
     return getStoredSubscriptionRequests().filter(function (r) {
@@ -715,8 +707,6 @@
     }
   });
 
-  // Subscription requests are a paid-plan feature. A free-plan owner who opens this page
-  // directly (typed URL, bookmark) sees an upgrade message instead of the requests.
   function isSubscriptionRequestsLocked() {
     return typeof GM.isFeatureLockedForPlan === 'function' && GM.isFeatureLockedForPlan('subscriptionRequests');
   }

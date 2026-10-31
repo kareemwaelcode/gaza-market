@@ -1,9 +1,3 @@
-/*
- * Gaza Market - dashboard shared helpers: extra fields
- * Config-driven helpers shared by the products and services pages.
- * Moved verbatim from the former js/usere-dashboard.js (no behaviour change).
- * Load order: core.js, shell.js, page-runner.js, common.js, this file, then the page file.
- */
 (function () {
   'use strict';
 
@@ -80,7 +74,6 @@
     });
   }
 
-  // ---- exports (used by pages/prices.js and pages/services.js) ----
   GM.storeHasDiscounts = storeHasDiscounts;
   GM.storeHasProductField = storeHasProductField;
   GM.storeHasServiceField = storeHasServiceField;

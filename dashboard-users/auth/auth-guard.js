@@ -4,7 +4,6 @@
   var LOGOUT_MAX_WAIT_MS = 1500;
   var CHECK_INTERVAL_MS = 60 * 1000;
   var MIN_RECHECK_GAP_MS = 5 * 1000;
-  // Non-sensitive cross-tab signal ("something changed, re-verify"). It carries no session data.
   var SIGNAL_KEY = 'gmAuthSignal';
 
   var scriptEl = document.currentScript;
@@ -13,13 +12,12 @@
     : 'auth/login.html';
 
   var root = document.documentElement;
-  var session = null; // last verified session, kept in memory only (never in browser storage)
+  var session = null;
   var loggingOut = false;
   var redirecting = false;
   var checking = null;
   var lastCheckAt = 0;
 
-  // Keep the page hidden until the server confirms the session.
   root.style.visibility = 'hidden';
 
   function reveal() {
@@ -58,8 +56,6 @@
         redirectToLogin();
         return null;
       }
-      // Network/server trouble is NOT a logout (connections can be unstable): keep the page usable
-      // and verify again on the next check. Server APIs still enforce the cookie on every request.
       if (!session) session = { whatsapp: '', verified: false };
       return session;
     });
@@ -125,7 +121,6 @@
     if (!document.hidden) recheck(false);
   });
 
-  // Hidden tabs are skipped to keep /me traffic low.
   window.setInterval(function () {
     if (!document.hidden) recheck(false);
   }, CHECK_INTERVAL_MS);

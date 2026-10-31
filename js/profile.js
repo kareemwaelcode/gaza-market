@@ -329,12 +329,12 @@ document.addEventListener('DOMContentLoaded', () => {
   const SOUNDS_STORAGE_KEY = 'appSoundsEnabled';
 
   let savedSoundsSetting = null;
-  try { savedSoundsSetting = localStorage.getItem(SOUNDS_STORAGE_KEY); } catch (err) { /* storage unavailable */ }
+  try { savedSoundsSetting = localStorage.getItem(SOUNDS_STORAGE_KEY); } catch (err) { }
   settingsSoundsToggle.checked = savedSoundsSetting !== 'false';
 
   settingsSoundsToggle.addEventListener('change', () => {
     const isEnabled = settingsSoundsToggle.checked;
-    try { localStorage.setItem(SOUNDS_STORAGE_KEY, isEnabled ? 'true' : 'false'); } catch (err) { /* storage unavailable */ }
+    try { localStorage.setItem(SOUNDS_STORAGE_KEY, isEnabled ? 'true' : 'false'); } catch (err) { }
 
     if (isEnabled) {
       console.log('App Sounds: ON');

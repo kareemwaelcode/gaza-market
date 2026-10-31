@@ -22,8 +22,8 @@
     ? new URL('../../', CURRENT_SCRIPT_URL).href
     : null;
   var PROFILE_PAGE_URL = DASHBOARD_USERS_BASE_URL
-    ? new URL('profile.html', DASHBOARD_USERS_BASE_URL).href
-    : 'profile.html';
+    ? new URL('dashboard-profile.html', DASHBOARD_USERS_BASE_URL).href
+    : 'dashboard-profile.html';
   var PACKAGES_PAGE_URL = DASHBOARD_USERS_BASE_URL
     ? new URL('packages.html', DASHBOARD_USERS_BASE_URL).href
     : 'packages.html';

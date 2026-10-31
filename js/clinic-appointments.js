@@ -1,11 +1,3 @@
-/*
- * Gaza Market — Clinic appointments page (dashboard-users/appointments.html)
- *
- * Self-contained: reads the plan limit from GMStoreTypeConfig and stores data in
- * localStorage (temporary, until the Laravel backend exists).
- * Public API for the store's public page later:
- *   window.gmSubmitClinicAppointment({ name, whatsapp, countryCode, datetime, reason, note })
- */
 (function () {
   'use strict';
 
@@ -71,8 +63,6 @@
     if (window.lucide && typeof window.lucide.createIcons === 'function') window.lucide.createIcons();
   }
 
-  /* ---------- data ---------- */
-
   function getAppointments() {
     var list = readJson(APPOINTMENTS_KEY, []);
     return Array.isArray(list) ? list : [];
@@ -137,8 +127,6 @@
     if (typeof window.renderClinicAppointmentsPage === 'function') window.renderClinicAppointmentsPage();
     return appointment;
   };
-
-  /* ---------- appointments list ---------- */
 
   function formatDateTime(value) {
     try {
@@ -260,8 +248,6 @@
 
   window.renderClinicAppointmentsPage = renderList;
 
-  /* ---------- clinic hours ---------- */
-
   function defaultHours() {
     return {
       slot: 30,
@@ -291,7 +277,6 @@
     return (h12 < 10 ? '0' : '') + h12 + ':' + m[2] + ' ' + suffix;
   }
 
-  /* summary card on the page (read-only) */
   function renderHoursSummary() {
     var wrap = document.getElementById('apt-hours-summary');
     if (!wrap) return;
@@ -312,7 +297,6 @@
     refreshIcons();
   }
 
-  /* edit panel */
   function renderHoursPanel() {
     var wrap = document.getElementById('aph-rows');
     if (!wrap) return;
@@ -388,8 +372,6 @@
       .then(function (html) { host.innerHTML = html; refreshIcons(); })
       .catch(function (err) { console.error('Failed to load hours panel:', url, err); });
   }
-
-  /* ---------- events ---------- */
 
   function init() {
     if (document.body.getAttribute('data-page') !== 'appointments') return;

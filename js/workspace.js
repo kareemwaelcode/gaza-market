@@ -1,7 +1,7 @@
 'use strict';
 
 (function () {
-  var api = window.GMShops;
+  var api = window.GMPlaces;
   var sectionEl = document.getElementById('wsSection');
   var modalEl = document.getElementById('wsSubModal');
   var formEl = document.getElementById('wsSubForm');
@@ -40,7 +40,6 @@
   };
   var ORDER = ['name', 'phone', 'duration', 'date'];
 
-  // Lucide icon paths (same inline approach as menu.js)
   var ICONS = {
     dollar: '<line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>',
     clock: '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',
@@ -96,7 +95,7 @@
 
   function icon(name, size) {
     var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-    svg.setAttribute('class', 'shops-icon');
+    svg.setAttribute('class', 'places-icon');
     svg.setAttribute('width', String(size || 20));
     svg.setAttribute('height', String(size || 20));
     svg.setAttribute('viewBox', '0 0 24 24');
@@ -232,8 +231,6 @@
     setCode(codeEl.value);
     if (state.ws) renderAll();
   }
-
-  // ---------- Subscription request modal ----------
 
   function setCode(code) {
     var next = CODES.indexOf(code) !== -1 ? code : DEFAULT_CODE;

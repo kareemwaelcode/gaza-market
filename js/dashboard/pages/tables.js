@@ -19,8 +19,6 @@
 
   var NAME_MAX = 40;
 
-  // The server (or the mock that mirrors it) is the source of truth. This page only keeps the last loaded
-  // snapshot: items = visible tables, meta = { limit, used, hidden } coming from GET /dashboard/tables.
   var state = {
     items: [],
     meta: { limit: null, used: 0, hidden: 0 },
@@ -263,7 +261,6 @@
 
   window.renderTablesPage = renderTablesPage;
 
-  // silent = true keeps the current list on screen while refreshing (used after a successful change).
   function loadTables(silent) {
     if (!api || !api.tables) {
       state.view = 'error';
@@ -312,7 +309,6 @@
     }
   }
 
-  // Returns true when the table no longer exists for this owner (the edit panel should close).
   function handleFailure(res) {
     var reason = res.data && res.data.reason;
 

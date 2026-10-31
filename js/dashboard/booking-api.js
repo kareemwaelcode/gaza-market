@@ -1,16 +1,6 @@
 (function () {
   'use strict';
 
-  // Dashboard API for tables and table reservations.
-  // Contract: tables-reservations-api-contract.md (v4). Same style as dashboard-users/auth/auth-api.js:
-  // every method returns a Promise that always resolves to { ok, data } or { ok: false, code, data }.
-  // It never throws and never touches the DOM.
-  //
-  // Failure codes: NETWORK, UNAUTHENTICATED, FORBIDDEN, NOT_FOUND, CONFLICT, VALIDATION, RATE_LIMITED, SERVER.
-  // fail().data.reason carries the server "code" when present:
-  //   plan_limit_reached (403), table_unavailable (409), invalid_transition (422).
-  // fail().data.errors (VALIDATION only) maps field -> short code, e.g. { name: 'required', seats: 'invalid' }.
-
   var CONFIG = {
     USE_MOCK: true,
     BASE_URL: '/api/dashboard',
@@ -66,8 +56,6 @@
     var n = toInt(value);
     return isFinite(n) && n > 0 ? n : 0;
   }
-
-  // ---------- Normalizers (server shape -> clean shape for the pages) ----------
 
   function normalizeTable(raw) {
     if (!raw || !isSafeId(String(raw.id)) || typeof raw.name !== 'string' || !raw.name.trim()) return null;
@@ -130,8 +118,6 @@
     };
   }
 
-  // ---------- Input validation (shared by live and mock) ----------
-
   function validateTableInput(input, partial) {
     var src = input || {};
     var errors = {};
@@ -175,8 +161,6 @@
       limit: isFinite(limit) && limit >= 1 ? Math.min(limit, MAX_LIMIT) : DEFAULT_LIMIT
     };
   }
-
-  // ---------- Live driver (Laravel + Sanctum cookies) ----------
 
   function createLiveDriver() {
     var csrfPromise = null;
@@ -248,11 +232,9 @@
 
     function request(method, path, body) {
       return send(method, path, body).then(function (res) {
-        // 419 = Laravel CSRF/session mismatch: refresh the CSRF cookie and retry once.
         if (res.status === 419 && method !== 'GET') {
           return ensureCsrfCookie(true).then(function () { return send(method, path, body); });
         }
-        // Only GET is retried on network/5xx. Writes are never repeated (they may have already happened).
         if (method === 'GET' && (res.status === 0 || res.status >= 500)) {
           return delay(CONFIG.GET_RETRY_DELAY_MS).then(function () { return send(method, path, body); });
         }
@@ -376,14 +358,6 @@
     };
   }
 
-  // ---------- Mock driver (localStorage, mirrors the server rules of the contract) ----------
-  // Reads and writes the same scoped keys the current dashboard pages use, so the data stays in one place
-  // while the pages are migrated one by one.
-  // Test modes (query string): ?gm_test=slow | error | empty | conflict | limit | seed
-  // seed: when no reservations are stored, plants 25 reservations (all statuses, one with a deleted table,
-  // some old ones without a table). If no tables are stored it also plants 3 tables, and marks the first table
-  // as occupied by the confirmed reservation seeded on it.
-
   function createMockDriver() {
     var RESERVATIONS_KEY = 'gmDashboardReservations';
     var TABLES_KEY = 'gmDashboardTables';
@@ -453,7 +427,6 @@
       });
     }
 
-    // Plan visibility. Tables: newest = last in storage order. Reservations: newest = highest createdAt.
     function visibleTables() {
       var all = readTables();
       var limit = limitFor('tables', all.length);
@@ -690,7 +663,6 @@
               }
             }
 
-            // Confirming a reservation whose table was deleted (or that never had one) only changes the reservation.
             if (status === 'confirmed' && target.tableId && tableIndex !== -1) {
               var usable = findVisibleTable(target.tableId) && tables[tableIndex].status !== 'occupied';
               if (mode === 'conflict' || !usable) return fail('CONFLICT', { reason: 'table_unavailable' });
@@ -724,7 +696,6 @@
             if (!target) return fail('NOT_FOUND');
             if (target.status !== 'cancelled') return fail('VALIDATION', { reason: 'invalid_transition' });
 
-            // A deleted reservation no longer counts toward the plan limit.
             writeList(RESERVATIONS_KEY, readList(RESERVATIONS_KEY).filter(function (r) { return r.id !== id; }));
             return ok();
           });

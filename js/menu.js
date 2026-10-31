@@ -1,33 +1,33 @@
 'use strict';
 
 (function () {
-  var root = document.getElementById('shopPage');
+  var root = document.getElementById('placePage');
   if (!root) return;
 
-  var api = window.GMShops;
+  var api = window.GMPlaces;
 
-  var headEl = document.getElementById('shopHead');
-  var avatarEl = document.getElementById('shopAvatar');
-  var nameEl = document.getElementById('shopName');
-  var statusEl = document.getElementById('shopStatus');
-  var statusTextEl = document.getElementById('shopStatusText');
-  var whereEl = document.getElementById('shopWhere');
-  var whereTextEl = document.getElementById('shopWhereText');
-  var waBtn = document.getElementById('shopWa');
-  var callBtn = document.getElementById('shopCall');
-  var skeletonEl = document.getElementById('shopSkeleton');
-  var stateEl = document.getElementById('shopState');
-  var stateTitleEl = document.getElementById('shopStateTitle');
-  var stateSubEl = document.getElementById('shopStateSub');
-  var retryBtn = document.getElementById('shopRetry');
+  var headEl = document.getElementById('placeHead');
+  var avatarEl = document.getElementById('placeAvatar');
+  var nameEl = document.getElementById('placeName');
+  var statusEl = document.getElementById('placeStatus');
+  var statusTextEl = document.getElementById('placeStatusText');
+  var whereEl = document.getElementById('placeWhere');
+  var whereTextEl = document.getElementById('placeWhereText');
+  var waBtn = document.getElementById('placeWa');
+  var callBtn = document.getElementById('placeCall');
+  var skeletonEl = document.getElementById('placeSkeleton');
+  var stateEl = document.getElementById('placeState');
+  var stateTitleEl = document.getElementById('placeStateTitle');
+  var stateSubEl = document.getElementById('placeStateSub');
+  var retryBtn = document.getElementById('placeRetry');
   var menuSection = document.getElementById('menu');
-  var toolbarEl = document.getElementById('shopToolbar');
-  var searchEl = document.getElementById('shopSearch');
-  var searchWrapEl = document.getElementById('shopSearchWrap');
-  var gridEl = document.getElementById('shopMenuGrid');
-  var emptyEl = document.getElementById('shopMenuEmpty');
-  var emptyTitleEl = document.getElementById('shopMenuEmptyTitle');
-  var emptySubEl = document.getElementById('shopMenuEmptySub');
+  var toolbarEl = document.getElementById('placeToolbar');
+  var searchEl = document.getElementById('placeSearch');
+  var searchWrapEl = document.getElementById('placeSearchWrap');
+  var gridEl = document.getElementById('placeMenuGrid');
+  var emptyEl = document.getElementById('placeMenuEmpty');
+  var emptyTitleEl = document.getElementById('placeMenuEmptyTitle');
+  var emptySubEl = document.getElementById('placeMenuEmptySub');
 
   var FOOD_TYPES = ['restaurant', 'cafe', 'restaurant-cafe'];
   var BOOKING_TYPES = ['cafe', 'restaurant-cafe'];
@@ -54,7 +54,7 @@
 
   function icon(name, size) {
     var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-    svg.setAttribute('class', 'shops-icon');
+    svg.setAttribute('class', 'places-icon');
     svg.setAttribute('width', String(size || 18));
     svg.setAttribute('height', String(size || 18));
     svg.setAttribute('viewBox', '0 0 24 24');
@@ -152,7 +152,7 @@
     if (!place) return;
     var name = placeName(place);
     nameEl.textContent = name;
-    document.title = name + ' | ' + t('shop.siteName');
+    document.title = name + ' | ' + t('place.siteName');
 
     avatarEl.textContent = '';
     if (place.image_url) {
@@ -173,7 +173,7 @@
 
     statusEl.classList.toggle('is-open', place.is_open);
     statusEl.classList.toggle('is-closed', !place.is_open);
-    statusTextEl.textContent = t(place.is_open ? 'shop.openNow' : 'stores.closed');
+    statusTextEl.textContent = t(place.is_open ? 'place.openNow' : 'stores.closed');
 
     var parts = [];
     if (place.region) parts.push(t(place.region));
@@ -206,7 +206,7 @@
     });
     var byId = {};
     groups.forEach(function (g) { byId[g.id] = g; });
-    var other = { id: '_other', name: t('shop.otherItems'), items: [] };
+    var other = { id: '_other', name: t('place.otherItems'), items: [] };
 
     menu.items.forEach(function (item) {
       var group = item.categoryId && byId[item.categoryId] ? byId[item.categoryId] : other;
@@ -251,31 +251,31 @@
     var parts = [];
     if (item.details) parts.push(item.details);
     (item.attributes || []).forEach(function (attr) {
-      parts.push(t('shop.attr.' + attr.key) + ': ' + attr.value);
+      parts.push(t('place.attr.' + attr.key) + ': ' + attr.value);
     });
     return parts.join(' · ');
   }
 
   function buildItem(item) {
-    var row = el('li', 'shop-item' + (item.available ? '' : ' is-unavailable'));
-    var thumb = el('span', 'shop-item__thumb');
+    var row = el('li', 'place-item' + (item.available ? '' : ' is-unavailable'));
+    var thumb = el('span', 'place-item__thumb');
     fillThumb(thumb, itemImageSources(item));
     row.appendChild(thumb);
 
-    var info = el('span', 'shop-item__info');
-    info.appendChild(el('span', 'shop-item__name', item.name));
-    if (!item.available) info.appendChild(el('span', 'shop-item__badge', t('shop.unavailable')));
+    var info = el('span', 'place-item__info');
+    info.appendChild(el('span', 'place-item__name', item.name));
+    if (!item.available) info.appendChild(el('span', 'place-item__badge', t('place.unavailable')));
     var meta = itemMetaText(item);
-    if (meta) info.appendChild(el('span', 'shop-item__meta', meta));
+    if (meta) info.appendChild(el('span', 'place-item__meta', meta));
     row.appendChild(info);
 
-    if (item.discount) row.appendChild(el('span', 'shop-item__discount', t('shop.hasDiscount')));
+    if (item.discount) row.appendChild(el('span', 'place-item__discount', t('place.hasDiscount')));
 
     if (item.price !== null) {
-      var price = el('span', 'shop-item__price');
+      var price = el('span', 'place-item__price');
       price.setAttribute('dir', 'ltr');
       price.appendChild(document.createTextNode(formatPrice(item.price) + ' '));
-      price.appendChild(el('span', 'shop-item__cur', '₪'));
+      price.appendChild(el('span', 'place-item__cur', '₪'));
       row.appendChild(price);
     }
     return row;
@@ -283,15 +283,15 @@
 
   function applyMenuLabels() {
     var store = isStore(state.place);
-    var searchKey = store ? 'shop.searchProducts' : 'shop.searchMenu';
-    var titleEl = document.getElementById('shopMenuTitle');
+    var searchKey = store ? 'place.searchProducts' : 'place.searchMenu';
+    var titleEl = document.getElementById('placeMenuTitle');
     searchEl.setAttribute('data-i18n-placeholder', searchKey);
     searchEl.placeholder = t(searchKey);
     searchEl.setAttribute('aria-label', t(searchKey));
-    gridEl.classList.toggle('shop-menu__grid--store', store);
+    gridEl.classList.toggle('place-menu__grid--store', store);
     if (titleEl) {
-      titleEl.setAttribute('data-i18n', store ? 'shops.products' : 'shops.menu');
-      titleEl.textContent = t(store ? 'shops.products' : 'shops.menu');
+      titleEl.setAttribute('data-i18n', store ? 'places.products' : 'places.menu');
+      titleEl.textContent = t(store ? 'places.products' : 'places.menu');
     }
   }
 
@@ -306,16 +306,16 @@
     show(searchWrapEl, hasAny);
 
     if (!hasAny) {
-      emptyTitleEl.textContent = t(isStore(state.place) ? 'shop.noProducts' : 'shop.noMenu');
-      emptySubEl.textContent = t(isStore(state.place) ? 'shop.noProductsSub' : 'shop.noMenuSub');
+      emptyTitleEl.textContent = t(isStore(state.place) ? 'place.noProducts' : 'place.noMenu');
+      emptySubEl.textContent = t(isStore(state.place) ? 'place.noProductsSub' : 'place.noMenuSub');
       show(emptyEl, true);
       show(gridEl, false);
       return;
     }
 
     if (!groups.length) {
-      emptyTitleEl.textContent = t('shop.noResults');
-      emptySubEl.textContent = t('shop.noResultsSub');
+      emptyTitleEl.textContent = t('place.noResults');
+      emptySubEl.textContent = t('place.noResultsSub');
       show(emptyEl, true);
       show(gridEl, false);
       return;
@@ -325,11 +325,11 @@
     show(gridEl, true);
 
     groups.forEach(function (group) {
-      var section = el('section', 'shop-cat');
-      section.id = 'shop-cat-' + group.id;
+      var section = el('section', 'place-cat');
+      section.id = 'place-cat-' + group.id;
       section.dataset.cat = group.id;
-      section.appendChild(el('h2', 'shop-cat__title', group.name));
-      var list = el('ul', 'shop-cat__list');
+      section.appendChild(el('h2', 'place-cat__title', group.name));
+      var list = el('ul', 'place-cat__list');
       group.items.forEach(function (item) { list.appendChild(buildItem(item)); });
       section.appendChild(list);
       gridEl.appendChild(section);
@@ -341,8 +341,8 @@
     show(menuSection, true);
     show(toolbarEl, false);
     show(gridEl, false);
-    emptyTitleEl.textContent = t('shop.soonTitle');
-    emptySubEl.textContent = t('shop.soonSub');
+    emptyTitleEl.textContent = t('place.soonTitle');
+    emptySubEl.textContent = t('place.soonSub');
     show(emptyEl, true);
   }
 
@@ -351,12 +351,12 @@
     hideAll();
     if (!slug) {
       setLoading(false);
-      showState('shop.notFound', 'shop.notFoundSub', false);
+      showState('place.notFound', 'place.notFoundSub', false);
       return;
     }
     if (!api || typeof api.getPlace !== 'function') {
       setLoading(false);
-      showState('shop.loadError', 'shop.loadErrorSub', true);
+      showState('place.loadError', 'place.loadErrorSub', true);
       return;
     }
 
@@ -385,8 +385,8 @@
     }).catch(function (err) {
       setLoading(false);
       hideAll();
-      if (err && err.code === 'not_found') showState('shop.notFound', 'shop.notFoundSub', false);
-      else showState('shop.loadError', 'shop.loadErrorSub', true);
+      if (err && err.code === 'not_found') showState('place.notFound', 'place.notFoundSub', false);
+      else showState('place.loadError', 'place.loadErrorSub', true);
     });
   }
 

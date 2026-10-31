@@ -1,33 +1,31 @@
 'use strict';
 
 (function () {
-  const list = document.getElementById('shopsGrid');
+  const list = document.getElementById('placesGrid');
   if (!list) return;
 
-  const api = window.GMShops;
-  const skeleton = document.getElementById('shopsSkeleton');
-  const stateBox = document.getElementById('shopsState');
-  const stateTitle = document.getElementById('shopsStateTitle');
-  const stateSub = document.getElementById('shopsStateSub');
-  const resetBtn = document.getElementById('shopsReset');
-  const retryBtn = document.getElementById('shopsRetry');
-  const addBtn = document.getElementById('shopsAdd');
-  const countEl = document.getElementById('shopsCount');
-  const typeBtn = document.getElementById('shopsTypeBtn');
-  const typeLabel = document.getElementById('shopsTypeLabel');
-  const regionBtn = document.getElementById('shopsRegionBtn');
-  const regionLabel = document.getElementById('shopsRegionLabel');
-  const allChip = document.querySelector('[data-shops-all]');
-  const openChip = document.querySelector('[data-shops-open]');
-  const moreWrap = document.getElementById('shopsMore');
-  const moreBtn = document.getElementById('shopsMoreBtn');
-  const moreLabel = document.getElementById('shopsMoreLabel');
-  const clearChip = document.getElementById('shopsClear');
-  const typeItems = Array.from(document.querySelectorAll('[data-shops-type]'));
-  const regionMenu = document.getElementById('shopsRegionMenu');
+  const api = window.GMPlaces;
+  const skeleton = document.getElementById('placesSkeleton');
+  const stateBox = document.getElementById('placesState');
+  const stateTitle = document.getElementById('placesStateTitle');
+  const stateSub = document.getElementById('placesStateSub');
+  const resetBtn = document.getElementById('placesReset');
+  const retryBtn = document.getElementById('placesRetry');
+  const addBtn = document.getElementById('placesAdd');
+  const countEl = document.getElementById('placesCount');
+  const typeBtn = document.getElementById('placesTypeBtn');
+  const typeLabel = document.getElementById('placesTypeLabel');
+  const regionBtn = document.getElementById('placesRegionBtn');
+  const regionLabel = document.getElementById('placesRegionLabel');
+  const allChip = document.querySelector('[data-places-all]');
+  const openChip = document.querySelector('[data-places-open]');
+  const moreWrap = document.getElementById('placesMore');
+  const moreBtn = document.getElementById('placesMoreBtn');
+  const moreLabel = document.getElementById('placesMoreLabel');
+  const clearChip = document.getElementById('placesClear');
+  const typeItems = Array.from(document.querySelectorAll('[data-places-type]'));
+  const regionMenu = document.getElementById('placesRegionMenu');
 
-  // Builds the region dropdown from the shared list (js/regions-api.js), so a new region
-  // never needs an HTML edit. The "All regions" item and the group headers keep their i18n keys.
   function renderRegionMenu() {
     if (!regionMenu || !window.GMRegions) return;
     const lang = typeof i18n !== 'undefined' ? i18n.getLang() : 'ar';
@@ -39,7 +37,7 @@
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'dropdown-item';
-      btn.setAttribute('data-shops-region', value);
+      btn.setAttribute('data-places-region', value);
       if (known(key)) btn.setAttribute('data-i18n', key);
       btn.textContent = text;
       li.appendChild(btn);
@@ -72,9 +70,8 @@
 
   renderRegionMenu();
 
-  const regionItems = Array.from(document.querySelectorAll('[data-shops-region]'));
+  const regionItems = Array.from(document.querySelectorAll('[data-places-region]'));
 
-  // Region name for a code: translation key if it exists, otherwise the name from the API list.
   function regionName(code) {
     const translated = typeof i18n !== 'undefined' ? i18n.t(code) : code;
     if (translated !== code) return translated;
@@ -83,11 +80,11 @@
   }
 
   const TYPE_FILTERS = {
-    'restaurant': 'shops.filterRestaurants',
-    'cafe': 'shops.filterCafes',
+    'restaurant': 'places.filterRestaurants',
+    'cafe': 'places.filterCafes',
     'restaurant-cafe': 'typeRestCafe',
-    'workspace': 'shops.filterWorkspaces',
-    'store': 'shops.filterStores'
+    'workspace': 'places.filterWorkspaces',
+    'store': 'places.filterStores'
   };
 
   const TYPE_LABELS = {
@@ -99,14 +96,15 @@
   };
 
   const ICONS = {
-    heart: '<svg class="shops-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M2 9.5a5.5 5.5 0 0 1 9.591-3.676.56.56 0 0 0 .818 0A5.49 5.49 0 0 1 22 9.5c0 2.29-1.5 4-3 5.5l-5.492 5.313a2 2 0 0 1-3 .019L5 15c-1.5-1.5-3-3.2-3-5.5"/></svg>',
-    pin: '<svg class="shops-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/></svg>',
-    wa: '<svg class="shops-icon" width="16" height="16" aria-hidden="true" focusable="false"><use href="#gm-i-whatsapp"/></svg>',
-    book: '<svg class="shops-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/></svg>',
-    tag: '<svg class="shops-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r=".5" fill="currentColor"/></svg>'
+    heart: '<svg class="places-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M2 9.5a5.5 5.5 0 0 1 9.591-3.676.56.56 0 0 0 .818 0A5.49 5.49 0 0 1 22 9.5c0 2.29-1.5 4-3 5.5l-5.492 5.313a2 2 0 0 1-3 .019L5 15c-1.5-1.5-3-3.2-3-5.5"/></svg>',
+    pin: '<svg class="places-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/></svg>',
+    wa: '<svg class="places-icon" width="16" height="16" aria-hidden="true" focusable="false"><use href="#gm-i-whatsapp"/></svg>',
+    book: '<svg class="places-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/></svg>',
+    tag: '<svg class="places-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r=".5" fill="currentColor"/></svg>'
   };
 
-  const FAV_KEY = 'gm_shops_favs_v1';
+  const FAV_KEY = 'gm_places_favs_v1';
+  const LEGACY_FAV_KEY = 'gm_shops_favs_v1';
   const EAGER_COUNT = 4;
   const STAGGER_MS = 60;
   const STAGGER_MAX = 8;
@@ -155,7 +153,7 @@
   }
 
   function isRegionCode(code) {
-    return regionItems.some(function (item) { return item.dataset.shopsRegion === code; });
+    return regionItems.some(function (item) { return item.dataset.placesRegion === code; });
   }
 
   function toRegionCode(raw) {
@@ -212,13 +210,22 @@
     try {
       history.replaceState(null, '', window.location.pathname + (query ? '?' + query : ''));
     } catch (err) {
-      console.error('shops url sync failed:', err);
+      console.error('places url sync failed:', err);
     }
   }
 
   function readFavs() {
     try {
-      const raw = JSON.parse(localStorage.getItem(FAV_KEY) || '[]');
+      let stored = localStorage.getItem(FAV_KEY);
+      if (stored === null) {
+        const legacy = localStorage.getItem(LEGACY_FAV_KEY);
+        if (legacy !== null) {
+          stored = legacy;
+          localStorage.setItem(FAV_KEY, legacy);
+          localStorage.removeItem(LEGACY_FAV_KEY);
+        }
+      }
+      const raw = JSON.parse(stored || '[]');
       return new Set(Array.isArray(raw) ? raw.map(String) : []);
     } catch (err) {
       return new Set();
@@ -229,7 +236,7 @@
     try {
       localStorage.setItem(FAV_KEY, JSON.stringify(Array.from(favs)));
     } catch (err) {
-      console.error('shops favourites storage failed:', err);
+      console.error('places favourites storage failed:', err);
     }
   }
 
@@ -238,7 +245,7 @@
   function paintFav(btn, on) {
     btn.classList.toggle('is-on', on);
     btn.setAttribute('aria-pressed', on ? 'true' : 'false');
-    btn.setAttribute('aria-label', t(on ? 'shops.favRemove' : 'shops.favAdd'));
+    btn.setAttribute('aria-label', t(on ? 'places.favRemove' : 'places.favAdd'));
   }
 
   function placeName(place) {
@@ -259,21 +266,21 @@
     const place = placeOf.get(col);
     if (!place) return;
 
-    col.querySelector('.shops-card__link').textContent = placeName(place);
+    col.querySelector('.places-card__link').textContent = placeName(place);
     paintTexts(col);
 
     if (place.type === 'store') {
       const categoryText = currentLang() === 'ar' ? place.category_ar : place.category_en;
-      if (categoryText) col.querySelector('.shops-card__type').textContent = categoryText;
+      if (categoryText) col.querySelector('.places-card__type').textContent = categoryText;
     }
 
     const regionText = place.region ? regionName(place.region) : '';
     const address = placeAddress(place);
     const sep = currentLang() === 'ar' ? '، ' : ', ';
-    col.querySelector('.shops-card__region').textContent = regionText;
-    col.querySelector('.shops-card__addr').textContent = address ? (regionText ? sep : '') + address : '';
+    col.querySelector('.places-card__region').textContent = regionText;
+    col.querySelector('.places-card__addr').textContent = address ? (regionText ? sep : '') + address : '';
 
-    const where = col.querySelector('.shops-card__where');
+    const where = col.querySelector('.places-card__where');
     where.hidden = !regionText && !address;
     where.title = [regionText, address].filter(Boolean).join(sep);
 
@@ -282,7 +289,7 @@
 
   function createImage(src, media, index) {
     const img = document.createElement('img');
-    img.className = 'shops-card__img';
+    img.className = 'places-card__img';
     img.alt = '';
     img.width = 400;
     img.height = 250;
@@ -303,7 +310,7 @@
   }
 
   function actionLink(className, href, iconName, key, external) {
-    const link = el('a', 'shops-btn ' + className);
+    const link = el('a', 'places-btn ' + className);
     link.href = href;
     if (external) {
       link.target = '_blank';
@@ -318,7 +325,7 @@
 
   function createCard(place, index) {
     const col = el('div', 'col-12 col-sm-6 col-lg-4 col-xxl-3');
-    col.setAttribute('data-shop', '');
+    col.setAttribute('data-place', '');
     col.dataset.id = place.id;
     col.dataset.slug = place.slug || '';
     col.dataset.type = place.type;
@@ -326,55 +333,55 @@
     col.dataset.open = place.is_open ? '1' : '0';
     placeOf.set(col, place);
 
-    const article = el('article', 'shops-card');
+    const article = el('article', 'places-card');
 
-    const media = el('div', 'shops-card__media');
+    const media = el('div', 'places-card__media');
     const src = place.image_thumb || place.image_url;
     if (src) media.appendChild(createImage(src, media, index));
 
-    const status = el('span', 'shops-card__status ' + (place.is_open ? 'is-open' : 'is-closed'));
+    const status = el('span', 'places-card__status ' + (place.is_open ? 'is-open' : 'is-closed'));
     status.dataset.t = place.is_open ? 'stores.open' : 'stores.closed';
     media.appendChild(status);
 
-    const fav = el('button', 'shops-card__fav');
+    const fav = el('button', 'places-card__fav');
     fav.type = 'button';
     fav.setAttribute('data-role', 'fav');
     fav.appendChild(icon('heart'));
     media.appendChild(fav);
 
-    const body = el('div', 'shops-card__body');
+    const body = el('div', 'places-card__body');
 
-    const type = el('span', 'shops-card__type');
+    const type = el('span', 'places-card__type');
     type.dataset.t = TYPE_LABELS[place.type] || 'typeStore';
 
     const ref = place.ref ? encodeURIComponent(place.ref) : '';
-    const row = el('div', 'shops-card__row');
-    const heading = el('h2', 'shops-card__name');
-    const link = el('a', 'shops-card__link');
+    const row = el('div', 'places-card__row');
+    const heading = el('h2', 'places-card__name');
+    const link = el('a', 'places-card__link');
     if (ref) link.href = 'menu.html?id=' + ref;
     heading.appendChild(link);
 
-    const where = el('p', 'shops-card__where');
+    const where = el('p', 'places-card__where');
     where.appendChild(icon('pin'));
-    const whereText = el('span', 'shops-card__where-text');
-    whereText.appendChild(el('span', 'shops-card__region'));
-    whereText.appendChild(el('span', 'shops-card__addr'));
+    const whereText = el('span', 'places-card__where-text');
+    whereText.appendChild(el('span', 'places-card__region'));
+    whereText.appendChild(el('span', 'places-card__addr'));
     where.appendChild(whereText);
 
     row.appendChild(heading);
     row.appendChild(where);
 
-    const actions = el('div', 'shops-card__actions');
+    const actions = el('div', 'places-card__actions');
     if (place.whatsapp) {
-      actions.appendChild(actionLink('shops-btn--wa', 'https://wa.me/' + place.whatsapp, 'wa', 'shops.whatsapp', true));
+      actions.appendChild(actionLink('places-btn--wa', 'https://wa.me/' + place.whatsapp, 'wa', 'places.whatsapp', true));
     }
     if (ref) {
       if (place.type === 'store') {
-        actions.appendChild(actionLink('shops-btn--menu', 'menu.html?id=' + ref + '#menu', 'tag', 'shops.products', false));
+        actions.appendChild(actionLink('places-btn--menu', 'menu.html?id=' + ref + '#menu', 'tag', 'places.products', false));
       } else if (place.has_menu) {
-        actions.appendChild(actionLink('shops-btn--menu', 'menu.html?id=' + ref + '#menu', 'book', 'shops.menu', false));
+        actions.appendChild(actionLink('places-btn--menu', 'menu.html?id=' + ref + '#menu', 'book', 'places.menu', false));
       } else {
-        actions.appendChild(actionLink('shops-btn--menu', 'menu.html?id=' + ref, 'tag', 'shops.prices', false));
+        actions.appendChild(actionLink('places-btn--menu', 'menu.html?id=' + ref, 'tag', 'places.prices', false));
       }
     }
 
@@ -403,8 +410,8 @@
   function showEmpty() {
     panel = 'empty';
     const categoryEmpty = state.type !== 'all' && state.region === 'all' && !state.open;
-    stateTitle.textContent = t(categoryEmpty ? 'shops.emptyCategory' : 'shops.empty');
-    stateSub.textContent = t(categoryEmpty ? 'shops.emptyCategorySub' : 'shops.emptySub');
+    stateTitle.textContent = t(categoryEmpty ? 'places.emptyCategory' : 'places.empty');
+    stateSub.textContent = t(categoryEmpty ? 'places.emptyCategorySub' : 'places.emptySub');
     stateSub.hidden = false;
     if (resetBtn) resetBtn.hidden = !hasActiveFilters();
     if (retryBtn) retryBtn.hidden = true;
@@ -414,7 +421,7 @@
 
   function showError() {
     panel = 'error';
-    stateTitle.textContent = t('shops.errorTitle');
+    stateTitle.textContent = t('places.errorTitle');
     stateSub.textContent = '';
     stateSub.hidden = true;
     if (resetBtn) resetBtn.hidden = true;
@@ -433,7 +440,7 @@
   function paintCount() {
     if (!countEl) return;
     const n = view.total !== null ? String(view.total) : items.length + (view.hasMore ? '+' : '');
-    countEl.textContent = t('shops.count').replace('{n}', n);
+    countEl.textContent = t('places.count').replace('{n}', n);
   }
 
   function paintMore() {
@@ -441,11 +448,11 @@
     moreWrap.hidden = !view.hasMore || panel === 'error';
     if (moreWrap.hidden) return;
     if (moreFailed) {
-      moreLabel.textContent = t('shops.loadMoreFailed');
+      moreLabel.textContent = t('places.loadMoreFailed');
       return;
     }
     const remaining = view.total !== null ? Math.max(0, view.total - items.length) : 0;
-    moreLabel.textContent = remaining > 0 ? t('shops.showMore').replace('{n}', String(remaining)) : t('shops.loadMore');
+    moreLabel.textContent = remaining > 0 ? t('places.showMore').replace('{n}', String(remaining)) : t('places.loadMore');
   }
 
   function playEnter(cols) {
@@ -601,7 +608,7 @@
       extraPages += 1;
       updateView(page);
       playEnter(fresh);
-      const link = fresh.length ? fresh[0].querySelector('.shops-card__link') : null;
+      const link = fresh.length ? fresh[0].querySelector('.places-card__link') : null;
       if (link) link.focus({ preventScroll: true });
     }).catch(function (err) {
       if (mine !== seq || isAborted(err)) return;
@@ -625,14 +632,14 @@
     openChip.setAttribute('aria-pressed', state.open ? 'true' : 'false');
 
     typeItems.forEach(function (item) {
-      const on = item.dataset.shopsType === state.type;
+      const on = item.dataset.placesType === state.type;
       item.classList.toggle('is-active', on);
       if (on) item.setAttribute('aria-current', 'true');
       else item.removeAttribute('aria-current');
     });
 
     regionItems.forEach(function (item) {
-      const on = item.dataset.shopsRegion === state.region;
+      const on = item.dataset.placesRegion === state.region;
       item.classList.toggle('is-active', on);
       if (on) item.setAttribute('aria-current', 'true');
       else item.removeAttribute('aria-current');
@@ -640,7 +647,7 @@
 
     const typeActive = state.type !== 'all';
     typeBtn.classList.toggle('is-active', typeActive);
-    typeLabel.textContent = typeActive ? t(TYPE_FILTERS[state.type]) : t('shops.filterCategory');
+    typeLabel.textContent = typeActive ? t(TYPE_FILTERS[state.type]) : t('places.filterCategory');
 
     const regionActive = state.region !== 'all';
     regionBtn.classList.toggle('is-active', regionActive);
@@ -662,20 +669,20 @@
   }
 
   document.addEventListener('click', function (e) {
-    const target = e.target.closest('[data-shops-all],[data-shops-type],[data-shops-open],[data-shops-region]');
+    const target = e.target.closest('[data-places-all],[data-places-type],[data-places-open],[data-places-region]');
     if (!target) return;
 
-    if (target.hasAttribute('data-shops-all')) {
+    if (target.hasAttribute('data-places-all')) {
       apply({ type: 'all', region: 'all', open: false });
-    } else if (target.hasAttribute('data-shops-open')) {
+    } else if (target.hasAttribute('data-places-open')) {
       apply({ open: !state.open });
-    } else if (target.hasAttribute('data-shops-type')) {
-      const type = target.dataset.shopsType;
+    } else if (target.hasAttribute('data-places-type')) {
+      const type = target.dataset.placesType;
       if (type !== 'all' && !isTypeFilter(type)) return;
-      const toggle = target.classList.contains('shops-popular__item') && type === state.type;
+      const toggle = target.classList.contains('places-popular__item') && type === state.type;
       apply({ type: toggle ? 'all' : type });
     } else {
-      const region = target.dataset.shopsRegion;
+      const region = target.dataset.placesRegion;
       if (region !== 'all' && !isRegionCode(region)) return;
       apply({ region: region });
     }
@@ -687,7 +694,7 @@
   list.addEventListener('click', function (e) {
     const btn = e.target.closest('[data-role="fav"]');
     if (!btn) return;
-    const id = btn.closest('[data-shop]').dataset.id;
+    const id = btn.closest('[data-place]').dataset.id;
     const on = !favs.has(id);
     if (on) favs.add(id);
     else favs.delete(id);
@@ -713,7 +720,7 @@
     repaintPanel();
   }).observe(document.documentElement, { attributes: true, attributeFilter: ['lang'] });
 
-  window.GMShopsUI = { setLoading: setLoading };
+  window.GMPlacesUI = { setLoading: setLoading };
 
   function boot() {
     readUrl();

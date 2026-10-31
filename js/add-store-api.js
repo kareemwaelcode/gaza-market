@@ -1,8 +1,4 @@
 "use strict";
-// add-store-api.js: API layer for the "add a place" request (js/add-store.js uses it).
-// Live mode talks to POST /api/places (multipart). Mock mode is allowed only on local hosts
-// (GM_ENV.isMockAllowed) and never touches a real server.
-// To test the live driver locally, set window.GM_CONFIG = { USE_MOCK: false } before this script.
 (function () {
 const DEFAULTS = {
 API_BASE: "/api",
@@ -19,10 +15,8 @@ const MOCK_SLOW_DELAY_MS = 3000;
 const MOCK_STORAGE_KEY = "gmMockPlaceRequests";
 const MOCK_STORAGE_MAX = 50;
 
-// Fields the server may report in `errors`. Anything else is ignored.
 const KNOWN_FIELDS = ["type", "sub_category", "name", "region", "address", "phone", "whatsapp", "image"];
 
-// Server `code` values mapped to the codes the page understands.
 const KNOWN_CODES = {
 unauthenticated: "UNAUTHENTICATED",
 validation: "VALIDATION",
@@ -31,12 +25,8 @@ rate_limited: "RATE_LIMITED",
 already_has_place: "ALREADY_HAS_PLACE",
 };
 
-// Request statuses the page knows how to show.
 const MINE_STATUSES = ["pending", "approved", "rejected"];
 
-// Mock mode only: ?gm_test=unauth|validation|phone|whatsapp|limit|network|error|slow
-// Mock mode only: ?gm_status=none|pending|approved|activated|rejected previews the status screen.
-// Mock mode only: ?gm_plan=paid previews a paid plan (the default is free).
 let testMode = "";
 let statusPreview = "";
 let planPreview = "";
@@ -83,8 +73,6 @@ const retryAfter = Number(payload.retry_after) > 0 ? Number(payload.retry_after)
 return fail(code, { fields: fields, field: field, retryAfter: retryAfter });
 }
 
-// Turns the server's "my place" object into the small shape the page needs.
-// Returns null when the object is missing or has a status the page does not know.
 function normalizeMine(d) {
 if (!d || typeof d !== "object" || MINE_STATUSES.indexOf(d.status) === -1) return null;
 return {
@@ -93,14 +81,12 @@ status: d.status,
 name: typeof d.name === "string" ? d.name.slice(0, 80) : "",
 type: typeof d.type === "string" ? d.type : "",
 subCategory: typeof d.sub_category === "string" ? d.sub_category.slice(0, 60) : "",
-// Display only. The server decides and enforces the plan. Anything but "paid" counts as free.
 plan: d.plan === "paid" ? "paid" : "free",
 activated: d.activated === true,
 rejectionReason: typeof d.rejection_reason === "string" ? d.rejection_reason.slice(0, 300) : "",
 };
 }
 
-// GET /api/places/mine: 200 with data:null = the user has no place yet.
 function mineToResult(res) {
 if (res.status >= 200 && res.status < 300) {
 const body = res.payload && typeof res.payload === "object" ? res.payload : {};
@@ -153,7 +139,6 @@ const timer = controller ? window.setTimeout(() => controller.abort(), CONFIG.TI
 
 return ensureCsrfCookie(false)
 .then(() => {
-    // No Content-Type header: the browser sets the multipart boundary itself.
     const headers = { Accept: "application/json", "X-Requested-With": "XMLHttpRequest" };
     const xsrf = getXsrfToken();
     if (xsrf) headers["X-XSRF-TOKEN"] = xsrf;
@@ -209,7 +194,6 @@ return {
 submit: function (payload) {
 return send(payload)
     .then((res) => {
-    // 419 = Laravel CSRF/session mismatch: refresh the CSRF cookie and retry once.
     if (res.status === 419) return ensureCsrfCookie(true).then(() => send(payload));
     return res;
     })
@@ -249,8 +233,6 @@ return false;
 }
 }
 
-// Rule: one place per number. A number counts as taken if it is the phone OR the
-// WhatsApp number of any existing request.
 function takenField(list, payload) {
 for (let i = 0; i < list.length; i++) {
 const used = [list[i].phone, list[i].whatsapp];
@@ -293,7 +275,6 @@ return delay(testMode === "slow" ? MOCK_SLOW_DELAY_MS : MOCK_DELAY_MS).then(() =
 });
 },
 
-// Mock: the newest saved request counts as "my place". ?gm_status=... previews each state.
 getMine: function () {
 return delay(300).then(() => {
     if (testMode === "network") return fail("NETWORK");

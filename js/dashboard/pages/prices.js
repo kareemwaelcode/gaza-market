@@ -1,9 +1,3 @@
-/*
- * Gaza Market - dashboard page: prices (products)
- * Product categories and items with prices.
- * Moved verbatim from the former js/usere-dashboard.js (no behaviour change).
- * Load order: core.js, shell.js, page-runner.js, common.js, [extra-fields.js,] this file.
- */
 (function () {
   'use strict';
 

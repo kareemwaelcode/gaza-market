@@ -18,8 +18,6 @@
   var PAGE_SIZE = 20;
   var SEARCH_DELAY_MS = 300;
 
-  // The server (or the mock that mirrors it) is the source of truth. This page only keeps the last loaded snapshot:
-  // items = the pages loaded so far, meta = cursor info of the last page, summary = counters and plan usage.
   var state = {
     items: [],
     meta: { nextCursor: null, hasMore: false, total: null },
@@ -266,7 +264,6 @@
       }
     }
 
-    // The search box lives inside the data wrap, so it stays visible while a search has no results.
     var hasAny = summary.total > 0 || !!state.q;
     if (dataWrap) dataWrap.style.display = hasAny ? '' : 'none';
     if (emptyState) emptyState.style.display = hasAny ? 'none' : '';
@@ -290,8 +287,6 @@
     return { q: state.q, cursor: cursor || '', limit: PAGE_SIZE };
   }
 
-  // Loads the counters and the first page together. silent = keep the current screen while refreshing
-  // (used after a change, because counters and plan-hidden items change on the server side).
   function loadAll(silent) {
     if (!api || !api.reservations) {
       state.view = 'error';
@@ -332,7 +327,6 @@
       state.summary = summaryRes.data;
       updateReservationsNavBadge(state.summary.pending);
 
-      // If the owner searched while this was loading, the search request owns the list.
       if (listSeq === state.listSeq) {
         state.items = listRes.data.items;
         state.meta = listRes.data.meta;
@@ -342,7 +336,6 @@
     });
   }
 
-  // Reloads only the list (search or clearing the search). The counters do not change.
   function reloadList() {
     if (!api || !api.reservations || state.view !== 'ready') return;
     var seq = ++state.listSeq;
@@ -410,7 +403,6 @@
     showToast(errorText(res), { icon: 'alert-triangle', danger: true });
   }
 
-  // One change at a time. Buttons stay disabled until the server answers, then the page reloads from the server.
   function mutate(call, successText, successOpts) {
     if (state.busy) return;
     state.busy = true;

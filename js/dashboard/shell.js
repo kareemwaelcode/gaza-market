@@ -97,8 +97,6 @@
     if (page) attrs += ' data-page="' + page + '"';
     var action = safeAction(item.action);
     if (action) attrs += ' data-action="' + action + '"';
-    // A nav item tied to a plan-locked feature: applyLockedFeaturesToUI() toggles .is-locked
-    // on it, and the capture-phase click handler opens the upgrade modal instead of navigating.
     if (typeof item.lockedFeature === 'string' && /^[A-Za-z]{1,32}$/.test(item.lockedFeature)) {
       attrs += ' data-locked-feature="' + item.lockedFeature + '"';
     }
@@ -1035,8 +1033,6 @@
 
   var ADD_STORE_PAGE_URL = new URL('../add-store.html', PROFILE_PAGE_URL).href;
   var LOGIN_PAGE_URL = new URL('auth/login.html', PROFILE_PAGE_URL).href;
-  // MOCK ONLY: with no saved place request, keep the old localStorage values so local testing still works.
-  // Live mode never uses this: no place means redirect to the add-store page. Remove when the backend is connected.
   var MOCK_ALLOWS_NO_PLACE = true;
 
   function waitForPlaceRetry() {
@@ -1077,8 +1073,6 @@
     return api.getMine().then(function (res) { return res; }, function () { return { ok: false, code: 'NETWORK' }; });
   }
 
-  // Loads the owner's place before anything is drawn and hands it to GMStoreTypeConfig (display only;
-  // the server enforces the plan). Returns true when the page may continue.
   async function loadPlaceState() {
     var store = window.GMStoreTypeConfig;
     if (!store || typeof store.hydrateFromPlace !== 'function' || store.hasPlaceState()) return true;

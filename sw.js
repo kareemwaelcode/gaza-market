@@ -1,11 +1,11 @@
 const CACHE_PREFIX = 'gm-';
-const CACHE_VERSION = 'gm-v22';
+const CACHE_VERSION = 'gm-v26';
 const SCOPE = self.registration.scope;
 
 const PRECACHE = [
   'index.html',
   'home.html',
-  'shops.html',
+  'places.html',
   'menu.html',
   'profile.html',
   'add-store.html',
@@ -23,8 +23,8 @@ const PRECACHE = [
   'js/auth.js',
   'js/offline.js',
   'js/home.js',
-  'js/shops.js',
-  'js/shops-api.js',
+  'js/places.js',
+  'js/places-api.js',
   'js/menu.js',
   'js/booking.js',
   'js/workspace.js',
@@ -42,7 +42,7 @@ const PRECACHE = [
   'assets/fonts/cairo-latin-600-normal.woff2',
   'assets/fonts/cairo-latin-700-normal.woff2',
   'assets/img/logo.gazamarket.png',
-  'assets/img/shop-placeholder.svg.webp',
+  'assets/img/place-placeholder.svg.webp',
   'assets/img/ps.svg',
   'assets/img/us.svg'
 ];
@@ -63,10 +63,10 @@ const DASHBOARD_PRECACHE = [
   'dashboard-users/dashboard.html',
   'dashboard-users/ads.html',
   'dashboard-users/appointments.html',
-  'dashboard-users/menu.html',
+  'dashboard-users/dashboard-menu.html',
   'dashboard-users/packages.html',
   'dashboard-users/prices.html',
-  'dashboard-users/profile.html',
+  'dashboard-users/dashboard-profile.html',
   'dashboard-users/reservations.html',
   'dashboard-users/services.html',
   'dashboard-users/subscribers.html',
@@ -108,7 +108,7 @@ const DASHBOARD_PRECACHE = [
   'js/dashboard/pages/ads.js',
   'js/dashboard/pages/dashboard.js',
   'js/dashboard/pages/extra-fields.js',
-  'js/dashboard/pages/menu.js',
+  'js/dashboard/pages/dashboard-menu.js',
   'js/dashboard/pages/packages.js',
   'js/dashboard/pages/prices.js',
   'js/dashboard/pages/reservations.js',

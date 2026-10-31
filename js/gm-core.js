@@ -1,11 +1,6 @@
-// gm-core.js: shared core loaded on EVERY page (public, dashboard, auth).
-// Provides window.GM_ENV (host/mock gate) and window.GM_ID (secure ID generator).
-
 (function () {
   'use strict';
 
-  // [1/2] GM_ENV: single source of truth for "where are we running" and "is mock data allowed".
-  // Loaded before boot.js on public pages and before auth-api.js on dashboard/auth pages.
   if (window.GM_ENV) return;
 
   function isLocalDevHost() {
@@ -21,16 +16,11 @@
       /^172\.(1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3}$/.test(host);
   }
 
-  // Mock data/auth is allowed only on local hosts (or when explicitly forced via
-  // GM_CONFIG.ALLOW_MOCK_ON_ANY_HOST) and only while GM_CONFIG.USE_MOCK is not false.
   function isMockAllowed() {
     var cfg = window.GM_CONFIG || {};
     return cfg.USE_MOCK !== false && (isLocalDevHost() || cfg.ALLOW_MOCK_ON_ANY_HOST === true);
   }
 
-  // MOCK ONLY: the one demo workspace that the (single) mock dashboard owner "owns".
-  // Used until the backend exists, so the public page and the dashboard agree on whose
-  // plan and whose subscription requests they show. Removed when the API is connected.
   var MOCK_OWNER_SLUG = 'vibe-hub';
 
   window.GM_ENV = Object.freeze({
@@ -43,14 +33,9 @@
 (function () {
   'use strict';
 
-  // [2/2] GM_ID: client-side ID generator backed by crypto.getRandomValues only.
-  // There is intentionally NO Math.random fallback: if the secure generator is
-  // unavailable, generation fails loudly instead of silently becoming predictable.
-  // These IDs are temporary until the backend (Laravel) issues real IDs.
   var ALPHABET = 'abcdefghijklmnopqrstuvwxyz0123456789';
   var RANDOM_LENGTH = 10;
   var PREFIX_PATTERN = /^[a-z][a-z0-9]{0,11}$/;
-  // Largest multiple of 36 that fits in a byte; bytes >= this are rejected to avoid modulo bias.
   var BYTE_LIMIT = 256 - (256 % ALPHABET.length);
 
   function getCrypto() {
@@ -66,7 +51,6 @@
     }
 
     var out = '';
-    // getRandomValues is limited to 65,536 bytes per call, so the buffer is capped and refilled in the loop.
     var buf = new Uint8Array(Math.min(length * 2, 1024));
     while (out.length < length) {
       cryptoObj.getRandomValues(buf);

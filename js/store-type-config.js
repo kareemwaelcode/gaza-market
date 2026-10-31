@@ -7,8 +7,6 @@ window.GMStoreTypeConfig = (function () {
   var DEFAULT_PLAN = 'free';
   var PLAN_IDS = ['free', 'paid'];
 
-  // The place data the server reported (type, sub-category, plan). It lives in memory only and is
-  // set once per page load by hydrateFromPlace(). Once set, it wins over the old localStorage values.
   var placeState = null;
 
   var ALLOWED_ICON_NAMES = [
@@ -78,7 +76,7 @@ window.GMStoreTypeConfig = (function () {
       ],
       productHints: { name: 'مثال: أرز مصري 5 كيلو', details: 'مثال: حبة طويلة، كيس 5 كيلو', brand: 'مثال: اسم الشركة المصنعة' },
       suggestedCategories: ['معلبات', 'أرز وبقوليات', 'زيوت وسمن', 'سكر وطحين', 'ألبان وأجبان', 'مشروبات وعصائر', 'منظفات ومستلزمات منزلية', 'حلويات وسناكس'],
-      heroWelcomeText: 'محلك جاهز لعرض المواد الغذائية وأسعارها من هنا.',
+      heroWelcomeText: 'مكانك جاهز لعرض المواد الغذائية وأسعارها من هنا.',
       adTypes: ['offer', 'job'],
       adOptions: { offerPrices: true, linkOnlyForJob: true, limitNotice: true, expiryNotice: true }
     },
@@ -98,7 +96,7 @@ window.GMStoreTypeConfig = (function () {
       ],
       productHints: { name: 'مثال: بندورة بلدية', details: 'مثال: درجة أولى، طازجة من المزرعة' },
       suggestedCategories: ['خضار', 'فواكه', 'ورقيات وأعشاب طازجة', 'خضار وفواكه موسمية', 'فواكه مجففة وتمور'],
-      heroWelcomeText: 'محلك جاهز لعرض الخضار والفواكه وأسعارها من هنا.',
+      heroWelcomeText: 'مكانك جاهز لعرض الخضار والفواكه وأسعارها من هنا.',
       adTypes: ['offer', 'job'],
       adOptions: { offerPrices: true, linkOnlyForJob: true, limitNotice: true, expiryNotice: true }
     },
@@ -119,7 +117,7 @@ window.GMStoreTypeConfig = (function () {
       ],
       productHints: { name: 'مثال: لحم عجل مفروم', details: 'مثال: مفروم ناعم، خالي من الدهون' },
       suggestedCategories: ['لحم عجل وبقر', 'لحم غنم', 'دجاج وطيور', 'لحوم مفرومة ومتبلة', 'لحوم مصنّعة ومجمدة'],
-      heroWelcomeText: 'محلك جاهز لعرض اللحوم وأسعارها من هنا.',
+      heroWelcomeText: 'مكانك جاهز لعرض اللحوم وأسعارها من هنا.',
       adTypes: ['offer', 'job'],
       adOptions: { offerPrices: true, linkOnlyForJob: true, limitNotice: true, expiryNotice: true }
     },
@@ -140,7 +138,7 @@ window.GMStoreTypeConfig = (function () {
       ],
       productHints: { name: 'مثال: سمك دنيس', details: 'مثال: حجم وسط، منظف وجاهز للطبخ' },
       suggestedCategories: ['أسماك طازجة', 'أسماك مجمدة', 'جمبري ومأكولات بحرية', 'أسماك مملحة ومعلبة'],
-      heroWelcomeText: 'محلك جاهز لعرض الأسماك وأسعارها من هنا.',
+      heroWelcomeText: 'مكانك جاهز لعرض الأسماك وأسعارها من هنا.',
       adTypes: ['offer', 'job'],
       adOptions: { offerPrices: true, linkOnlyForJob: true, limitNotice: true, expiryNotice: true }
     },
@@ -178,7 +176,7 @@ window.GMStoreTypeConfig = (function () {
       ],
       productHints: { name: 'مثال: كنافة نابلسية', details: 'مثال: جبنة نابلسية، صينية 12 قطعة' },
       suggestedCategories: ['حلويات شرقية', 'حلويات غربية', 'كنافة وقطايف', 'كيك وتورتات', 'شوكولاتة ومكسرات'],
-      heroWelcomeText: 'محلك جاهز لعرض الحلويات وأسعارها من هنا.',
+      heroWelcomeText: 'مكانك جاهز لعرض الحلويات وأسعارها من هنا.',
       adTypes: ['offer', 'job'],
       adOptions: { offerPrices: true, linkOnlyForJob: true, limitNotice: true, expiryNotice: true }
     },
@@ -197,7 +195,7 @@ window.GMStoreTypeConfig = (function () {
       ],
       productHints: { name: 'مثال: كمون مطحون', details: 'مثال: مطحون طازج، بدون إضافات', brand: 'مثال: اسم المصدر أو الشركة' },
       suggestedCategories: ['بهارات', 'أعشاب وعطارة', 'مكسرات وبذور', 'قهوة وشاي', 'توابل مشكلة'],
-      heroWelcomeText: 'محلك جاهز لعرض البهارات والأعشاب وأسعارها من هنا.',
+      heroWelcomeText: 'مكانك جاهز لعرض البهارات والأعشاب وأسعارها من هنا.',
       adTypes: ['offer', 'job'],
       adOptions: { offerPrices: true, linkOnlyForJob: true, limitNotice: true, expiryNotice: true }
     },
@@ -216,7 +214,7 @@ window.GMStoreTypeConfig = (function () {
       ],
       productHints: { name: 'مثال: قميص رجالي كلاسيك', details: 'مثال: قطن 100%، قصة ضيقة', size: 'مثال: M أو L أو 42', color: 'مثال: أبيض، أزرق سماوي' },
       suggestedCategories: ['قمصان', 'بناطيل', 'تيشرتات وبلوزات', 'بدلات وجاكيتات', 'ملابس رياضية', 'ملابس داخلية وجوارب', 'ملابس شتوية'],
-      heroWelcomeText: 'محلك جاهز لعرض الملابس الرجالية وأسعارها من هنا.',
+      heroWelcomeText: 'مكانك جاهز لعرض الملابس الرجالية وأسعارها من هنا.',
       adTypes: ['offer', 'job'],
       adOptions: { offerPrices: true, linkOnlyForJob: true, limitNotice: true, expiryNotice: true }
     },
@@ -235,7 +233,7 @@ window.GMStoreTypeConfig = (function () {
       ],
       productHints: { name: 'مثال: فستان سهرة طويل', details: 'مثال: قماش شيفون، بطانة داخلية', size: 'مثال: S أو M أو 38', color: 'مثال: أسود، بيج' },
       suggestedCategories: ['فساتين', 'بلوزات وقمصان', 'بناطيل وتنانير', 'عبايات وإسدالات', 'ملابس منزلية ونوم', 'ملابس رياضية', 'ملابس شتوية'],
-      heroWelcomeText: 'محلك جاهز لعرض الملابس النسائية وأسعارها من هنا.',
+      heroWelcomeText: 'مكانك جاهز لعرض الملابس النسائية وأسعارها من هنا.',
       adTypes: ['offer', 'job'],
       adOptions: { offerPrices: true, linkOnlyForJob: true, limitNotice: true, expiryNotice: true }
     },
@@ -256,7 +254,7 @@ window.GMStoreTypeConfig = (function () {
       ],
       productHints: { name: 'مثال: طقم أطفال قطن', details: 'مثال: قطعتين، قطن ناعم للبشرة الحساسة', size: 'مثال: 4 سنوات أو 98 سم', color: 'مثال: سماوي، وردي' },
       suggestedCategories: ['ملابس مواليد', 'ملابس أولاد', 'ملابس بنات', 'ملابس مدرسية', 'ملابس نوم', 'ملابس شتوية'],
-      heroWelcomeText: 'محلك جاهز لعرض ملابس الأطفال وأسعارها من هنا.',
+      heroWelcomeText: 'مكانك جاهز لعرض ملابس الأطفال وأسعارها من هنا.',
       adTypes: ['offer', 'job'],
       adOptions: { offerPrices: true, linkOnlyForJob: true, limitNotice: true, expiryNotice: true }
     },
@@ -276,7 +274,7 @@ window.GMStoreTypeConfig = (function () {
       ],
       productHints: { name: 'مثال: حذاء رياضي للجري', details: 'مثال: نعل طبي مريح، خفيف الوزن', brand: 'مثال: نايك، أديداس، بوما', size: 'مثال: 42 أو 38-41', color: 'مثال: أسود، أبيض', material: 'مثال: جلد طبيعي، قماش' },
       suggestedCategories: ['أحذية رياضية', 'أحذية رسمية', 'صنادل وشباشب', 'بوتات وجزم', 'أحذية مدرسية', 'أحذية أطفال'],
-      heroWelcomeText: 'محلك جاهز لعرض الأحذية وأسعارها من هنا.',
+      heroWelcomeText: 'مكانك جاهز لعرض الأحذية وأسعارها من هنا.',
       adTypes: ['offer', 'job'],
       adOptions: { offerPrices: true, linkOnlyForJob: true, limitNotice: true, expiryNotice: true }
     },
@@ -324,7 +322,7 @@ window.GMStoreTypeConfig = (function () {
         servicesPageTitle: 'الخدمات والأسعار',
         servicesEmptyText: 'أضف عملاً مثل التفصيل أو التقصير أو التعديل مع سعره ومدة تنفيذه ليطّلع عليه الزوار قبل زيارتك'
       },
-      heroWelcomeText: 'محلك جاهز لعرض خدماتك وأسعارك ومدة التنفيذ من هنا.',
+      heroWelcomeText: 'مكانك جاهز لعرض خدماتك وأسعارك ومدة التنفيذ من هنا.',
       adTypes: ['offer', 'job'],
       adOptions: { offerPrices: true, linkOnlyForJob: true, limitNotice: true, expiryNotice: true }
     },
@@ -398,7 +396,7 @@ window.GMStoreTypeConfig = (function () {
       productFields: ['details', 'size', 'color', 'material'],
       productHints: { name: 'مثال: طقم ستائر مخمل', details: 'مثال: طقم من 4 قطع مع الإكسسوارات', size: 'مثال: 2×3 متر أو سرير مفرد', color: 'مثال: بيج، رمادي، بني', material: 'مثال: قطن، مخمل، بوليستر' },
       suggestedCategories: ['ستائر', 'شراشف وأطقم سرير', 'بطانيات ولحف', 'مخدات ووسائد', 'سجاد وموكيت', 'مفارش طاولات ومطبخ', 'مناشف'],
-      heroWelcomeText: 'محلك جاهز لعرض المفروشات والستائر وأسعارها من هنا.',
+      heroWelcomeText: 'مكانك جاهز لعرض المفروشات والستائر وأسعارها من هنا.',
       adTypes: ['offer', 'job'],
       adOptions: { offerPrices: true, linkOnlyForJob: true, limitNotice: true, expiryNotice: true }
     },
@@ -414,7 +412,7 @@ window.GMStoreTypeConfig = (function () {
       productFields: ['details', 'color', 'material'],
       productHints: { name: 'مثال: طقم قدور ستانلس 10 قطع', details: 'مثال: 10 قطع مع أغطية زجاجية', color: 'مثال: فضي، أسود', material: 'مثال: ستانلس ستيل، زجاج، ميلامين' },
       suggestedCategories: ['أواني وقدور', 'صحون وكاسات', 'أدوات مطبخ', 'علب تخزين وحفظ', 'أدوات مائدة وتقديم', 'أدوات غسيل ونشر', 'منظمات ورفوف'],
-      heroWelcomeText: 'محلك جاهز لعرض الأدوات المنزلية وأسعارها من هنا.',
+      heroWelcomeText: 'مكانك جاهز لعرض الأدوات المنزلية وأسعارها من هنا.',
       adTypes: ['offer', 'job'],
       adOptions: { offerPrices: true, linkOnlyForJob: true, limitNotice: true, expiryNotice: true }
     },
@@ -446,7 +444,7 @@ window.GMStoreTypeConfig = (function () {
       productFields: ['details', 'brand'],
       productHints: { name: 'مثال: سائل جلي 4 لتر', details: 'مثال: عبوة 4 لتر، رائحة ليمون', brand: 'مثال: فيري، أومو، دومستوس' },
       suggestedCategories: ['منظفات أرضيات', 'منظفات مطبخ وجلي', 'منظفات حمام', 'مساحيق ومنظفات غسيل', 'معطرات ومزيلات روائح', 'مطهرات ومعقمات', 'أدوات تنظيف'],
-      heroWelcomeText: 'محلك جاهز لعرض مواد التنظيف وأسعارها من هنا.',
+      heroWelcomeText: 'مكانك جاهز لعرض مواد التنظيف وأسعارها من هنا.',
       adTypes: ['offer', 'job'],
       adOptions: { offerPrices: true, linkOnlyForJob: true, limitNotice: true, expiryNotice: true }
     },
@@ -462,7 +460,7 @@ window.GMStoreTypeConfig = (function () {
       productFields: ['details', 'brand', 'color', 'material'],
       productHints: { name: 'مثال: خلاط مغسلة كروم', details: 'مثال: قطر 1 إنش، ضمان سنة', brand: 'مثال: اسم الشركة المصنعة', color: 'مثال: كروم، أسود مطفي', material: 'مثال: نحاس، ستانلس، PVC' },
       suggestedCategories: ['مراحيض ومغاسل', 'خلاطات وحنفيات', 'أحواض وبانيوهات', 'مواسير ووصلات', 'خزانات مياه', 'مضخات ومحابس', 'إكسسوارات حمام'],
-      heroWelcomeText: 'محلك جاهز لعرض الأدوات الصحية وأسعارها من هنا.',
+      heroWelcomeText: 'مكانك جاهز لعرض الأدوات الصحية وأسعارها من هنا.',
       adTypes: ['offer', 'job'],
       adOptions: { offerPrices: true, linkOnlyForJob: true, limitNotice: true, expiryNotice: true }
     },
@@ -498,7 +496,7 @@ window.GMStoreTypeConfig = (function () {
       ],
       productHints: { name: 'مثال: سامسونج Galaxy A54 128GB', details: 'مثال: شاشة 6.4 إنش، كاميرا 50 ميجا', brand: 'مثال: سامسونج، آبل، شاومي' },
       suggestedCategories: ['هواتف ذكية', 'سماعات', 'شواحن وكوابل', 'جرابات وحمايات', 'باور بانك', 'إكسسوارات متنوعة'],
-      heroWelcomeText: 'محلك جاهز لعرض الموبايلات والإكسسوارات وأسعارها من هنا.',
+      heroWelcomeText: 'مكانك جاهز لعرض الموبايلات والإكسسوارات وأسعارها من هنا.',
       adTypes: ['offer', 'job'],
       adOptions: { offerPrices: true, linkOnlyForJob: true, limitNotice: true, expiryNotice: true }
     },
@@ -522,7 +520,7 @@ window.GMStoreTypeConfig = (function () {
       ],
       productHints: { name: 'مثال: لابتوب HP 15 Core i5', details: 'مثال: شاشة 15.6 إنش، بطارية تدوم 6 ساعات', brand: 'مثال: HP، Dell، Lenovo' },
       suggestedCategories: ['لابتوبات', 'كمبيوترات مكتبية', 'شاشات', 'قطع ومكونات', 'طابعات وأحبار', 'ملحقات (ماوس وكيبورد)'],
-      heroWelcomeText: 'محلك جاهز لعرض الكمبيوترات واللابتوبات وأسعارها من هنا.',
+      heroWelcomeText: 'مكانك جاهز لعرض الكمبيوترات واللابتوبات وأسعارها من هنا.',
       adTypes: ['offer', 'job'],
       adOptions: { offerPrices: true, linkOnlyForJob: true, limitNotice: true, expiryNotice: true }
     },
@@ -544,7 +542,7 @@ window.GMStoreTypeConfig = (function () {
       ],
       productHints: { name: 'مثال: شاشة سمارت 55 إنش', details: 'مثال: 4K، نظام أندرويد، ريموت صوتي', brand: 'مثال: سامسونج، LG، سوني' },
       suggestedCategories: ['تلفزيونات وشاشات', 'سماعات وسبيكرات', 'كاميرات', 'أجهزة ألعاب', 'أجهزة ذكية', 'إضاءة وكهربائيات صغيرة'],
-      heroWelcomeText: 'محلك جاهز لعرض الإلكترونيات وأسعارها من هنا.',
+      heroWelcomeText: 'مكانك جاهز لعرض الإلكترونيات وأسعارها من هنا.',
       adTypes: ['offer', 'job'],
       adOptions: { offerPrices: true, linkOnlyForJob: true, limitNotice: true, expiryNotice: true }
     },
@@ -586,7 +584,7 @@ window.GMStoreTypeConfig = (function () {
         servicesPageTitle: 'باقات التركيب',
         servicesEmptyText: 'أضف باقة جاهزة مثل لوح وبطارية وإنفرتر مع سعرها ومدة تركيبها ليطّلع عليها الزوار قبل زيارتك'
       },
-      heroWelcomeText: 'محلك جاهز لعرض الطاقة الشمسية وباقات التركيب وأسعارها من هنا.',
+      heroWelcomeText: 'مكانك جاهز لعرض الطاقة الشمسية وباقات التركيب وأسعارها من هنا.',
       adTypes: ['offer', 'job'],
       adOptions: { offerPrices: true, linkOnlyForJob: true, limitNotice: true, expiryNotice: true }
     },
@@ -623,7 +621,7 @@ window.GMStoreTypeConfig = (function () {
         servicesPageTitle: 'الخدمات والأسعار',
         servicesEmptyText: 'أضف خدمة مثل تغيير شاشة أو بطارية مع سعرها ومدة تنفيذها وضمانها ليطّلع عليها الزوار قبل زيارتك'
       },
-      heroWelcomeText: 'محلك جاهز لعرض خدمات التصليح والصيانة وأسعارها من هنا.',
+      heroWelcomeText: 'مكانك جاهز لعرض خدمات التصليح والصيانة وأسعارها من هنا.',
       adTypes: ['offer', 'job'],
       adOptions: { offerPrices: true, linkOnlyForJob: true, limitNotice: true, expiryNotice: true }
     },
@@ -643,7 +641,7 @@ window.GMStoreTypeConfig = (function () {
       ],
       productHints: { name: 'مثال: إسمنت أسود 50 كيلو', details: 'مثال: إسمنت بورتلاندي، مناسب للصب والبناء', brand: 'مثال: اسم المصنع أو الشركة' },
       suggestedCategories: ['إسمنت ولصق', 'رمل وحصى', 'طوب وبلوك', 'عزل', 'أدوات بناء'],
-      heroWelcomeText: 'محلك جاهز لعرض مواد البناء وأسعارها من هنا.',
+      heroWelcomeText: 'مكانك جاهز لعرض مواد البناء وأسعارها من هنا.',
       adTypes: ['offer', 'job'],
       adOptions: { offerPrices: true, linkOnlyForJob: true, limitNotice: true, expiryNotice: true }
     },
@@ -684,7 +682,7 @@ window.GMStoreTypeConfig = (function () {
         servicesPageTitle: 'التفصيل والتركيب',
         servicesEmptyText: 'أضف خدمة مثل تفصيل باب أو شباك أو دربزين مع سعرها ومدة تنفيذها ليطّلع عليها الزوار قبل زيارتك'
       },
-      heroWelcomeText: 'محلك جاهز لعرض الحديد والألمنيوم وخدمات التفصيل وأسعارها من هنا.',
+      heroWelcomeText: 'مكانك جاهز لعرض الحديد والألمنيوم وخدمات التفصيل وأسعارها من هنا.',
       adTypes: ['offer', 'job'],
       adOptions: { offerPrices: true, linkOnlyForJob: true, limitNotice: true, expiryNotice: true }
     },
@@ -704,7 +702,7 @@ window.GMStoreTypeConfig = (function () {
       ],
       productHints: { name: 'مثال: دهان داخلي أبيض 18 لتر', details: 'مثال: قابل للغسيل، يغطي 12 متر للتر', brand: 'مثال: جوتن، جمجوم، ناشيونال', color: 'مثال: أبيض، رقم اللون RAL 9010' },
       suggestedCategories: ['دهانات داخلية', 'دهانات خارجية', 'معاجين وأساسات', 'ورق جدران', 'أدوات دهان'],
-      heroWelcomeText: 'محلك جاهز لعرض الدهانات والديكور وأسعارها من هنا.',
+      heroWelcomeText: 'مكانك جاهز لعرض الدهانات والديكور وأسعارها من هنا.',
       adTypes: ['offer', 'job'],
       adOptions: { offerPrices: true, linkOnlyForJob: true, limitNotice: true, expiryNotice: true }
     },
@@ -725,7 +723,7 @@ window.GMStoreTypeConfig = (function () {
       ],
       productHints: { name: 'مثال: لوح MDF أبيض 18 ملم', details: 'مثال: وجهين، مقاوم للرطوبة' },
       suggestedCategories: ['ألواح MDF', 'خشب طبيعي', 'أبلكاش', 'باركيه', 'إكسسوارات ومفصلات'],
-      heroWelcomeText: 'محلك جاهز لعرض الأخشاب وأسعارها من هنا.',
+      heroWelcomeText: 'مكانك جاهز لعرض الأخشاب وأسعارها من هنا.',
       adTypes: ['offer', 'job'],
       adOptions: { offerPrices: true, linkOnlyForJob: true, limitNotice: true, expiryNotice: true }
     },
@@ -749,7 +747,7 @@ window.GMStoreTypeConfig = (function () {
       ],
       productHints: { name: 'مثال: سيراميك أرضيات 60×60', details: 'مثال: درجة أولى، مقاوم للخدش', brand: 'مثال: اسم الشركة المصنعة' },
       suggestedCategories: ['أرضيات', 'جدران', 'بورسلان', 'حمامات ومطابخ', 'أدوات تركيب وجص'],
-      heroWelcomeText: 'محلك جاهز لعرض السيراميك والبلاط وأسعاره من هنا.',
+      heroWelcomeText: 'مكانك جاهز لعرض السيراميك والبلاط وأسعاره من هنا.',
       adTypes: ['offer', 'job'],
       adOptions: { offerPrices: true, linkOnlyForJob: true, limitNotice: true, expiryNotice: true }
     },
@@ -788,7 +786,7 @@ window.GMStoreTypeConfig = (function () {
       ],
       productHints: { name: 'مثال: سيارة تحكم عن بعد', details: 'مثال: تعمل بالبطارية، مناسبة للأطفال', brand: 'مثال: اسم الشركة المصنعة', color: 'مثال: أحمر، أزرق' },
       suggestedCategories: ['ألعاب تعليمية', 'دمى وعرائس', 'سيارات وألعاب تحكم', 'ألعاب تركيب ومكعبات', 'ألعاب خارجية', 'هدايا ومفاجآت'],
-      heroWelcomeText: 'محلك جاهز لعرض ألعاب الأطفال وأسعارها من هنا.',
+      heroWelcomeText: 'مكانك جاهز لعرض ألعاب الأطفال وأسعارها من هنا.',
       adTypes: ['offer', 'job'],
       adOptions: { offerPrices: true, linkOnlyForJob: true, limitNotice: true, expiryNotice: true }
     },
@@ -808,7 +806,7 @@ window.GMStoreTypeConfig = (function () {
       ],
       productHints: { name: 'مثال: علبة ألوان مائية 24 لون', details: 'مثال: ألوان زاهية، قابلة للمزج', brand: 'مثال: اسم الشركة المصنعة', color: 'مثال: مجموعة متعددة الألوان' },
       suggestedCategories: ['ألوان وأقلام رسم', 'دفاتر وأوراق رسم', 'فرش وأدوات تلوين', 'لوحات وحوامل', 'أدوات هندسية', 'مستلزمات أشغال يدوية'],
-      heroWelcomeText: 'محلك جاهز لعرض أدوات الفن والرسم وأسعارها من هنا.',
+      heroWelcomeText: 'مكانك جاهز لعرض أدوات الفن والرسم وأسعارها من هنا.',
       adTypes: ['offer', 'job'],
       adOptions: { offerPrices: true, linkOnlyForJob: true, limitNotice: true, expiryNotice: true }
     },
@@ -973,7 +971,7 @@ window.GMStoreTypeConfig = (function () {
       ],
       productHints: { name: 'مثال: فلتر زيت تويوتا كورولا', details: 'مثال: يناسب محرك 1.6 و1.8', brand: 'مثال: اسم الشركة المصنعة' },
       suggestedCategories: ['فلاتر وزيوت', 'فرامل وتيل', 'كهرباء وبطاريات', 'محرك وتبريد', 'تعليق وتوجيه', 'إكسسوارات وزينة'],
-      heroWelcomeText: 'محلك جاهز لعرض قطع الغيار وأسعارها من هنا.',
+      heroWelcomeText: 'مكانك جاهز لعرض قطع الغيار وأسعارها من هنا.',
       adTypes: ['offer', 'job'],
       adOptions: { offerPrices: true, linkOnlyForJob: true, limitNotice: true, expiryNotice: true }
     },
@@ -1033,7 +1031,7 @@ window.GMStoreTypeConfig = (function () {
       ],
       productHints: { name: 'مثال: إطار ميشلان 205/55 R16', details: 'مثال: مناسب للسيارات الصغيرة والمتوسطة', brand: 'مثال: ميشلان، بريجستون، هانكوك' },
       suggestedCategories: ['إطارات سيارات صغيرة', 'إطارات جيب ودفع رباعي', 'إطارات شاحنات', 'جنطات', 'بطاريات', 'ملحقات وصمامات'],
-      heroWelcomeText: 'محلك جاهز لعرض الإطارات وأسعارها من هنا.',
+      heroWelcomeText: 'مكانك جاهز لعرض الإطارات وأسعارها من هنا.',
       adTypes: ['offer', 'job'],
       adOptions: { offerPrices: true, linkOnlyForJob: true, limitNotice: true, expiryNotice: true }
     },
@@ -1097,7 +1095,7 @@ window.GMStoreTypeConfig = (function () {
       ],
       productHints: { name: 'مثال: علف دواجن تسمين 25 كيلو', details: 'مثال: نسبة بروتين 21%', brand: 'مثال: اسم الشركة المصنعة' },
       suggestedCategories: ['أعلاف دواجن', 'أعلاف أبقار وأغنام', 'طعام قطط وكلاب', 'مكملات غذائية', 'أدوات تغذية وسقاية', 'مستلزمات حظائر'],
-      heroWelcomeText: 'محلك جاهز لعرض الأعلاف والمستلزمات وأسعارها من هنا.',
+      heroWelcomeText: 'مكانك جاهز لعرض الأعلاف والمستلزمات وأسعارها من هنا.',
       adTypes: ['offer', 'job'],
       adOptions: { offerPrices: true, linkOnlyForJob: true, limitNotice: true, expiryNotice: true }
     },
@@ -1117,16 +1115,12 @@ window.GMStoreTypeConfig = (function () {
       ],
       productHints: { name: 'مثال: مضخة مياه زراعية', details: 'مثال: قوة 2 حصان، مناسبة للري', brand: 'مثال: اسم الشركة المصنعة', material: 'مثال: حديد، بلاستيك، ستانلس' },
       suggestedCategories: ['أدوات يدوية', 'مضخات وري', 'بذور وشتلات', 'أسمدة ومبيدات', 'بيوت بلاستيكية ومستلزماتها', 'معدات كهربائية'],
-      heroWelcomeText: 'محلك جاهز لعرض الأدوات الزراعية وأسعارها من هنا.',
+      heroWelcomeText: 'مكانك جاهز لعرض الأدوات الزراعية وأسعارها من هنا.',
       adTypes: ['offer', 'job'],
       adOptions: { offerPrices: true, linkOnlyForJob: true, limitNotice: true, expiryNotice: true }
     }
   };
 
-  // Unified product form: every store sub-type that sells products shares the same
-  // fields (name, category, price, image, status, details, discount).
-  // Only clothing and shoes add a size ("نمرة") field.
-  // This overrides the older per-variant productFields / productExtraFields above.
   var SIZED_VARIANT_KEYS = ['menswear', 'womenswear', 'kidswear', 'shoes'];
 
   Object.keys(STORE_VARIANTS).forEach(function (variantKey) {
@@ -1297,7 +1291,7 @@ window.GMStoreTypeConfig = (function () {
         { page: 'subscription-requests', href: 'subscription-requests.html', icon: 'thumbs-up', label: 'طلبات الاشتراك', sub: 'طلبات وصلتك أونلاين للموافقة', lockedFeature: 'subscriptionRequests' },
         { page: 'ads', href: 'ads.html', icon: 'megaphone', label: 'الإعلانات', sub: 'فعاليات، ورش، وظائف، عروض' },
         { page: 'packages', href: 'packages.html', icon: 'layers', label: 'الباقات', sub: 'اختر باقة مساحتك' },
-        { page: 'profile', href: 'profile.html', icon: 'store', label: 'بروفايل المساحة', sub: 'تعديل المعلومات والصورة' }
+        { page: 'profile', href: 'dashboard-profile.html', icon: 'store', label: 'بروفايل المساحة', sub: 'تعديل المعلومات والصورة' }
       ],
       mobileNav: [
         { page: 'dashboard', href: 'dashboard.html', icon: 'layout-grid', label: 'الرئيسية' },
@@ -1394,18 +1388,18 @@ window.GMStoreTypeConfig = (function () {
 
     var sidebar = [
       { page: 'dashboard', href: 'dashboard.html', icon: 'layout-grid', label: 'الرئيسية', sub: 'نظرة عامة على نشاطك' },
-      { page: 'menu', href: 'menu.html', icon: 'utensils', label: 'المنيو', sub: 'التصنيفات، الأصناف، الأسعار' },
+      { page: 'menu', href: 'dashboard-menu.html', icon: 'utensils', label: 'المنيو', sub: 'التصنيفات، الأصناف، الأسعار' },
       { action: 'open-services-edit', href: '#', icon: 'wrench', label: 'الخدمات المتاحة', sub: 'المكيف، جلسات خارجية، وأكثر' }
     ];
 
     var mobileNav = [
       { page: 'dashboard', href: 'dashboard.html', icon: 'layout-grid', label: 'الرئيسية' },
-      { page: 'menu', href: 'menu.html', icon: 'utensils', label: 'المنيو' },
+      { page: 'menu', href: 'dashboard-menu.html', icon: 'utensils', label: 'المنيو' },
       { action: 'open-services-edit', href: '#', icon: 'wrench', label: 'الخدمات المتاحة' }
     ];
 
     var dashboardCards = [
-      { page: 'menu', href: 'menu.html', icon: 'utensils', label: 'المنيو', sub: 'التصنيفات والأسعار' },
+      { page: 'menu', href: 'dashboard-menu.html', icon: 'utensils', label: 'المنيو', sub: 'التصنيفات والأسعار' },
       { action: 'open-services-edit', href: '#', icon: 'wrench', label: 'الخدمات المتاحة', sub: 'المكيف، جلسات خارجية' }
     ];
 
@@ -1427,7 +1421,7 @@ window.GMStoreTypeConfig = (function () {
     sidebar.push(
       { page: 'ads', href: 'ads.html', icon: 'megaphone', label: 'الإعلانات', sub: opts.adsNavSub || 'فعاليات، عروض، وظائف' },
       { page: 'packages', href: 'packages.html', icon: 'layers', label: 'الباقات', sub: 'اختر باقة نشاطك' },
-      { page: 'profile', href: 'profile.html', icon: 'store', label: 'بروفايل النشاط', sub: 'تعديل المعلومات والصورة' }
+      { page: 'profile', href: 'dashboard-profile.html', icon: 'store', label: 'بروفايل النشاط', sub: 'تعديل المعلومات والصورة' }
     );
     mobileNav.push(
       { page: 'ads', href: 'ads.html', icon: 'megaphone', label: 'الإعلانات' }
@@ -1737,7 +1731,7 @@ window.GMStoreTypeConfig = (function () {
       { action: 'open-services-edit', href: '#', icon: 'wrench', label: 'الخدمات المتاحة', sub: servicesNavSub },
       { page: 'ads', href: 'ads.html', icon: 'megaphone', label: 'الإعلانات', sub: adsNavSub },
       { page: 'packages', href: 'packages.html', icon: 'layers', label: 'الباقات', sub: 'اختر باقة متجرك' },
-      { page: 'profile', href: 'profile.html', icon: 'store', label: 'بروفايل المتجر', sub: 'تعديل المعلومات والصورة' }
+      { page: 'profile', href: 'dashboard-profile.html', icon: 'store', label: 'بروفايل المتجر', sub: 'تعديل المعلومات والصورة' }
     );
     mobileNav.push(
       { action: 'open-services-edit', href: '#', icon: 'wrench', label: 'الخدمات المتاحة' },
@@ -1868,10 +1862,6 @@ window.GMStoreTypeConfig = (function () {
     } catch (e) { }
   }
 
-  // Takes the normalized "my place" object ({ type, subCategory, plan }) from GMAddStoreApi.getMine().
-  // Returns true when the data was accepted. It works once per page load: later calls are ignored,
-  // so the values cannot be swapped after the page has started. An unknown type is rejected.
-  // Display only. The server must enforce the plan limits, because anything in the browser can be edited.
   function hydrateFromPlace(mine) {
     if (placeState) return false;
     if (!mine || typeof mine !== 'object' || typeof mine.type !== 'string' || !hasOwn(TYPES, mine.type)) return false;

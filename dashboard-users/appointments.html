@@ -11,11 +11,9 @@
 <script src="auth/auth-guard.js" defer></script>
 <link rel="stylesheet" href="../css/user-dashboard.css">
 <style>
-/* Appointments page — scoped styles (dashboard tokens; light/dark + RTL) */
 .apt-stack { display: flex; flex-direction: column; gap: 16px; }
 .apt-stack > .card, .apt-stack > .stat-grid, .apt-stack > #apt-data-wrap { margin: 0; }
 
-/* hours summary card (read-only; edited from the side panel) */
 .apt-hours-head { align-items: flex-start; }
 .apt-hours-head .btn { flex-shrink: 0; }
 .apt-sum-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(118px, 1fr)); gap: 10px; }
@@ -44,7 +42,6 @@
 .apt-sum-slot .icon { width: 16px; height: 16px; flex-shrink: 0; }
 .apt-sum-slot b { color: var(--text); }
 
-/* panel rows */
 .aph-days { display: flex; flex-direction: column; }
 .aph-day { padding: 12px 0; border-bottom: 1px solid var(--border); }
 .aph-day:last-child { border-bottom: none; }

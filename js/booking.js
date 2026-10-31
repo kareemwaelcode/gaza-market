@@ -1,9 +1,9 @@
 'use strict';
 
 (function () {
-var api = window.GMShops;
+var api = window.GMPlaces;
 var modalEl = document.getElementById('bookingModal');
-var openBtn = document.getElementById('shopBookBtn');
+var openBtn = document.getElementById('placeBookBtn');
 var formEl = document.getElementById('bookingForm');
 if (!api || !modalEl || !openBtn || !formEl || typeof api.getTables !== 'function') return;
 
@@ -423,8 +423,8 @@ return state.placeOpen && !state.limitHit;
 function ensureLimitNote() {
 if (limitNoteEl) return limitNoteEl;
 limitNoteEl = document.createElement('p');
-limitNoteEl.id = 'shopBookNote';
-limitNoteEl.className = 'shop-book-note';
+limitNoteEl.id = 'placeBookNote';
+limitNoteEl.className = 'place-book-note';
 limitNoteEl.setAttribute('role', 'status');
 limitNoteEl.hidden = true;
 var toolbar = openBtn.parentNode;

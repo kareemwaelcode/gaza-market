@@ -2,7 +2,6 @@
   const navButtons = Array.from(document.querySelectorAll(".guide-nav-item"));
   const contentPanels = document.querySelectorAll(".guide-panel");
   const asidePanels = document.querySelectorAll(".guide-aside-panel");
-  const contentEl = document.getElementById("guideContent");
   const navIndicator = document.getElementById("guideNavIndicator");
   const guideNav = document.getElementById("guideNav");
 
@@ -34,7 +33,7 @@
         "confirm-prices": "Confirm and Report Prices",
         "suggest-product": "Suggest a New Product",
         "marketplace": "Marketplace and Listings",
-        "stores-map": "Shops",
+        "stores-map": "Places",
         "account": "Your Account and Profile",
       },
       panels: {
@@ -61,7 +60,7 @@
             ],
             [
               "Enter the store name",
-              "Type the name of the store or market where you saw the price — for example \"Nuseirat Market\" or \"Abu Khaled's Shop\". This is optional, but it helps people recognize the place.",
+              "Type the name of the store or market where you saw the price — for example \"Nuseirat Market\" or \"Abu Khaled's Place\". This is optional, but it helps people recognize the place.",
             ],
             [
               "Review and submit",
@@ -129,12 +128,12 @@
           ],
         },
         "stores-map": {
-          title: "Shops",
+          title: "Places",
           intro:
-            "Browse shops, restaurants, pharmacies, and other businesses near you, or register a new location or business so others can find it.",
+            "Browse places, restaurants, pharmacies, and other businesses near you, or register a new location or business so others can find it.",
           steps: [
             [
-              "Shops and Projects",
+              "Places and Projects",
               "Go to the \"Add\" section, select \"Add a location or store,\" and choose your business type—such as a restaurant, café, pharmacy, or other venture.",
             ],
             [
@@ -214,8 +213,8 @@
         "stores-map": {
           header: "Additional information",
           items: [
-            "If you have a shop, you can register it and manage its page yourself.",
-            "Shops display an \"Open\" or \"Closed\" status based on their operating hours.",
+            "If you have a place, you can register it and manage its page yourself.",
+            "Places display an \"Open\" or \"Closed\" status based on their operating hours.",
             "A map of your location will be available {soon}",
           ],
           soonWord: "soon",
@@ -240,7 +239,7 @@
         "confirm-prices": "تأكيد الأسعار والإبلاغ عنها",
         "suggest-product": "اقتراح منتج جديد",
         "marketplace": "السوق والإعلانات",
-        "stores-map": "المحلات",
+        "stores-map": "الأماكن",
         "account": "حسابك وملفك الشخصي",
       },
       panels: {
@@ -259,15 +258,15 @@
             ],
             [
               "أدخل السعر بالشيكل",
-              "أدخل السعر بالضبط متل ما شفتو بالمحل. مثلاً، إذا كيلو الطحين سعرو 5.50 شيكل، اكتب 5.50. الدقة مهمة لأنو الناس بتعتمد على هالأسعار.",
+              "أدخل السعر بالضبط متل ما شفتو بالمكان. مثلاً، إذا كيلو الطحين سعرو 5.50 شيكل، اكتب 5.50. الدقة مهمة لأنو الناس بتعتمد على هالأسعار.",
             ],
             [
               "اختر المنطقة",
-              "اختر المنطقة يلي فيها المحل — مثلاً خان يونس، رفح، أو دير البلح. الأسعار ممكن تختلف حسب المنطقة، وهاد بساعد بالمقارنة.",
+              "اختر المنطقة يلي فيها المكان — مثلاً خان يونس، رفح، أو دير البلح. الأسعار ممكن تختلف حسب المنطقة، وهاد بساعد بالمقارنة.",
             ],
             [
-              "أدخل اسم المحل",
-              "اكتب اسم المحل أو السوق يلي شفت فيه السعر — مثلاً \"سوق النصيرات\" أو \"محل أبو خالد\". هاد الحقل اختياري، بس بساعد الناس يتعرفوا على المكان.",
+              "أدخل اسم المكان",
+              "اكتب اسم المكان أو السوق يلي شفت فيه السعر — مثلاً \"سوق النصيرات\" أو \"مكان أبو خالد\". هاد الحقل اختياري، بس بساعد الناس يتعرفوا على المكان.",
             ],
             [
               "راجع وأرسل",
@@ -281,7 +280,7 @@
             "بما إنو الأسعار بتتغير باستمرار، الموقع بعتمد على نظام تأكيد وإبلاغ لضمان دقة الأسعار. ساعدنا بتأكيد الأسعار الصحيحة أو الإبلاغ عن الأسعار الغلط.",
           confirmTitle: "أكّد سعر",
           confirmDesc:
-            "إذا شفت سعر ومتأكد إنو صحيح — مثلاً شفت نفس السعر بالمحل — اضغط زر \"تأكيد\". كل ما السعر ياخد تأكيدات أكتر، كل ما يصير أوثق وبيتثبت أسرع.",
+            "إذا شفت سعر ومتأكد إنو صحيح — مثلاً شفت نفس السعر بالمكان — اضغط زر \"تأكيد\". كل ما السعر ياخد تأكيدات أكتر، كل ما يصير أوثق وبيتثبت أسرع.",
           reportTitle: "أبلغ عن سعر",
           reportDesc:
             "إذا شفت سعر غلط، قديم، أو مش من منطقتك — اضغط زر \"إبلاغ\". إذا عدد كافي من الناس بلغوا عن نفس السعر، بينشال أوتوماتيكياً حتى ما يضلل غيرهم.",
@@ -292,7 +291,7 @@
             "إضافة سعر جديد",
             "تأكيد سعر صحيح",
             "الإبلاغ عن سعر خاطئ",
-            "إضافة محل جديد",
+            "إضافة مكان جديد",
             "نشر إعلان بالسوق",
           ],
         },
@@ -335,13 +334,13 @@
           ],
         },
         "stores-map": {
-          title: "المحلات",
+          title: "الأماكن",
           intro:
             "تصفح المحلات، المطاعم، الصيدليات، وباقي المشاريع القريبة منك، أو سجّل مكان أو مشروع جديد حتى الناس تلاقيه.",
           steps: [
             [
-              "المحلات والمشاريع",
-              "روح لقسم \"إضافة\"، اختر \"إضافة موقع أو محل\"، وحدد نوع نشاطك — متل مطعم، كافيه، صيدلية، أو أي مشروع تاني.",
+              "الأماكن والمشاريع",
+              "روح لقسم \"إضافة\"، اختر \"إضافة موقع أو مكان\"، وحدد نوع نشاطك — متل مطعم، كافيه، صيدلية، أو أي مشروع تاني.",
             ],
             [
               "التواصل والموقع",
@@ -421,7 +420,7 @@
           header: "معلومات إضافية",
           items: [
             "إذا عندك محل، فيك تسجله وتدير صفحته بنفسك.",
-            "المحلات بتظهر حالة \"مفتوح\" أو \"مغلق\" حسب أوقات دوامها.",
+            "الأماكن بتظهر حالة \"مفتوح\" أو \"مغلق\" حسب أوقات دوامها.",
             "خريطة موقعك رح تكون متوفرة {soon}",
           ],
           soonWord: "قريباً",

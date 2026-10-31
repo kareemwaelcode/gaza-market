@@ -9,7 +9,6 @@
   };
 
   var PASSWORD_MIN_LENGTH = 8;
-  // Mock mode only. In live mode the session lives in the server's HttpOnly cookie and this key is purged.
   var MOCK_SESSION_KEY = 'gmDashboardSession';
 
   function ok(data) {
@@ -48,8 +47,6 @@
       /[0-9]/.test(value);
   }
 
-  // Reset flow and first-time activation flow share the same steps (request code, verify code, set password)
-  // but use separate endpoints so the backend can apply different eligibility rules.
   function flowPaths(purpose) {
     return purpose === 'activate'
       ? { request: '/activation/request-code', verify: '/activation/verify-code', set: '/activation/set-password', tokenField: 'activation_token' }
@@ -119,7 +116,6 @@
 
     function request(method, path, body) {
       return send(method, path, body).then(function (res) {
-        // 419 = Laravel CSRF/session mismatch: refresh the CSRF cookie and retry once.
         if (res.status === 419 && method !== 'GET') {
           return ensureCsrfCookie(true).then(function () { return send(method, path, body); });
         }
@@ -230,7 +226,6 @@
 
     var DEMO_USER = { whatsapp: '970591234567', password: 'Test1234' };
 
-    // Mock list of owners whose business was approved by the admin but who have not activated yet.
     var APPROVED_KEY = 'gmMockApprovedBusinesses';
     var DEMO_APPROVED = '972591111111';
 
@@ -369,7 +364,6 @@
 
           var now = Date.now();
           var flow = purpose === 'activate' ? 'activate' : 'reset';
-          // Same answer whether or not the number is eligible, so the page never reveals which numbers exist.
           var eligible = flow === 'activate'
             ? (getApproved().indexOf(whatsapp) !== -1 && !findUser(whatsapp))
             : !!findUser(whatsapp);
@@ -382,7 +376,6 @@
           };
           write('sessionStorage', MOCK_REQUEST_KEY, state);
 
-          // Mock only (never runs against the real server): shows the code in the Console for testing.
           if (window.console && console.info) {
             console.info(eligible
               ? '[GM mock] ' + flow + ' code for ' + whatsapp + ': ' + state.code

@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-3o54scuLFSA2Ohs6oKpM60iCOJjwRLVPKqDg1Ot1xw8='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<title>بيانات المساحة — سوق غزة</title>
+<script src="../js/gm-core.js" defer></script>
+<script src="auth/auth-api.js" defer></script>
+<script src="auth/auth-guard.js" defer></script>
+<link rel="stylesheet" href="../css/user-dashboard.css">
+</head>
+<body data-page="profile">
+<script>(function(){try{if(localStorage.getItem('gaza-market-dashboard-theme')==='dark'){document.body.classList.add('dark-mode');}}catch(e){}})();</script>
+
+  <div id="topnav-slot"></div>
+
+  <aside class="side-panel">
+    <div id="topbar-slot"></div>
+    <div id="sidebar-slot"></div>
+  </aside>
+
+  <div class="app-shell">
+    <main class="app-main">
+
+      <button class="mobile-menu-btn" data-action="open-sidebar" aria-label="فتح القائمة">
+        <i data-lucide="menu" class="icon"></i>
+      </button>
+
+      <div class="app-content">
+
+        <div class="page-head">
+          <div>
+            <div class="breadcrumb">سوق غزة <span class="sep">/</span> <span class="current">بيانات المساحة</span></div>
+            <div class="page-title">بيانات المساحة</div>
+          </div>
+        </div>
+        <p class="text-muted" style="margin:-14px 0 18px;font-size:13px;">المعلومات التي يراها الزوار في صفحتك العامة.</p>
+
+        <section class="hero profile-hero hero--accent">
+          <div class="profile-hero-identity">
+            <div class="avatar profile-hero-avatar" id="profile-page-avatar">م</div>
+            <div>
+              <span class="status-pill" id="profile-status-pill">
+                <span class="dot"></span><span id="profile-status-text">مفتوح</span>
+              </span>
+              <div class="profile-hero-name" id="profile-page-name">اسم نشاطك</div>
+              <div class="profile-hero-sub" id="profile-page-sub">لم تحدد المنطقة بعد</div>
+            </div>
+          </div>
+
+          <div class="profile-hero-actions">
+            <div class="btn-row">
+              <button type="button" class="btn btn-ghost btn-sm" data-action="open-profile-edit">
+                <i data-lucide="pencil" class="icon"></i> تعديل
+              </button>
+              <button type="button" class="btn btn-ghost btn-sm" id="profile-copy-link-btn">
+                <i data-lucide="copy" class="icon"></i> نسخ الرابط
+              </button>
+            </div>
+            <div class="profile-hero-link mono" id="profile-public-link"></div>
+          </div>
+        </section>
+
+        <div class="card card-pad mt-20 profile-contact-card">
+          <div class="card-header"><h3>معلومات التواصل</h3></div>
+
+          <div class="list-row">
+            <div class="list-row-label">رقم الهاتف</div>
+            <div class="flex gap-8" id="profile-phone-row">
+              <span class="mono" id="profile-phone-value">—</span>
+              <i data-lucide="phone" class="icon contact-icon"></i>
+            </div>
+          </div>
+
+          <div class="list-row">
+            <div class="list-row-label">واتساب</div>
+            <div class="flex gap-8" id="profile-whatsapp-row">
+              <span class="mono" id="profile-whatsapp-value">—</span>
+              <i data-lucide="message-circle" class="icon contact-icon"></i>
+            </div>
+          </div>
+
+          <div class="list-row">
+            <div class="list-row-label">العنوان</div>
+            <div class="flex gap-8">
+              <span id="profile-address-value">—</span>
+              <i data-lucide="home" class="icon contact-icon"></i>
+            </div>
+          </div>
+
+          <div class="list-row">
+            <div class="list-row-label">الموقع على الخريطة</div>
+            <div class="flex gap-8" id="profile-map-row">
+              <span class="text-muted" id="profile-map-empty-text">لم يتم تحديد الموقع بعد</span>
+              <a href="#" id="profile-map-link" target="_blank" rel="noopener" style="display:none;">عرض على الخريطة</a>
+              <i data-lucide="map-pin" class="icon contact-icon"></i>
+            </div>
+          </div>
+        </div>
+
+        <footer class="ud-footer">
+          <p>سوق غزة🌿 لوحة تحكم المالك</p>
+        </footer>
+
+      </div>
+    </main>
+  </div>
+
+  <div id="profile-edit-slot"></div>
+  <div id="prices-edit-slot"></div>
+  <div id="services-edit-slot"></div>
+
+  <div id="mobile-nav-slot"></div>
+
+  <script src="../js/vendor/lucide.min.js" defer></script>
+  <script src="../js/add-store-api.js" defer></script>
+  <script src="../js/store-type-config.js" defer></script>
+  <script src="../js/dashboard/core.js" defer></script>
+  <script src="../js/dashboard/shell.js" defer></script>
+  <script src="../js/dashboard/page-runner.js" defer></script>
+  <script src="../js/dashboard/common.js" defer></script>
+</body>
+</html>

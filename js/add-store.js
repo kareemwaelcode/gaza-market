@@ -28,7 +28,6 @@
     submitting: false,
   };
 
-  // Which wizard step each server-reported field lives in.
   const FIELD_STEP = { type: 1, sub_category: 1, name: 2, region: 2, address: 2, image: 2, phone: 3, whatsapp: 3 };
   const FIELD_INPUT = { name: "#f2Name", address: "#f2Address", phone: "#f3Phone", whatsapp: "#f3Wa" };
   const FIELD_ERR = {
@@ -185,7 +184,6 @@
           this.value = "";
           return;
         }
-        // The file itself is kept for the upload; the object URL is only used for the preview.
         if (state.imagePreviewUrl) URL.revokeObjectURL(state.imagePreviewUrl);
         state.imageFile = file;
         state.imagePreviewUrl = URL.createObjectURL(file);
@@ -229,15 +227,12 @@
     $("#gmBack2")?.addEventListener("click", () => goToStep(1));
   }
 
-  // Region groups in the order this page shows them. Titles reuse the existing i18n keys.
   const REGION_GROUPS = [
     { code: "north",   i18n: "regionNorth",   fallback: "Northern Gaza" },
     { code: "central", i18n: "regionCentral", fallback: "Central Gaza" },
     { code: "south",   i18n: "regionSouth",   fallback: "Southern Gaza" },
   ];
 
-  // Builds the region options from the shared list (js/regions-api.js). Each option's data-val
-  // is the stable region code (e.g. DeirBalah), which is what the page sends to the server.
   function renderRegionOptions(panel) {
     const api = window.GMRegions;
     if (!api) return;
@@ -338,7 +333,6 @@
 
     renderRegionOptions(panel);
 
-    // A fresher list from the API (regions-api.js) replaces the options; the selection is kept.
     document.addEventListener("gmRegionsUpdated", () => {
       renderRegionOptions(panel);
       syncSelection();
@@ -437,7 +431,6 @@
     } catch (e) {}
   }
 
-  // ---------- Status screen: a user who already has a place sees its status instead of the form ----------
   const STATUS_CHECK_TIMEOUT_MS = 4000;
   const ACTIVATE_URL = "dashboard-users/auth/forgot-password.html?mode=activate";
   const LOGIN_URL = "dashboard-users/auth/login.html";
@@ -449,7 +442,6 @@
 
   function setI18nText(el, key) {
     if (!el) return;
-    // data-i18n keeps the text in the right language if the user switches language.
     el.setAttribute("data-i18n", key);
     el.textContent = typeof i18n !== "undefined" ? i18n.t(key) : key;
   }
@@ -479,7 +471,6 @@
     setI18nText($("#gmStatusTitle"), view.title);
     setI18nText($("#gmStatusDesc"), activated ? view.descActive : view.desc);
 
-    // Server text is always inserted with textContent, never as HTML.
     const nameEl = $("#gmStatusName");
     if (nameEl) {
       nameEl.textContent = mine.name || "";
@@ -506,7 +497,6 @@
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  // Asks the API for the user's place. Guests skip the call and simply see the form.
   function loadStatus(onDone) {
     const api = window.GMAddStoreApi;
     if (!api || typeof api.getMine !== "function" || !isLoggedInLocally()) {
@@ -522,7 +512,6 @@
       if (mine) showStatus(mine);
       onDone();
     };
-    // If the answer is slow, show the form rather than a blank page.
     const timer = window.setTimeout(() => finish(null), STATUS_CHECK_TIMEOUT_MS);
 
     api.getMine().then(
@@ -532,7 +521,6 @@
   }
 
   function initStatusCheck() {
-    // The form stays hidden until the answer arrives, so it never flashes before the status screen.
     document.body.classList.add("gm-checking");
     loadStatus(() => document.body.classList.remove("gm-checking"));
   }
@@ -540,7 +528,6 @@
   function setSubmitError(key) {
     const el = $("#gmErrSubmit");
     if (!el) {
-      // Outdated add-store.html (no message box): never fail silently.
       if (key) alert(typeof i18n !== "undefined" ? i18n.t(key) : key);
       return;
     }
@@ -550,7 +537,6 @@
       el.textContent = "";
       return;
     }
-    // data-i18n keeps the message in the right language if the user switches language.
     el.setAttribute("data-i18n", key);
     el.textContent = typeof i18n !== "undefined" ? i18n.t(key) : key;
     el.classList.add("show");
@@ -592,7 +578,6 @@
     switch (res.code) {
       case "UNAUTHENTICATED":
         setSubmitError("errSubmitLogin");
-        // Opens the existing login modal when it is available (logged-out navbar button).
         document.getElementById("loginBtn")?.click();
         break;
       case "VALIDATION":
@@ -607,9 +592,7 @@
         break;
       }
       case "ALREADY_HAS_PLACE":
-        // One place per user: show the existing request's status instead of the form.
         setSubmitError("errSubmitHasPlace");
-        loadStatus(() => {});
         break;
       case "RATE_LIMITED":
         setSubmitError("errSubmitRateLimited");
@@ -649,8 +632,6 @@
           (res) => {
             setSubmitting(false);
             if (res && res.ok) {
-              // Mock mode only: the old dashboard still reads the type from localStorage.
-              // In live mode the type comes from the API (separate stage).
               if (api.mode === "mock") persistTypeForDashboard();
               goToStep("success");
             } else {
@@ -714,7 +695,6 @@
     updateStepIndicator(1);
     $$(".gm-back-btn").forEach((btn) => (btn.style.display = "none"));
     initNavbar();
-    initStatusCheck();
   }
 
   document.readyState === "loading"

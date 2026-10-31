@@ -9,8 +9,6 @@
   var RESET_PASSWORD_PAGE_URL = 'reset-password.html';
   var FORGOT_PASSWORD_PAGE_URL = 'forgot-password.html';
 
-  // "?mode=activate" turns the forgot/reset pages into the first-time account activation flow.
-  // Any other value keeps the normal password-reset flow.
   var MODE = (function () {
     try {
       return new URLSearchParams(window.location.search).get('mode') === 'activate' ? 'activate' : 'reset';
@@ -93,7 +91,6 @@
     } catch (err) {}
   }
 
-  // A request/token created in one flow (reset or activate) is never picked up by the other.
   function getResetRequest() {
     var data = readJson('sessionStorage', RESET_REQUEST_STORAGE_KEY, null);
     if (data && (data.purpose || 'reset') !== MODE) return null;
@@ -253,7 +250,6 @@
     if (el) el.textContent = text;
   }
 
-  // Swaps the visible wording of the forgot/reset pages when they run in activation mode.
   function applyActivateTexts() {
     if (!IS_ACTIVATE) return;
     document.title = ACTIVATE_TEXTS.pageTitle;
@@ -367,7 +363,6 @@
           return;
         }
 
-        // The session itself lives in the server's HttpOnly cookie (live) or inside the mock driver; nothing is stored here.
         window.location.replace(DASHBOARD_PAGE_URL);
       });
     });

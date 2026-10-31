@@ -1,13 +1,4 @@
 "use strict";
-// regions-api.js: single source of truth for the list of regions (areas) on the client.
-//
-// - list() / grouped() are SYNCHRONOUS: they return the last cached API list, or the built-in
-//   fallback list, so pages can render immediately and never show an empty region menu.
-// - refresh() fetches GET /api/regions in the background (live mode only), validates the data,
-//   caches it (stale-while-revalidate) and fires "gmRegionsUpdated" if it changed.
-//   Pages that render once at load pick up a new list on the next page load.
-// - Region codes (Nuseirat, DeirBalah, ...) are stable identifiers. Only names/order/new areas
-//   come from the API. normalize() accepts every legacy spelling used in the old pages.
 (function () {
   const DEFAULTS = {
     API_BASE: "/api",
@@ -24,7 +15,6 @@
   const NAME_MAX = 60;
   const LIST_MAX = 200;
 
-  // Fixed groups. i18n keys already exist in translations.js.
   const GROUPS = Object.freeze([
     Object.freeze({ code: "central", i18n: "CentralGaza" }),
     Object.freeze({ code: "south", i18n: "SouthGaza" }),
@@ -32,7 +22,6 @@
   ]);
   const GROUP_CODES = GROUPS.map((g) => g.code);
 
-  // Built-in fallback: used when there is no cache yet and in mock mode.
   const FALLBACK = [
     { code: "Nuseirat", group: "central", name_ar: "النصيرات", name_en: "Nuseirat" },
     { code: "Breij", group: "central", name_ar: "البريج", name_en: "Breij" },
@@ -53,8 +42,6 @@
     { code: "Jabalia", group: "north", name_ar: "جباليا", name_en: "Jabalia" },
   ];
 
-  // Old spellings still used by some pages (add-store, add-price modals, saved selections).
-  // They are only used to map a legacy value to a stable code.
   const LEGACY_ALIASES = {
     Nuseirat: ["Al-Nuseirat"],
     Breij: ["Al-Bureij", "Bureij", "Al-Breij"],
@@ -70,7 +57,6 @@
     TalHawa: ["Tel al-Hawa", "Tal al-Hawa", "تل الهوى"],
   };
 
-  // Lowercase letters/digits only (Unicode aware, so Arabic names work too).
   function squash(value) {
     return String(value)
       .normalize("NFKC")
@@ -85,7 +71,6 @@
     return text.length > NAME_MAX ? text.slice(0, NAME_MAX).trim() : text;
   }
 
-  // Keeps only well-formed entries, so a bad API response can never break the menus.
   function sanitize(raw) {
     if (!Array.isArray(raw)) return [];
     const seen = new Set();
@@ -199,7 +184,6 @@
       );
   }
 
-  // Resolves with true when the list changed, false otherwise. Never rejects.
   function refresh() {
     if (USE_MOCK) return Promise.resolve(false);
     if (inflight) return inflight;

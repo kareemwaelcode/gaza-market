@@ -13,8 +13,8 @@ const CONFIG = Object.assign({}, DEFAULTS, window.GM_CONFIG || {});
 const USE_MOCK = window.GM_ENV.isMockAllowed();
 const API_BASE = String(CONFIG.API_BASE).replace(/\/+$/, '');
 
-const CACHE_KEY = 'gm_shops_cache_v5';
-const LEGACY_CACHE_KEYS = ['gm_shops_cache_v2', 'gm_shops_cache_v3', 'gm_shops_cache_v4'];
+const CACHE_KEY = 'gm_places_cache_v5';
+const LEGACY_CACHE_KEYS = ['gm_shops_cache_v2', 'gm_shops_cache_v3', 'gm_shops_cache_v4', 'gm_shops_cache_v5'];
 const CACHE_MAX_KEYS = 12;
 const CACHE_MAX_ITEMS = 24;
 const FRESH_MS = 60 * 1000;
@@ -43,15 +43,14 @@ const PLACE_TYPES = ['restaurant', 'cafe', 'restaurant-cafe', 'workspace', 'stor
 const STORE_TYPE = 'store';
 const FILTER_TYPES = PLACE_TYPES;
 
-// Region codes and legacy spellings come from the shared js/regions-api.js (GMRegions).
 function normalizeRegion(raw) {
 if (raw === null || raw === undefined || raw === '') return null;
 return window.GMRegions ? window.GMRegions.normalize(raw) : null;
 }
 
-function GMShopsError(code, message, status, errors, reason) {
+function GMPlacesError(code, message, status, errors, reason) {
 const err = new Error(message || code);
-err.name = 'GMShopsError';
+err.name = 'GMPlacesError';
 err.code = code;
 err.status = status || 0;
 err.errors = errors || null;
@@ -82,7 +81,6 @@ Object.keys(raw).forEach((key) => {
     const field = BOOK_ERROR_FIELDS[key];
     let value = raw[key];
     if (Array.isArray(value)) value = value[0];
-    // Accept the booking keys (book.err*) and the workspace subscription keys (ws.err*) only.
     if (!field || typeof value !== 'string' || !/^(book|ws)\.err[A-Za-z]+$/.test(value)) return;
     const target = key === 'datetime' && value === 'book.errTime' ? 'time' : field;
     if (!out[target]) out[target] = value;
@@ -113,7 +111,7 @@ function writeJson(key, value) {
 try {
     localStorage.setItem(key, JSON.stringify(value));
 } catch (err) {
-    console.error('shops storage failed:', err);
+    console.error('places storage failed:', err);
 }
 }
 
@@ -196,7 +194,7 @@ return {
 
 function normalizePage(json) {
 if (!json || !Array.isArray(json.data)) {
-    throw GMShopsError('invalid_response', 'Invalid shops response');
+    throw GMPlacesError('invalid_response', 'Invalid places response');
 }
 
 const meta = json.meta && typeof json.meta === 'object' ? json.meta : {};
@@ -252,8 +250,8 @@ try {
     signal: controller ? controller.signal : undefined,
     });
 } catch (err) {
-    if (timedOut) throw GMShopsError('timeout', 'Request timed out');
-    throw GMShopsError('network', 'Network error');
+    if (timedOut) throw GMPlacesError('timeout', 'Request timed out');
+    throw GMPlacesError('network', 'Network error');
 } finally {
     if (timer) clearTimeout(timer);
 }
@@ -268,10 +266,10 @@ try {
 if (!res.ok) {
     const message = json && typeof json.message === 'string' ? json.message : 'HTTP ' + res.status;
     const errors = res.status === 422 ? normalizeServerErrors(json && json.errors) : null;
-    throw GMShopsError(codeFromStatus(res.status), message, res.status, errors, json && json.code);
+    throw GMPlacesError(codeFromStatus(res.status), message, res.status, errors, json && json.code);
 }
 
-if (json === null) throw GMShopsError('invalid_response', 'Empty or invalid JSON response', res.status);
+if (json === null) throw GMPlacesError('invalid_response', 'Empty or invalid JSON response', res.status);
 return json;
 }
 
@@ -414,16 +412,16 @@ return { plan: menu.plan, categories, items };
 async function mockGetPlace(slug) {
 const mode = getTestMode();
 await delay(mode === 'slow' ? 2500 : 250);
-if (mode === 'error') throw GMShopsError('server', 'Mock server error', 500);
+if (mode === 'error') throw GMPlacesError('server', 'Mock server error', 500);
 const raw = MOCK_PLACES.find((p) => p.slug === slug);
-if (!raw) throw GMShopsError('not_found', 'Place not found', 404);
+if (!raw) throw GMPlacesError('not_found', 'Place not found', 404);
 return { data: Object.assign({ phone: raw.whatsapp }, raw, mode === 'closed' ? { booking_available: false } : {}) };
 }
 
 async function mockGetMenu(slug) {
 const mode = getTestMode();
 await delay(mode === 'slow' ? 2500 : 250);
-if (mode === 'error') throw GMShopsError('server', 'Mock server error', 500);
+if (mode === 'error') throw GMPlacesError('server', 'Mock server error', 500);
 const menu = MOCK_MENUS[slug];
 if (!menu || mode === 'empty') return { data: { categories: [], items: [] } };
 const visible = mockApplyPlan(menu);
@@ -457,7 +455,7 @@ return out;
 function normalizeMenu(json) {
 const data = json && json.data;
 if (!data || !Array.isArray(data.categories) || !Array.isArray(data.items)) {
-    throw GMShopsError('invalid_response', 'Invalid menu response');
+    throw GMPlacesError('invalid_response', 'Invalid menu response');
 }
 const categories = data.categories
     .filter((c) => c && c.id !== undefined && c.id !== null && typeof c.name === 'string' && c.name.trim())
@@ -510,16 +508,16 @@ return typeof slug === 'string' && SLUG_RE.test(slug) ? slug : '';
 
 async function getPlace(slug) {
 const clean = safeSlug(slug);
-if (!clean) throw GMShopsError('not_found', 'Place not found', 404);
+if (!clean) throw GMPlacesError('not_found', 'Place not found', 404);
 const json = await memoDetail('place:' + clean, () => (USE_MOCK ? mockGetPlace(clean) : requestWithRetry('/places/' + encodeURIComponent(clean))));
 const place = normalizePlace(json && json.data);
-if (!place) throw GMShopsError('invalid_response', 'Invalid place response');
+if (!place) throw GMPlacesError('invalid_response', 'Invalid place response');
 return place;
 }
 
 async function getMenu(slug) {
 const clean = safeSlug(slug);
-if (!clean) throw GMShopsError('not_found', 'Place not found', 404);
+if (!clean) throw GMPlacesError('not_found', 'Place not found', 404);
 const json = await memoDetail('menu:' + clean, () => (USE_MOCK ? mockGetMenu(clean) : requestWithRetry('/places/' + encodeURIComponent(clean) + '/menu')));
 return normalizeMenu(json);
 }
@@ -546,26 +544,26 @@ const MOCK_TABLES = {
 async function mockGetTables(slug) {
 const mode = getTestMode();
 await delay(mode === 'slow' ? 2500 : 300);
-if (mode === 'error') throw GMShopsError('server', 'Mock server error', 500);
+if (mode === 'error') throw GMPlacesError('server', 'Mock server error', 500);
 return { data: MOCK_TABLES[slug] || [] };
 }
 
 async function mockSubmitReservation(slug, payload) {
 const mode = getTestMode();
 await delay(mode === 'slow' ? 2500 : 700);
-if (mode === 'error') throw GMShopsError('server', 'Mock server error', 500);
-if (mode === 'limit') throw GMShopsError('forbidden', 'Plan limit reached', 403, null, 'plan_limit_reached');
+if (mode === 'error') throw GMPlacesError('server', 'Mock server error', 500);
+if (mode === 'limit') throw GMPlacesError('forbidden', 'Plan limit reached', 403, null, 'plan_limit_reached');
 if (mode === 'invalid') {
-    throw GMShopsError('validation', 'Invalid reservation', 422, normalizeServerErrors({ name: 'book.errName', whatsapp: 'book.errWhatsapp', peopleCount: 'book.errPeople' }));
+    throw GMPlacesError('validation', 'Invalid reservation', 422, normalizeServerErrors({ name: 'book.errName', whatsapp: 'book.errWhatsapp', peopleCount: 'book.errPeople' }));
 }
 const table = (MOCK_TABLES[slug] || []).find((t) => t.id === payload.tableId);
-if (mode === 'taken' || !table || table.status === 'occupied') throw GMShopsError('conflict', 'Table is not available', 409, null, 'table_unavailable');
+if (mode === 'taken' || !table || table.status === 'occupied') throw GMPlacesError('conflict', 'Table is not available', 409, null, 'table_unavailable');
 return { data: { id: 'mock-' + Date.now().toString(36), status: 'pending' } };
 }
 
 function normalizeTables(json) {
 const data = json && json.data;
-if (!Array.isArray(data)) throw GMShopsError('invalid_response', 'Invalid tables response');
+if (!Array.isArray(data)) throw GMPlacesError('invalid_response', 'Invalid tables response');
 return data
     .filter((t) => t && t.id !== undefined && t.id !== null && SAFE_ID_RE.test(String(t.id)) && typeof t.name === 'string' && t.name.trim() && t.status !== 'occupied')
     .map((t) => {
@@ -686,16 +684,16 @@ return {
 
 async function getTables(slug) {
 const clean = safeSlug(slug);
-if (!clean) throw GMShopsError('not_found', 'Place not found', 404);
+if (!clean) throw GMPlacesError('not_found', 'Place not found', 404);
 const json = await memoDetail('tables:' + clean, () => (USE_MOCK ? mockGetTables(clean) : requestWithRetry('/places/' + encodeURIComponent(clean) + '/tables')));
 return normalizeTables(json);
 }
 
 async function submitReservation(slug, raw) {
 const clean = safeSlug(slug);
-if (!clean) throw GMShopsError('not_found', 'Place not found', 404);
+if (!clean) throw GMPlacesError('not_found', 'Place not found', 404);
 const result = validateReservation(raw);
-if (result.errors) throw GMShopsError('validation', 'Invalid reservation', 422, result.errors);
+if (result.errors) throw GMPlacesError('validation', 'Invalid reservation', 422, result.errors);
 try {
     const json = USE_MOCK
     ? await mockSubmitReservation(clean, result.payload)
@@ -734,10 +732,6 @@ const MOCK_WORKSPACES = {
 },
 };
 
-// MOCK ONLY. The real backend returns `plan` inside the workspace response of each place.
-// Here the owner's real plan lives in the dashboard (localStorage 'gm-store-plan'), and it
-// applies ONLY to the demo workspace the mock owner owns (GM_ENV.mockOwnerSlug), so one
-// owner's plan never leaks onto another workspace. Anything else is 'free' (the default).
 const MOCK_OWNER_PLAN_KEY = 'gm-store-plan';
 
 function mockWorkspacePlan(slug) {
@@ -755,7 +749,7 @@ return ws && ws.plan === 'paid' ? 'paid' : 'free';
 async function mockGetWorkspace(slug) {
 const mode = getTestMode();
 await delay(mode === 'slow' ? 2500 : 250);
-if (mode === 'error') throw GMShopsError('server', 'Mock server error', 500);
+if (mode === 'error') throw GMPlacesError('server', 'Mock server error', 500);
 const ws = MOCK_WORKSPACES[slug];
 const plan = mockWorkspacePlan(slug);
 if (!ws || mode === 'empty') return { data: { plan: plan, pricesHours: {}, services: {} } };
@@ -770,7 +764,7 @@ return isFinite(n) && n >= 0 ? n : null;
 
 function normalizeWorkspace(json) {
 const data = json && json.data;
-if (!data || typeof data !== 'object') throw GMShopsError('invalid_response', 'Invalid workspace response');
+if (!data || typeof data !== 'object') throw GMPlacesError('invalid_response', 'Invalid workspace response');
 const ph = data.pricesHours && typeof data.pricesHours === 'object' ? data.pricesHours : {};
 const rawServices = data.services && typeof data.services === 'object' ? data.services : {};
 const time = (v) => (typeof v === 'string' && TIME_RE.test(v) ? v : '');
@@ -801,7 +795,7 @@ return {
 
 async function getWorkspace(slug) {
 const clean = safeSlug(slug);
-if (!clean) throw GMShopsError('not_found', 'Place not found', 404);
+if (!clean) throw GMPlacesError('not_found', 'Place not found', 404);
 const json = await memoDetail('workspace:' + clean, () => (USE_MOCK ? mockGetWorkspace(clean) : requestWithRetry('/places/' + encodeURIComponent(clean) + '/workspace')));
 return normalizeWorkspace(json);
 }
@@ -872,27 +866,25 @@ try {
     localStorage.setItem(SUB_STORAGE_KEY, JSON.stringify(list.slice(0, SUB_STORAGE_MAX)));
     return record.id;
 } catch (err) {
-    // Do not pretend the request was saved: the visitor must see an error, not a fake success.
-    throw GMShopsError('server', 'Could not save the mock request', 500);
+    throw GMPlacesError('server', 'Could not save the mock request', 500);
 }
 }
 
 async function mockSubmitSubscriptionRequest(slug, payload) {
 const mode = getTestMode();
 await delay(mode === 'slow' ? 2500 : 700);
-if (mode === 'error') throw GMShopsError('server', 'Mock server error', 500);
-// Same rule the backend enforces: only a workspace on the paid plan accepts requests.
+if (mode === 'error') throw GMPlacesError('server', 'Mock server error', 500);
 if (mode === 'limit' || mockWorkspacePlan(slug) !== 'paid') {
-    throw GMShopsError('forbidden', 'Plan does not allow requests', 403, null, 'plan_not_allowed');
+    throw GMPlacesError('forbidden', 'Plan does not allow requests', 403, null, 'plan_not_allowed');
 }
 return { data: { id: mockSaveSubscriptionRequest(slug, payload), status: 'pending' } };
 }
 
 async function submitSubscriptionRequest(slug, raw) {
 const clean = safeSlug(slug);
-if (!clean) throw GMShopsError('not_found', 'Place not found', 404);
+if (!clean) throw GMPlacesError('not_found', 'Place not found', 404);
 const result = validateSubscriptionRequest(raw);
-if (result.errors) throw GMShopsError('validation', 'Invalid subscription request', 422, result.errors);
+if (result.errors) throw GMPlacesError('validation', 'Invalid subscription request', 422, result.errors);
 const json = USE_MOCK
     ? await mockSubmitSubscriptionRequest(clean, result.payload)
     : await request('/places/' + encodeURIComponent(clean) + '/subscription-requests', { method: 'POST', body: result.payload });
@@ -914,7 +906,7 @@ return true;
 async function mockFetchPage(params) {
 const mode = getTestMode();
 await delay(mode === 'slow' ? 2500 : 350);
-if (mode === 'error') throw GMShopsError('server', 'Mock server error', 500);
+if (mode === 'error') throw GMPlacesError('server', 'Mock server error', 500);
 if (mode === 'empty') return { data: [], next_cursor: null, has_more: false, total: 0 };
 
 const rows = MOCK_PLACES.filter((p) => mockMatches(p, params));
@@ -1015,10 +1007,10 @@ function withSignal(promise, signal) {
 if (!signal) return promise;
 return new Promise((resolve, reject) => {
     if (signal.aborted) {
-    reject(GMShopsError('aborted', 'Request aborted'));
+    reject(GMPlacesError('aborted', 'Request aborted'));
     return;
     }
-    const onAbort = () => reject(GMShopsError('aborted', 'Request aborted'));
+    const onAbort = () => reject(GMPlacesError('aborted', 'Request aborted'));
     signal.addEventListener('abort', onAbort, { once: true });
     promise.then(
     (value) => { signal.removeEventListener('abort', onAbort); resolve(value); },
@@ -1070,7 +1062,7 @@ detailCache.clear();
 try {
     localStorage.removeItem(CACHE_KEY);
 } catch (err) {
-    console.error('shops cache clear failed:', err);
+    console.error('places cache clear failed:', err);
 }
 }
 
@@ -1081,7 +1073,7 @@ try {
 }
 });
 
-window.GMShops = {
+window.GMPlaces = {
 isMock: USE_MOCK,
 defaultLimit: DEFAULT_LIMIT,
 filterTypes: FILTER_TYPES,

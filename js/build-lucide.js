@@ -1,15 +1,3 @@
-/**
- * Gaza Market - build a trimmed lucide.min.js containing only the icons the dashboards use.
- *
- * Usage (from the project root):
- *   npm i --no-save lucide@1.45.0 esbuild
- *   node tools/build-lucide.js
- *
- * It scans dashboard-users/**, js/usere-dashboard.js, js/store-type-config.js and
- * js/clinic-appointments.js for every quoted string that is a real Lucide icon name,
- * then writes js/vendor/lucide.min.js (same filename, same window.lucide.createIcons() API).
- * Re-run it whenever you add a new icon name anywhere in those files.
- */
 const fs = require('fs'), path = require('path'), { execFileSync } = require('child_process');
 const root = process.cwd();
 const L = require(path.join(root, 'node_modules/lucide'));
