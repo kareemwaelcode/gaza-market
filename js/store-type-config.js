@@ -1938,6 +1938,10 @@ window.GMStoreTypeConfig = (function () {
 
   var ICON_LOOKUP = toLookup(ALLOWED_ICON_NAMES);
   var PAGE_LOOKUP = toLookup(ALLOWED_PAGES);
+  var PAGE_FILE_OVERRIDES = { menu: 'dashboard-menu', profile: 'dashboard-profile' };
+  var FILE_LOOKUP = toLookup(ALLOWED_PAGES.map(function (page) {
+    return PAGE_FILE_OVERRIDES[page] || page;
+  }));
   var ACTION_LOOKUP = toLookup(ALLOWED_ACTIONS);
 
   function isAllowedIcon(name) {
@@ -1961,7 +1965,7 @@ window.GMStoreTypeConfig = (function () {
     var value = typeof href === 'string' ? href : '';
     if (value === '' || value === '#') return '#';
     var match = /^([a-z][a-z-]*)\.html$/.exec(value);
-    return match && PAGE_LOOKUP[match[1]] === true ? value : '#';
+    return match && FILE_LOOKUP[match[1]] === true ? value : '#';
   }
 
   return Object.freeze({

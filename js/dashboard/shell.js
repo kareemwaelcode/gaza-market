@@ -1073,6 +1073,13 @@
     return api.getMine().then(function (res) { return res; }, function () { return { ok: false, code: 'NETWORK' }; });
   }
 
+  function isAuthSessionConfirmed() {
+    var auth = window.GMAuth;
+    if (!auth || typeof auth.getSession !== 'function') return false;
+    var session = auth.getSession();
+    return !!(session && session.verified === true);
+  }
+
   async function loadPlaceState() {
     var store = window.GMStoreTypeConfig;
     if (!store || typeof store.hydrateFromPlace !== 'function' || store.hasPlaceState()) return true;
@@ -1090,7 +1097,7 @@
           window.location.replace(ADD_STORE_PAGE_URL);
           return false;
         }
-      } else if (res && res.code === 'UNAUTHENTICATED') {
+      } else if (res && res.code === 'UNAUTHENTICATED' && !isAuthSessionConfirmed()) {
         window.location.replace(LOGIN_PAGE_URL);
         return false;
       }

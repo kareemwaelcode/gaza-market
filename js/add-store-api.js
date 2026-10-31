@@ -14,6 +14,7 @@ const MOCK_DELAY_MS = 600;
 const MOCK_SLOW_DELAY_MS = 3000;
 const MOCK_STORAGE_KEY = "gmMockPlaceRequests";
 const MOCK_STORAGE_MAX = 50;
+const MOCK_DASHBOARD_SESSION_KEY = "gmDashboardSession";
 
 const KNOWN_FIELDS = ["type", "sub_category", "name", "region", "address", "phone", "whatsapp", "image"];
 
@@ -27,14 +28,38 @@ already_has_place: "ALREADY_HAS_PLACE",
 
 const MINE_STATUSES = ["pending", "approved", "rejected"];
 
+const PREVIEW_STATUSES = ["none", "pending", "approved", "activated", "rejected"];
+const PREVIEW_PLANS = ["free", "paid"];
+const PREVIEW_STATUS_KEY = "gmMockStatusPreview";
+const PREVIEW_PLAN_KEY = "gmMockPlanPreview";
+
+function resolvePreview(params, name, storageKey, allowed) {
+if (!USE_MOCK) return "";
+try {
+if (params.has(name)) {
+const value = params.get(name) || "";
+if (allowed.indexOf(value) === -1) {
+window.sessionStorage.removeItem(storageKey);
+return "";
+}
+window.sessionStorage.setItem(storageKey, value);
+return value;
+}
+const stored = window.sessionStorage.getItem(storageKey) || "";
+return allowed.indexOf(stored) === -1 ? "" : stored;
+} catch (err) {
+return "";
+}
+}
+
 let testMode = "";
 let statusPreview = "";
 let planPreview = "";
 try {
 const params = new URLSearchParams(window.location.search);
 testMode = params.get("gm_test") || "";
-statusPreview = params.get("gm_status") || "";
-planPreview = params.get("gm_plan") || "";
+statusPreview = resolvePreview(params, "gm_status", PREVIEW_STATUS_KEY, PREVIEW_STATUSES);
+planPreview = resolvePreview(params, "gm_plan", PREVIEW_PLAN_KEY, PREVIEW_PLANS);
 } catch (err) {
 testMode = "";
 statusPreview = "";
@@ -226,8 +251,19 @@ localStorage.setItem(MOCK_STORAGE_KEY, JSON.stringify(list.slice(-MOCK_STORAGE_M
 
 function isLoggedIn() {
 try {
-const user = JSON.parse(localStorage.getItem(window.GM_STORAGE_KEYS.user) || "null");
+const keys = window.GM_STORAGE_KEYS;
+if (!keys || !keys.user) return false;
+const user = JSON.parse(localStorage.getItem(keys.user) || "null");
 return !!(user && user.name);
+} catch (err) {
+return false;
+}
+}
+
+function hasDashboardSession() {
+try {
+const s = JSON.parse(localStorage.getItem(MOCK_DASHBOARD_SESSION_KEY) || "null");
+return !!(s && typeof s.whatsapp === "string" && typeof s.loggedInAt === "number");
 } catch (err) {
 return false;
 }
@@ -278,7 +314,7 @@ return delay(testMode === "slow" ? MOCK_SLOW_DELAY_MS : MOCK_DELAY_MS).then(() =
 getMine: function () {
 return delay(300).then(() => {
     if (testMode === "network") return fail("NETWORK");
-    if (!isLoggedIn()) return fail("UNAUTHENTICATED");
+    if (!isLoggedIn() && !hasDashboardSession()) return fail("UNAUTHENTICATED");
     if (statusPreview === "none") return ok({ mine: null });
 
     const list = read();
