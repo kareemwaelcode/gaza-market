@@ -213,7 +213,7 @@ body.dark-mode .add-listing-upload p {
 body.dark-mode .condition-btn {
   background: #222;
   border-color: #2e2e2e;
-  color: #666;
+  color: #b5b5b5;
 }
 body.dark-mode .condition-btn:hover {
   background: color-mix(in srgb, var(--primary) 12%, #222);
@@ -12158,6 +12158,14 @@ html[dir="rtl"] .market-gallery__nav .places-icon {
   color: #12803f;
 }
 
+.market-confirm__title {
+  color: var(--gm-text);
+}
+
+.market-confirm__desc {
+  color: var(--gm-muted);
+}
+
 .market-confirm__err {
   margin: 0 0 1rem;
   color: var(--gm-red);
@@ -12336,4 +12344,33 @@ html[dir="rtl"] .market-gallery__nav .places-icon {
   .market-gallery__stage.is-loading::before {
     animation: none;
   }
+}
+
+body.dark-mode .add-listing-submit-btn,
+body.dark-mode .price-success-actions .btn-primary {
+  color: #111820;
+}
+
+body.dark-mode .gm-submit-btn {
+  color: #111820 !important;
+}
+
+body.dark-mode .add-listing-submit-btn:hover,
+body.dark-mode .gm-submit-btn:hover,
+body.dark-mode .price-success-actions .btn-primary:hover,
+body.dark-mode .price-success-actions .btn-primary:focus {
+  color: #fff !important;
+}
+
+body.dark-mode .addition-modal-content {
+  color: var(--text);
+}
+
+body.dark-mode .addition-modal-content .text-muted {
+  color: var(--text-muted) !important;
+}
+
+body.dark-mode .add-price-upload span,
+body.dark-mode .npw-price-currency {
+  color: var(--text-muted);
 }

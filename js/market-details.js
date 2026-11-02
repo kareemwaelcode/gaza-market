@@ -639,6 +639,16 @@
     }
   }
 
+  function openEdit() {
+    if (!item || !item.is_owner || item.status !== 'pending' || !window.GMListingForm) return;
+    window.GMListingForm.openEdit(item, function (updated) {
+      item = updated;
+      render();
+      loadSimilar(loadSeq);
+      showToast('marketDetails.editSaved');
+    });
+  }
+
   function openConfirm(action) {
     if (!item || !item.is_owner || !confirmModal || typeof bootstrap === 'undefined') return;
     confirmAction = action;
@@ -750,6 +760,7 @@
   saveBtn.addEventListener('click', toggleSave);
   shareBtn.addEventListener('click', share);
   retryBtn.addEventListener('click', load);
+  editBtn.addEventListener('click', openEdit);
   deleteBtn.addEventListener('click', function () { openConfirm('delete'); });
   soldBtn.addEventListener('click', function () { openConfirm('sold'); });
   confirmYes.addEventListener('click', runConfirm);

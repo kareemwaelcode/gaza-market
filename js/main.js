@@ -1217,7 +1217,7 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
       }
       if (file.size > MAX_IMAGE_BYTES) {
-        alert(t("addPrice.errImageSize", `حجم الصورة أكبر من ${MAX_IMAGE_MB}MB`));
+        alert(t("addPrice.errImageSize", "حجم الصورة أكبر من {n}MB").replace("{n}", MAX_IMAGE_MB));
         reset();
         return;
       }
@@ -1262,7 +1262,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const remainingSlots = MAX_LISTING_IMAGES - items.length;
       if (remainingSlots <= 0) {
-        showError(t("addListing.errMax", `الحد الأقصى ${MAX_LISTING_IMAGES} صور`));
+        showError(t("addListing.errMax", "الحد الأقصى {n} صور").replace("{n}", MAX_LISTING_IMAGES));
         return;
       }
 
@@ -1279,7 +1279,7 @@ document.addEventListener("DOMContentLoaded", () => {
           return;
         }
         if (file.size > MAX_IMAGE_BYTES) {
-          showError(t("addListing.errImageSize", `حجم الصورة أكبر من ${MAX_IMAGE_MB}MB`));
+          showError(t("addListing.errImageSize", "حجم الصورة أكبر من {n}MB").replace("{n}", MAX_IMAGE_MB));
           rejected = true;
           return;
         }
@@ -1299,7 +1299,7 @@ document.addEventListener("DOMContentLoaded", () => {
     function removeItem(tileEl) {
       const idx = items.findIndex((it) => it.tile === tileEl);
       if (idx === -1) return;
-      URL.revokeObjectURL(items[idx].url);
+      if (items[idx].url) URL.revokeObjectURL(items[idx].url);
       items.splice(idx, 1);
       tileEl.remove();
       clearError();
@@ -1335,7 +1335,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     function reset() {
-      items.forEach((it) => URL.revokeObjectURL(it.url));
+      items.forEach((it) => { if (it.url) URL.revokeObjectURL(it.url); });
       items = [];
       grid.querySelectorAll(".gm-image-tile--filled").forEach((n) => n.remove());
       clearError();
@@ -1346,8 +1346,22 @@ document.addEventListener("DOMContentLoaded", () => {
       return items.map((it) => it.file);
     }
 
+    function setExisting(urls) {
+      reset();
+      const fragment = document.createDocumentFragment();
+      (Array.isArray(urls) ? urls : []).slice(0, MAX_LISTING_IMAGES).forEach((src) => {
+        if (typeof src !== "string" || !src) return;
+        const tileNode = tileTemplate.content.firstElementChild.cloneNode(true);
+        tileNode.querySelector(".gm-image-tile-img").src = src;
+        fragment.appendChild(tileNode);
+        items.push({ file: src, url: null, tile: tileNode });
+      });
+      grid.insertBefore(fragment, addTile);
+      updateCount();
+    }
+
     updateCount();
-    return { reset, getFiles, get count() { return items.length; } };
+    return { reset, getFiles, setExisting, get count() { return items.length; } };
   }
 
  function initStepWizard(modalEl, { validateStep, onSubmit, onStepChange, onFirstStepBack } = {}) {
@@ -1685,6 +1699,11 @@ document.addEventListener("DOMContentLoaded", () => {
       errId: "listingImagesErr",
     });
 
+    const formTitleEl = document.getElementById("addListingModalLabel");
+    const formSubmitBtn = modalEl.querySelector("[data-step-next]");
+    let editing = null;
+    let editFresh = false;
+
     let selectedCategory = null;
     let selectedCategoryLabel = "";
 
@@ -1754,7 +1773,11 @@ document.addEventListener("DOMContentLoaded", () => {
       btn.setAttribute("aria-pressed", "true");
     });
 
-    const conditionLabels = { new: "جديد", used: "مستعمل", urgent: "عاجل" };
+    const conditionLabels = {
+      get new() { return t("addListing.new", "جديد"); },
+      get used() { return t("addListing.used", "مستعمل"); },
+      get urgent() { return t("addListing.urgent", "عاجل"); },
+    };
 
     function validateStep(step) {
       if (step === 1) {
@@ -1776,7 +1799,7 @@ document.addEventListener("DOMContentLoaded", () => {
         return { valid: true };
       }
       if (step === 7) {
-        const regionOk = !!selectedRegion && (!window.GMRegions || window.GMRegions.isValid(selectedRegion));
+        const regionOk = !!selectedRegion && (!window.GMRegions || !!window.GMRegions.normalize(selectedRegion));
         regionOk ? clearFieldError(regionErr, regionGrid) : showFieldError(regionErr, regionGrid);
         if (!regionOk) return { valid: false, focusEl: regionGrid };
         return { valid: true };
@@ -1821,8 +1844,8 @@ document.addEventListener("DOMContentLoaded", () => {
         title: nameInput?.value?.trim() || "—",
         type: typeText || "—",
         region: selectedRegionLabel || "—",
-        price: priceInput?.value ? `₪${priceInput.value}${negotiableInput?.checked ? " (قابل للتفاوض)" : ""}` : "غير محدد",
-        images: images?.count ? `${images.count} صورة` : "بدون صور",
+        price: priceInput?.value ? `₪${priceInput.value}${negotiableInput?.checked ? " " + t("addListing.reviewNegotiable", "(قابل للتفاوض)") : ""}` : t("addListing.reviewNoPrice", "غير محدد"),
+        images: images?.count ? t("addListing.reviewImageCount", "{n} صورة").replace("{n}", images.count) : t("addListing.reviewNoImages", "بدون صور"),
         phone: phoneInput?.value?.trim() || "—",
         whatsapp: whatsappInput?.value?.trim() || "—",
       };
@@ -1878,6 +1901,10 @@ document.addEventListener("DOMContentLoaded", () => {
         showSubmitError("addListing.errSessionExpired", "انتهت جلستك، سجّل دخولك من جديد");
         return;
       }
+      if (code === "forbidden") {
+        showSubmitError("addListing.errLocked", "ما عاد ممكن تعدّل هالإعلان لأن حالته تغيّرت، حدّث الصفحة");
+        return;
+      }
       if (code === "rate_limited") {
         showSubmitError("addListing.errRateLimited", "محاولات كثيرة، انتظر قليلاً وحاول مرة أخرى");
         return;
@@ -1899,6 +1926,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
       try {
         if (!window.GMMarket) throw new Error("GMMarket missing");
+        if (editing) {
+          const saved = await window.GMMarket.update(editing.item.listing_id, payload);
+          setBtnLoading(btn, false);
+          hideModal("addListingModal");
+          if (typeof editing.onSaved === "function") editing.onSaved(saved);
+          return;
+        }
         const item = await window.GMMarket.create(payload);
         hideModal("addListingModal");
         window.location.href = LISTING_PAGE + "?id=" + encodeURIComponent(item.listing_id);
@@ -1920,6 +1954,10 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function goBackToAdditionMenu() {
+      if (editing) {
+        hideModal("addListingModal");
+        return;
+      }
       resetForm();
       switchModal("addListingModal", "additionModal");
     }
@@ -1930,6 +1968,35 @@ document.addEventListener("DOMContentLoaded", () => {
       onStepChange: populateReview,
       onFirstStepBack: goBackToAdditionMenu,
     });
+
+    function applyFormMode() {
+      const on = !!editing;
+      if (formTitleEl) {
+        const titleKey = on ? "addListing.editTitle" : "addListing.title";
+        formTitleEl.setAttribute("data-i18n", titleKey);
+        formTitleEl.textContent = t(titleKey, on ? "تعديل الإعلان" : "إعلان جديد");
+      }
+      if (formSubmitBtn) formSubmitBtn.dataset.i18nLabelSubmit = on ? "addListing.saveEdit" : "addListing.submit";
+    }
+
+    function clickGridButton(grid, matches) {
+      const btn = Array.from(grid?.querySelectorAll(".npw-region-btn, .condition-btn") || []).find(matches);
+      if (btn) btn.click();
+    }
+
+    function prefillFromListing(src) {
+      if (nameInput) nameInput.value = src.title || "";
+      if (descriptionInput) descriptionInput.value = src.description || "";
+      if (priceInput) priceInput.value = src.price === null || src.price === undefined ? "" : String(src.price);
+      if (negotiableInput) negotiableInput.checked = !!src.negotiable;
+      if (phoneInput) phoneInput.value = src.phone || "";
+      if (whatsappInput) whatsappInput.value = src.whatsapp || "";
+      clickGridButton(categoryGrid, (b) => b.dataset.value === src.category);
+      clickGridButton(conditionGroup, (b) => b.dataset.value === src.condition);
+      const normalize = (v) => (window.GMRegions && typeof window.GMRegions.normalize === "function" ? window.GMRegions.normalize(v) : v);
+      clickGridButton(regionGrid, (b) => b.dataset.value === src.region || b.dataset.i18n === src.region || normalize(b.dataset.value) === src.region);
+      images?.setExisting(src.images);
+    }
 
     function resetForm() {
       if (modalEl.hasAttribute("data-gm-suppress-reset")) {
@@ -1949,10 +2016,23 @@ document.addEventListener("DOMContentLoaded", () => {
       [nameErr, categoryErr, descriptionErr, phoneErr, whatsappErr, regionErr, submitErr].forEach((el) => el?.classList.remove("show"));
       modalEl.querySelectorAll(".gm-invalid-input").forEach((el) => el.classList.remove("gm-invalid-input"));
       modalEl.querySelectorAll(".gm-form-card.gm-invalid").forEach((el) => el.classList.remove("gm-invalid"));
+      if (!editFresh) editing = null;
+      editFresh = false;
+      applyFormMode();
+      if (editing) prefillFromListing(editing.item);
       wizard?.reset();
     }
 
     modalEl.addEventListener("show.bs.modal", resetForm);
+
+    window.GMListingForm = Object.freeze({
+      openEdit(listing, onSaved) {
+        if (!listing || !listing.listing_id) return;
+        editing = { item: listing, onSaved: onSaved };
+        editFresh = true;
+        showModal("addListingModal");
+      },
+    });
   }
 
   function initSuggestProductModal() {
