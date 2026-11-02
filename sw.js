@@ -30,7 +30,6 @@ const PRECACHE = [
   'js/menu.js',
   'js/booking.js',
   'js/workspace.js',
-  'js/exchange-rates.js',
   'js/prices-api.js',
   'js/market-api.js',
   'js/market.js',

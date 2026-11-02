@@ -3804,14 +3804,14 @@ body.gm-checking #gmMain {
   background: #fff;
   top: 3px;
   inset-inline-start: 3px;
-  transition: transform 0.2s;
+  transition: inset-inline-start 0.2s;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
 }
 .add-listing-toggle input:checked + .toggle-slider {
   background: var(--blue);
 }
 .add-listing-toggle input:checked + .toggle-slider::before {
-  transform: translateX(18px);
+  inset-inline-start: 21px;
 }
 .add-listing-upload {
   border: 1.5px dashed var(--border-color);
@@ -12304,6 +12304,11 @@ html[dir="rtl"] .market-gallery__nav .places-icon {
 .market-details__tool:focus-visible {
   outline: 2px solid var(--blue);
   outline-offset: 2px;
+}
+
+.market-details__tool--danger {
+  border-color: var(--gm-red);
+  color: var(--gm-red);
 }
 
 .market-details__tool--danger:hover {
