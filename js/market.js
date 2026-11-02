@@ -134,13 +134,56 @@ if (!window.GMRegions) return code;
 return window.GMRegions.label(code, currentLang());
 }
 
+const REGION_GROUP_FALLBACK = { CentralGaza: 'Central Gaza', SouthGaza: 'South Gaza', NorthGaza: 'North Gaza' };
+const REGION_GROUP_ORDER = { south: 0, central: 1, north: 2 };
+const CHEVRON_PATH = '<path d="m6 9 6 6 6-6"/>';
+
+function regionChevron() {
+const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+svg.setAttribute('class', 'places-icon market-region-chev');
+svg.setAttribute('width', '16');
+svg.setAttribute('height', '16');
+svg.setAttribute('viewBox', '0 0 24 24');
+svg.setAttribute('fill', 'none');
+svg.setAttribute('stroke', 'currentColor');
+svg.setAttribute('stroke-width', '2');
+svg.setAttribute('stroke-linecap', 'round');
+svg.setAttribute('stroke-linejoin', 'round');
+svg.setAttribute('aria-hidden', 'true');
+svg.setAttribute('focusable', 'false');
+svg.innerHTML = CHEVRON_PATH;
+return svg;
+}
+
+function setRegionGroup(group, open) {
+group.classList.toggle('is-open', open);
+const toggle = group.querySelector('.market-region-toggle');
+if (toggle) toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+}
+
+function openRegionGroup(code) {
+if (!regionMenu) return;
+Array.prototype.forEach.call(regionMenu.querySelectorAll('.market-region-group'), function (group) {
+    setRegionGroup(group, !!code && group.dataset.group === code);
+});
+}
+
+function activeRegionGroup() {
+const active = regionMenu ? regionMenu.querySelector('[data-market-region].is-active') : null;
+const group = active ? active.closest('.market-region-group') : null;
+return group ? group.dataset.group : null;
+}
+
 function renderRegionMenu() {
 if (!regionMenu || !window.GMRegions) return;
 const lang = currentLang();
 const known = function (key) { return typeof i18n !== 'undefined' && i18n.t(key) !== key; };
+const label = function (key, fallback) { return known(key) ? i18n.t(key) : fallback; };
+const openBefore = regionMenu.querySelector('.market-region-group.is-open');
+const openCode = openBefore ? openBefore.dataset.group : null;
 const frag = document.createDocumentFragment();
 
-function addItem(value, key, text) {
+function addItem(parent, value, key, text) {
     const li = document.createElement('li');
     const btn = document.createElement('button');
     btn.type = 'button';
@@ -149,31 +192,57 @@ function addItem(value, key, text) {
     if (known(key)) btn.setAttribute('data-i18n', key);
     btn.textContent = text;
     li.appendChild(btn);
-    frag.appendChild(li);
+    parent.appendChild(li);
 }
 
-addItem('all', 'AllRegions', 'All regions');
+addItem(frag, 'all', 'AllRegions', label('AllRegions', 'All regions'));
 const divider = document.createElement('li');
 const hr = document.createElement('hr');
 hr.className = 'dropdown-divider';
 divider.appendChild(hr);
 frag.appendChild(divider);
 
-window.GMRegions.grouped().forEach(function (entry) {
+window.GMRegions.grouped().slice().sort(function (a, b) {
+    const oa = REGION_GROUP_ORDER[a.group.code];
+    const ob = REGION_GROUP_ORDER[b.group.code];
+    return (oa === undefined ? 9 : oa) - (ob === undefined ? 9 : ob);
+}).forEach(function (entry) {
+    if (!entry.regions.length) return;
+    const listId = 'marketRegionList-' + entry.group.code;
     const li = document.createElement('li');
-    const h = document.createElement('h6');
-    h.className = 'dropdown-header';
-    h.setAttribute('data-i18n', entry.group.i18n);
-    h.textContent = entry.group.i18n;
-    li.appendChild(h);
-    frag.appendChild(li);
+    li.className = 'market-region-group';
+    li.dataset.group = entry.group.code;
+
+    const toggle = document.createElement('button');
+    toggle.type = 'button';
+    toggle.className = 'dropdown-item market-region-toggle';
+    toggle.setAttribute('aria-expanded', 'false');
+    toggle.setAttribute('aria-controls', listId);
+    const name = document.createElement('span');
+    if (known(entry.group.i18n)) name.setAttribute('data-i18n', entry.group.i18n);
+    name.textContent = label(entry.group.i18n, REGION_GROUP_FALLBACK[entry.group.i18n] || entry.group.i18n);
+    toggle.appendChild(name);
+    toggle.appendChild(regionChevron());
+
+    const list = document.createElement('div');
+    list.className = 'market-region-list';
+    list.id = listId;
+    list.setAttribute('role', 'group');
+    const inner = document.createElement('ul');
+    inner.className = 'market-region-list__inner list-unstyled';
     entry.regions.forEach(function (r) {
-    addItem(r.code, r.code, lang === 'en' ? r.name_en : r.name_ar);
+    addItem(inner, r.code, r.code, lang === 'en' ? r.name_en : r.name_ar);
     });
+    list.appendChild(inner);
+
+    li.appendChild(toggle);
+    li.appendChild(list);
+    frag.appendChild(li);
 });
 
 regionMenu.textContent = '';
 regionMenu.appendChild(frag);
+openRegionGroup(openCode);
 }
 
 function hasActiveFilters() {
@@ -606,6 +675,12 @@ regionItems().forEach(function (item) {
     else item.removeAttribute('aria-current');
 });
 
+if (regionMenu) {
+    Array.prototype.forEach.call(regionMenu.querySelectorAll('.market-region-group'), function (group) {
+    group.classList.toggle('has-active', !!group.querySelector('[data-market-region].is-active'));
+    });
+}
+
 const categoryActive = state.category !== 'all';
 categoryBtn.classList.toggle('is-active', categoryActive);
 categoryLabel.textContent = categoryActive ? t(CATEGORY_KEYS[state.category]) : t('market.filterCategory');
@@ -681,6 +756,24 @@ requireAuth(function () {
 });
 }
 
+if (regionMenu) {
+regionMenu.addEventListener('click', function (e) {
+    const toggle = e.target.closest('.market-region-toggle');
+    if (!toggle) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const group = toggle.closest('.market-region-group');
+    if (!group) return;
+    openRegionGroup(group.classList.contains('is-open') ? null : group.dataset.group);
+});
+}
+
+if (regionBtn) {
+regionBtn.addEventListener('show.bs.dropdown', function () {
+    openRegionGroup(activeRegionGroup());
+});
+}
+
 document.addEventListener('click', function (e) {
 const target = e.target.closest('[data-market-all],[data-market-tab],[data-market-category],[data-market-condition],[data-market-region]');
 if (!target) return;
@@ -737,6 +830,7 @@ new MutationObserver(function () {
 const lang = currentLang();
 if (lang === lastLang) return;
 lastLang = lang;
+renderRegionMenu();
 Array.prototype.forEach.call(list.children, paintCard);
 syncFilterUI();
 if (panel === 'empty' || panel === 'error' || panel === 'login') showPanel(panel);

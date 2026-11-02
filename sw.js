@@ -1,5 +1,5 @@
 const CACHE_PREFIX = 'gm-';
-const CACHE_VERSION = 'gm-v33';
+const CACHE_VERSION = 'gm-v36';
 const SCOPE = self.registration.scope;
 
 const PRECACHE = [

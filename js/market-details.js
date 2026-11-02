@@ -32,6 +32,10 @@
   const callBtn = document.getElementById('marketCall');
   const callNum = document.getElementById('marketCallNum');
   const waBtn = document.getElementById('marketWa');
+  const callGroup = document.getElementById('marketCallGroup');
+  const waGroup = document.getElementById('marketWaGroup');
+  const copyCallBtn = document.getElementById('marketCopyCall');
+  const copyWaBtn = document.getElementById('marketCopyWa');
   const saveBtn = document.getElementById('marketSave');
   const saveText = document.getElementById('marketSaveText');
   const shareBtn = document.getElementById('marketShare');
@@ -61,6 +65,7 @@
   const SIMILAR_LIMIT = 8;
   const SWIPE_PX = 40;
   const TOAST_MS = 2400;
+  const COPY_FEEDBACK_MS = 1800;
   const MONTH_SECONDS = 30 * 86400;
   const DEFAULT_COUNTRY_CODE = '970';
 
@@ -100,6 +105,7 @@
   let loadSeq = 0;
   let stateKind = null;
   let toastTimer = 0;
+  const copyTimers = {};
   let swipe = null;
   let confirmAction = null;
   let confirmBusy = false;
@@ -314,6 +320,7 @@
 
   function paintContact() {
     const tel = phoneHref(item.phone);
+    callGroup.hidden = !tel;
     callBtn.hidden = !tel;
     if (tel) {
       callBtn.href = tel;
@@ -321,11 +328,69 @@
     }
 
     const digits = whatsappDigits(item.whatsapp);
+    waGroup.hidden = !digits;
     waBtn.hidden = !digits;
     if (digits) {
       const text = t('marketDetails.waMessage').replace('{title}', item.title);
       waBtn.href = 'https://wa.me/' + digits + '?text=' + encodeURIComponent(text);
     }
+
+    copyCallBtn.setAttribute('aria-label', t('marketDetails.copyPhone'));
+    copyWaBtn.setAttribute('aria-label', t('marketDetails.copyWhatsapp'));
+  }
+
+  function legacyCopy(text) {
+    return new Promise(function (resolve, reject) {
+      const area = document.createElement('textarea');
+      area.value = text;
+      area.setAttribute('readonly', '');
+      area.style.position = 'fixed';
+      area.style.opacity = '0';
+      area.style.pointerEvents = 'none';
+      document.body.appendChild(area);
+      area.select();
+      area.setSelectionRange(0, text.length);
+      let ok = false;
+      try {
+        ok = document.execCommand('copy');
+      } catch (err) {
+        ok = false;
+      }
+      area.remove();
+      if (ok) resolve();
+      else reject(new Error('copy-failed'));
+    });
+  }
+
+  function copyText(text) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      return navigator.clipboard.writeText(text).catch(function () {
+        return legacyCopy(text);
+      });
+    }
+    return legacyCopy(text);
+  }
+
+  function flashCopied(btn) {
+    const label = btn.querySelector('[data-copy-label]');
+    btn.classList.add('is-copied');
+    label.textContent = t('marketDetails.copyDone');
+    clearTimeout(copyTimers[btn.id]);
+    copyTimers[btn.id] = setTimeout(function () {
+      btn.classList.remove('is-copied');
+      label.textContent = t('marketDetails.copy');
+    }, COPY_FEEDBACK_MS);
+  }
+
+  function copyContact(btn, field) {
+    if (!item) return;
+    const value = String(item[field] || '').trim();
+    if (!value) return;
+    copyText(value).then(function () {
+      flashCopied(btn);
+    }, function () {
+      showToast('marketDetails.copyFailed');
+    });
   }
 
   function paintSeller() {
@@ -757,6 +822,8 @@
     placeholder.hidden = false;
   });
 
+  copyCallBtn.addEventListener('click', function () { copyContact(copyCallBtn, 'phone'); });
+  copyWaBtn.addEventListener('click', function () { copyContact(copyWaBtn, 'whatsapp'); });
   saveBtn.addEventListener('click', toggleSave);
   shareBtn.addEventListener('click', share);
   retryBtn.addEventListener('click', load);
