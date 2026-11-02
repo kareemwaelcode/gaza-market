@@ -12096,6 +12096,10 @@ html[dir="rtl"] .market-gallery__nav .places-icon {
   gap: 0.6rem;
 }
 
+.market-details__tools[hidden] {
+  display: none;
+}
+
 .market-details__tool {
   display: inline-flex;
   flex: 1 1 120px;
@@ -12125,6 +12129,57 @@ html[dir="rtl"] .market-gallery__nav .places-icon {
 .market-details__tool:focus-visible {
   outline: 2px solid var(--blue);
   outline-offset: 2px;
+}
+
+.market-details__tool--danger:hover {
+  border-color: var(--gm-red);
+  color: var(--gm-red);
+}
+
+.market-confirm__icon {
+  display: grid;
+  width: 56px;
+  height: 56px;
+  place-items: center;
+  border-radius: 50%;
+}
+
+.market-confirm__icon[hidden] {
+  display: none;
+}
+
+.market-confirm__icon--danger {
+  background: color-mix(in srgb, var(--gm-red) 14%, var(--bg));
+  color: var(--gm-red);
+}
+
+.market-confirm__icon--ok {
+  background: color-mix(in srgb, #12803f 14%, var(--bg));
+  color: #12803f;
+}
+
+.market-confirm__err {
+  margin: 0 0 1rem;
+  color: var(--gm-red);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.market-details__private {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.65rem;
+  border: 1px solid var(--border-color);
+  border-radius: 999px;
+  background: var(--gm-surface-2);
+  color: var(--gm-muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.market-details__private[hidden] {
+  display: none;
 }
 
 .market-details__tool.is-on {
@@ -12197,11 +12252,15 @@ html[dir="rtl"] .market-gallery__nav .places-icon {
 }
 
 .market-details__desc {
-  margin-top: 1.25rem;
-  padding: 1.1rem;
-  border: 1px solid var(--border-color);
-  border-radius: 16px;
-  background: var(--bg);
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--border-color);
+}
+
+.market-details__desc-title {
+  margin: 0 0 0.5rem;
+  color: var(--gm-text);
+  font-size: 0.95rem;
+  font-weight: 800;
 }
 
 .market-details__heading {

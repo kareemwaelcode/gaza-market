@@ -36,6 +36,18 @@
   const saveText = document.getElementById('marketSaveText');
   const shareBtn = document.getElementById('marketShare');
   const descEl = document.getElementById('marketDesc');
+  const privateEl = document.getElementById('marketPrivate');
+  const ownerBox = document.getElementById('marketOwner');
+  const editBtn = document.getElementById('marketEdit');
+  const deleteBtn = document.getElementById('marketDelete');
+  const soldBtn = document.getElementById('marketSold');
+  const confirmModal = document.getElementById('marketConfirmModal');
+  const confirmIconDelete = document.getElementById('marketConfirmIconDelete');
+  const confirmIconSold = document.getElementById('marketConfirmIconSold');
+  const confirmTitle = document.getElementById('marketConfirmTitle');
+  const confirmDesc = document.getElementById('marketConfirmDesc');
+  const confirmErr = document.getElementById('marketConfirmErr');
+  const confirmYes = document.getElementById('marketConfirmYes');
   const sellerAvatar = document.getElementById('marketSellerAvatar');
   const sellerName = document.getElementById('marketSellerName');
   const sellerSince = document.getElementById('marketSellerSince');
@@ -89,6 +101,8 @@
   let stateKind = null;
   let toastTimer = 0;
   let swipe = null;
+  let confirmAction = null;
+  let confirmBusy = false;
 
   function t(key) {
     return typeof i18n !== 'undefined' && i18n.t ? i18n.t(key) : key;
@@ -363,9 +377,13 @@
     regionEl.parentNode.hidden = !regionText;
     regionEl.textContent = regionText;
 
+    const isPending = item.status === 'pending';
     const stamp = item.approved_at || item.created_at;
-    postedEl.parentNode.hidden = !stamp;
-    if (stamp) {
+    postedEl.parentNode.hidden = !isPending && !stamp;
+    if (isPending) {
+      postedEl.textContent = t('marketDetails.awaiting');
+      postedEl.removeAttribute('title');
+    } else if (stamp) {
       postedEl.textContent = relativeTime(stamp);
       postedEl.title = new Date(stamp).toLocaleString(currentLang());
     }
@@ -379,10 +397,21 @@
     document.title = t('marketDetails.docTitle').replace('{title}', item.title);
   }
 
+  function paintOwnerActions() {
+    const owner = !!item.is_owner;
+    const isPending = item.status === 'pending';
+    editBtn.hidden = !(owner && isPending);
+    deleteBtn.hidden = !(owner && isPending);
+    soldBtn.hidden = !(owner && item.status === 'approved');
+    ownerBox.hidden = !owner;
+  }
+
   function render() {
     const isPending = item.status === 'pending';
     saveBtn.hidden = isPending;
     shareBtn.hidden = isPending;
+    privateEl.hidden = !isPending;
+    paintOwnerActions();
     paint();
     setupGallery(item.images);
   }
@@ -549,7 +578,7 @@
       item = data;
       render();
       setView('content');
-      if (item.status === 'approved') loadSimilar(seq);
+      loadSimilar(seq);
     }).catch(function (err) {
       if (seq !== loadSeq) return;
       showState(err && err.code === 'not_found' ? 'notfound' : 'error');
@@ -610,6 +639,66 @@
     }
   }
 
+  function openConfirm(action) {
+    if (!item || !item.is_owner || !confirmModal || typeof bootstrap === 'undefined') return;
+    confirmAction = action;
+    confirmBusy = false;
+    const isDelete = action === 'delete';
+    confirmIconDelete.hidden = !isDelete;
+    confirmIconSold.hidden = isDelete;
+    confirmTitle.textContent = t(isDelete ? 'marketDetails.confirmDeleteTitle' : 'marketDetails.confirmSoldTitle');
+    confirmDesc.textContent = t(isDelete ? 'marketDetails.confirmDeleteDesc' : 'marketDetails.confirmSoldDesc');
+    confirmYes.textContent = t(isDelete ? 'marketDetails.confirmDeleteBtn' : 'marketDetails.confirmSoldBtn');
+    confirmYes.classList.toggle('btn-danger', isDelete);
+    confirmYes.classList.toggle('btn-primary', !isDelete);
+    confirmYes.disabled = false;
+    confirmYes.classList.remove('loading');
+    confirmErr.hidden = true;
+    bootstrap.Modal.getOrCreateInstance(confirmModal).show();
+  }
+
+  function closeConfirm() {
+    if (typeof bootstrap === 'undefined') return;
+    const instance = bootstrap.Modal.getInstance(confirmModal);
+    if (instance) instance.hide();
+  }
+
+  function showConfirmError(key) {
+    confirmErr.textContent = t(key);
+    confirmErr.hidden = false;
+    confirmYes.disabled = false;
+    confirmYes.classList.remove('loading');
+    confirmBusy = false;
+  }
+
+  function runConfirm() {
+    if (!item || !api || !confirmAction || confirmBusy) return;
+    confirmBusy = true;
+    confirmErr.hidden = true;
+    confirmYes.disabled = true;
+    confirmYes.classList.add('loading');
+
+    const id = item.listing_id;
+    const job = confirmAction === 'delete' ? api.remove(id) : api.markSold(id);
+    job.then(function () {
+      window.location.replace(LIST_PAGE);
+    }).catch(function (err) {
+      const code = err && err.code;
+      if (code === 'not_found') {
+        window.location.replace(LIST_PAGE);
+      } else if (code === 'unauthorized') {
+        closeConfirm();
+        requireAuth(function () {});
+      } else if (code === 'forbidden') {
+        showConfirmError('marketDetails.actionLocked');
+      } else if (code === 'network' || code === 'timeout') {
+        showConfirmError('marketDetails.actionNetwork');
+      } else {
+        showConfirmError('marketDetails.actionFailed');
+      }
+    });
+  }
+
   function directionFor(forward) {
     const base = forward ? 1 : -1;
     return isRtl() ? -base : base;
@@ -661,6 +750,15 @@
   saveBtn.addEventListener('click', toggleSave);
   shareBtn.addEventListener('click', share);
   retryBtn.addEventListener('click', load);
+  deleteBtn.addEventListener('click', function () { openConfirm('delete'); });
+  soldBtn.addEventListener('click', function () { openConfirm('sold'); });
+  confirmYes.addEventListener('click', runConfirm);
+  if (confirmModal) {
+    confirmModal.addEventListener('hidden.bs.modal', function () {
+      confirmAction = null;
+      confirmBusy = false;
+    });
+  }
 
   backLink.addEventListener('click', function (e) {
     if (window.history.length < 2 || !document.referrer) return;
