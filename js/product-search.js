@@ -1,16 +1,4 @@
 'use strict';
-
-/*
-* بحث المنتجات مع Debouncing لكل حقل بحث.
-*
-* الحقول المستهدفة:
-*   1) بحث الناف بار:                 input.search-input
-*   2) حقل المنتج في مودال إضافة سعر:  #productSearch
-*
-* كل حقل إله مؤقّته وطلبه الخاص: الطلب ما بنطلع إلا بعد ما المستخدم يوقف كتابة
-* DELAY_MS، والطلب القديم بينلغي لو بدأ طلب جديد، وأي رد متأخر بيتجاهل.
-* الباك إند: GET /api/products/search?q=...  (عام، بدون تسجيل دخول، المعتمد فقط)
-*/
 (function () {
 var CONFIG = Object.assign({ API_BASE: '/api', TIMEOUT_MS: 15000, CREDENTIALS: 'same-origin' }, window.GM_CONFIG || {});
 var API_BASE = String(CONFIG.API_BASE).replace(/\/+$/, '');
@@ -27,12 +15,11 @@ var TARGETS = [
 ];
 
 var MOCK_ROWS = [
-{ id: 1, name_ar: 'سكر أبيض', name_en: 'White sugar', quantity: '1.00', price: '8.00', store_name: 'بقالة أبو محمد', area: { name_ar: 'النصيرات' } },
-{ id: 2, name_ar: 'أرز مصري', name_en: 'Egyptian rice', quantity: '1.00', price: '6.50', store_name: 'سوبرماركت الأمل', area: { name_ar: 'الرمال' } },
-{ id: 3, name_ar: 'زيت دوار الشمس', name_en: 'Sunflower oil', quantity: '1.00', price: '14.00', store_name: 'بقالة الشروق', area: { name_ar: 'الشجاعية' } },
+{ id: 1, name_ar: 'سكر أبيض', name_en: 'White sugar', quantity: '1.00', unit: { name_ar: 'كيلو', name_en: 'kg' } },
+{ id: 2, name_ar: 'أرز مصري', name_en: 'Egyptian rice', quantity: '1.00', unit: { name_ar: 'كيلو', name_en: 'kg' } },
+{ id: 3, name_ar: 'زيت دوار الشمس', name_en: 'Sunflower oil', quantity: '1.00', unit: { name_ar: 'لتر', name_en: 'L' } },
 ];
 
-// ---------- debounce ----------
 function debounce(fn, wait) {
 var timer = null;
 function debounced() {
@@ -64,6 +51,16 @@ function pickName(item) {
 var ar = item.name_ar;
 var en = item.name_en;
 return (isEnglish() ? en || ar : ar || en) || '';
+}
+
+// الحجم: "1 كيلو" (الكمية بدون أصفار زيادة + اسم الوحدة بلغة الصفحة)
+function sizeText(item) {
+var qty = Number(item.quantity);
+var unit = item.unit ? (isEnglish() ? item.unit.name_en || item.unit.name_ar : item.unit.name_ar || item.unit.name_en) : '';
+var parts = [];
+if (isFinite(qty) && item.quantity !== null && item.quantity !== undefined && item.quantity !== '') parts.push(String(+qty.toFixed(2)));
+if (unit) parts.push(unit);
+return parts.join(' ');
 }
 
 // ---------- الطلب ----------
@@ -183,14 +180,13 @@ function render(rows) {
     name.textContent = pickName(item);
     li.appendChild(name);
 
-    var meta = [];
-    if (item.price !== undefined && item.price !== null) meta.push('₪' + Number(item.price).toFixed(2));
-    if (item.store_name) meta.push(item.store_name);
-    if (item.area) meta.push(isEnglish() ? item.area.name_en || item.area.name_ar : item.area.name_ar || item.area.name_en);
+    var size = sizeText(item);
+    li.dataset.id = String(item.id);
+    li.dataset.label = size ? pickName(item) + ' (' + size + ')' : pickName(item);
 
     var metaEl = document.createElement('span');
     metaEl.className = 'gm-psearch-meta';
-    metaEl.textContent = meta.filter(Boolean).join(' • ');
+    metaEl.textContent = size;
     li.appendChild(metaEl);
 
     list.appendChild(li);
@@ -233,6 +229,9 @@ function run() {
 var debouncedRun = debounce(run, DELAY_MS);
 
 input.addEventListener('input', function () {
+    // أي تعديل يدوي بيلغي المنتج المختار: لازم يختار من القائمة من جديد
+    if (opts.pickFills) delete input.dataset.productId;
+
     if (input.value.trim().length < MIN_CHARS) {
     debouncedRun.cancel();
     cancelPending();
@@ -258,7 +257,8 @@ list.addEventListener('mousedown', function (e) {
     if (opts.pickFills) {
     debouncedRun.cancel();
     cancelPending();
-    input.value = li.dataset.name || '';
+    input.value = li.dataset.label || li.dataset.name || '';
+    input.dataset.productId = li.dataset.id || '';
     }
     hide();
 });
